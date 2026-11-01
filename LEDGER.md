@@ -2480,3 +2480,35 @@ projection; commits on master (no reproducible baseline yet).
   per slice); residual god objects
   (`verdict.go`, `worker_subprocess.go`, `mcp_terminal_tools.go`)
   triage still pending.
+
+## Phase 4c ledger — residual god-object triage — VERIFIED COHESIVE (no split)
+- `verdict.go` (818 lines): single writer — `fileCriterionVerdict`
+  is called only from `cli_tasks.go:286` (transport → service);
+  both `INSERT`s live in this file; DDL helpers are invoked by
+  schema paths (`task_schema.go:475`, `task_readmodel.go:103`);
+  attention via the shared `openAttention` service (same as
+  `cli_attention.go`), a bounded business side effect of filing, not
+  a second authority. Cohesive verdict ledger.
+- `worker_subprocess.go` (440 lines): sole writer of
+  `worker_consumers`; external users call the read-only
+  `attachedWorkerConsumer` (`task_dispatch.go`, `task_readmodel.go`)
+  or enter via transport (`cli_tasks.go`) / phases
+  (`worker_phases.go:150` claim); execution bodies already live in
+  `worker_run.go`/`worker_phases.go`. Cohesive loop-driver+registry.
+- `mcp_terminal_tools.go` (589 lines): read dispatch
+  (`mcpToolTerminal` status/output, unauthenticated by design like
+  all `mcp_read_*`) vs three mutating entries (input/resize/stop),
+  each `mcpAuthCaller` + `mcpTerminalGate` + lease-authority
+  delegation; reads bounded (`readTail`/capped lines) and refuse
+  stale output for dead sessions. Already separated per F-08/F-02.
+- `mcp_provision_tools.go`: persistence faces are one-line compat
+  wrappers delegating to `ProvisionRepository`
+  (`Ensure`/`Load`/`CompareAndSet`); real authorities are
+  `provision_repository.go` (persistence), `provision_service.go`
+  (lifecycle), `mcpProvisionSessionBackend` (adapter). No dual write.
+- `muse_host.go` (427 lines): pure JSON-RPC child-process wrapper
+  (start/call/notify/readLoop/Close); no task/session/ledger
+  authority. Cohesive.
+- Disposition: VERIFIED COHESIVE for all five — file size alone is
+  not a conflict; no dual writers, no bypassed invariants, no
+  second dispatchers found. No code changes.
