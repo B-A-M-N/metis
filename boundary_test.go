@@ -459,3 +459,63 @@ func TestBoundaryNoStatusSniffing(t *testing.T) {
 		})
 	}
 }
+
+// (i) Input delivery is lease-mediated: every tmux send-keys
+// execution must run inside the lease authority
+// (terminal_input_queue.go, which sends only under the lease it
+// holds) or inside a function that acquires the input lease first
+// (session_guidance.go direct-delivery paths via tmuxAcquireLease,
+// TD-061 single writer). A new blind send-keys site would let two
+// controllers interleave keystrokes on one terminal (P1-1b, pinned
+// behaviorally by F-08/F-11 lease tests); the guard fails the build
+// of that future.
+func TestBoundarySendKeysRequiresLease(t *testing.T) {
+	for _, path := range globSourceFiles(t, "*.go") {
+		_, f := parseSource(t, path)
+		leaseFuncs := map[string]bool{}
+		ast.Inspect(f, func(n ast.Node) bool {
+			fn, ok := n.(*ast.FuncDecl)
+			if !ok {
+				return true
+			}
+			leases := false
+			ast.Inspect(fn.Body, func(m ast.Node) bool {
+				call, ok := m.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				if id, ok := call.Fun.(*ast.Ident); ok && id.Name == "tmuxAcquireLease" {
+					leases = true
+					return false
+				}
+				return true
+			})
+			if leases {
+				leaseFuncs[fn.Name.Name] = true
+			}
+			return false
+		})
+		var enclosing string
+		ast.Inspect(f, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.FuncDecl:
+				enclosing = node.Name.Name
+				return true
+			case *ast.CallExpr:
+				id, ok := node.Fun.(*ast.Ident)
+				if !ok || id.Name != "tmux" || len(node.Args) == 0 {
+					return true
+				}
+				lit, ok := node.Args[0].(*ast.BasicLit)
+				if !ok || lit.Value != `"send-keys"` {
+					return true
+				}
+				if path == "terminal_input_queue.go" || leaseFuncs[enclosing] {
+					return true
+				}
+				t.Errorf("%s: send-keys in %s without an input lease: acquire tmuxAcquireLease first (TD-061) or route through terminal_input_queue", path, enclosing)
+			}
+			return true
+		})
+	}
+}

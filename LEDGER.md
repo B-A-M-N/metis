@@ -2543,3 +2543,30 @@ projection; commits on master (no reproducible baseline yet).
   parser; cross-machine remote transport — explicitly refused by
   design (local-only), any real round trip needs operator setup;
   project triads (Locus/Jeverb/Ocliv backends absent).
+
+## Phase 5 ledger — P1-1b lease-authority closure — FIXED
+- Blocker resolved: the "needs lease-authority design" prerequisite
+  is satisfied by F-08 (MCP input/resize/stop: lease + generation
+  fence + idempotency, 11 tests), F-11 (sender lifecycle registry
+  backend+gen, retire, stale-gen reject), and the TD-061 single
+  writer (`tmuxAcquireLease` in `pty_lease.go`, enforced inside
+  `terminal_input_queue.go`).
+- Exhaustive audit: `grep send-keys` over non-test sources finds 4
+  execution sites — `terminal_input_queue.go:170,175` (inside the
+  lease authority, under the lease it holds) and
+  `session_guidance.go:81,84,109,114` (both functions acquire
+  `tmuxAcquireLease` + `resolveOwnedTarget` before sending; PTY
+  guidance uses `ptyInput`). No blind (lease-less) send-keys
+  remains; PTY input and MCP resize/stop were already fenced.
+- New mechanical guard: `TestBoundarySendKeysRequiresLease`
+  (`boundary_test.go`, guard (i)) — every `tmux("send-keys", …)`
+  call site must live in `terminal_input_queue.go` or in a function
+  containing a `tmuxAcquireLease` call. Mutation proof: rogue file
+  with blind send-keys → FAIL naming file+function+remedy; rogue
+  removed → green.
+- Tests passed: full `TestBoundary*` suite; focused
+  lease/sender/input/control/guidance/attach groups with `-race`
+  (30.8s) green; vet clean.
+- Residual: none locally actionable — live-operator keystroke
+  delivery timing under real load is live-qualification (blocked on
+  operator-run sessions, no quota spent).
