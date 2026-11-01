@@ -2595,3 +2595,16 @@ projection; commits on master (no reproducible baseline yet).
   direction; no remaining violation names a package that must
   exist. Reopen only on a concrete bypass a file boundary cannot
   express.
+
+## Final convergence gate — full tree green — 0 FAIL
+- `go test -count=1 -buildvcs=false -timeout 25m ./...` on tree
+  `e07f230` (P1b guard + deferred-row audit): exit 0, 0 `--- FAIL`
+  lines — ok tui-dash 333.670s + musewire/termview/tui ok
+  (`/tmp/td-gate-final.log`). Includes the `TestBoundarySendKeysRequiresLease` guard and all prior slices.
+- Locally actionable work is exhausted: P0c/P1-acquisition/P1b/
+  P1-1b FIXED and gated; sweeper shutdown fixed; triage verified
+  cohesive (no splits); D-7/P1-3/R-G dispositioned with evidence;
+  capability matrix recorded. Remaining items are BLOCKED on
+  operator authorization: P6-2 live FI-backed turns (quota),
+  P5-2 child-event wire shape (live provider), cross-machine
+  transport, project triads.
