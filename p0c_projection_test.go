@@ -34,7 +34,7 @@ func TestRefreshStaleGenerationRefused(t *testing.T) {
 	m.logGen = map[string]int{"a": 1}
 	m.inputPending = map[string]string{"a": "in-1 rejected: lane closed"}
 	m.status = "ready"
-	updated, _ := m.Update(refreshMsg{data: refreshData{
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen: 4, sel: "a",
 		names:   []string{"x"},
 		running: map[string]bool{"x": true},
@@ -80,7 +80,7 @@ func TestRefreshStaleSessionRefused(t *testing.T) {
 	m.live = []string{"live-b"}
 	m.gitLines = []string{"git-b"}
 	m.status = "ready"
-	updated, _ := m.Update(refreshMsg{data: refreshData{
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen: 5, sel: "a",
 		names:   []string{"a", "b"},
 		running: map[string]bool{"a": true, "b": true},
@@ -97,7 +97,7 @@ func TestRefreshStaleSessionRefused(t *testing.T) {
 	}
 	// The projection actually collected for "b" installs cleanly and
 	// clears only our own stale marker.
-	updated2, _ := got.Update(refreshMsg{data: refreshData{
+	updated2, _ := got.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen: 5, sel: "b",
 		names:   []string{"a", "b"},
 		running: map[string]bool{"a": true, "b": true},
@@ -126,7 +126,7 @@ func TestGitPaneClearedOnSessionChange(t *testing.T) {
 	m.gitLines = []string{"git-a"}
 	m.live = []string{"live-a"}
 	// "a" left the fleet; now viewing "b" with no Git collected.
-	updated, _ := m.Update(refreshMsg{data: refreshData{
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen: 5, sel: "a",
 		names:   []string{"b"},
 		running: map[string]bool{"b": true},
@@ -141,7 +141,7 @@ func TestGitPaneClearedOnSessionChange(t *testing.T) {
 	m2.names = []string{"a"}
 	m2.nav.Selected = 0
 	m2.gitLines = []string{"git-a"}
-	updated2, _ := m2.Update(refreshMsg{data: refreshData{
+	updated2, _ := m2.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen: 5, sel: "a",
 		names:   []string{"a"},
 		running: map[string]bool{"a": true},
@@ -155,7 +155,7 @@ func TestGitPaneClearedOnSessionChange(t *testing.T) {
 	m3.names = []string{"a", "b"}
 	m3.nav.Selected = 1 // navigated to "b"; selection already moved
 	m3.gitLines = []string{"git-a"}
-	updated3, _ := m3.Update(refreshMsg{data: refreshData{
+	updated3, _ := m3.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen: 6, sel: "b",
 		names:   []string{"a", "b"},
 		running: map[string]bool{"a": true, "b": true},
@@ -263,16 +263,51 @@ func TestTabPerSessionFailurePreserved(t *testing.T) {
 		"b": "in-2 queued",
 	}
 	// Stale generation refused.
-	updated, _ := m.Update(refreshMsg{data: refreshData{gen: 4, sel: "a"}})
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true, gen: 4, sel: "a"}})
 	got := updated.(model)
 	// Session change without git.
-	updated2, _ := got.Update(refreshMsg{data: refreshData{
+	updated2, _ := got.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen: 5, sel: "a", names: []string{"b"},
 	}})
 	got2 := updated2.(model)
 	if got2.inputPending["a"] != "in-1 rejected: lane closed" ||
 		got2.inputPending["b"] != "in-2 queued" {
 		t.Fatalf("per-session failures lost: %v", got2.inputPending)
+	}
+}
+
+// A failed session-list acquisition must not wipe the panes: the
+// list may be incomplete (registry corrupt, PTY DB unreachable),
+// so the installer keeps last-known sessions and labels the
+// staleness explicitly — while healthy panes (content, feed) still
+// install. sessionsOk omitted (false) models the failure.
+func TestRefreshSessionsFailureKeepsLastKnown(t *testing.T) {
+	m := newModel("")
+	m.refreshCtl.Gen = 5
+	m.names = []string{"a"}
+	m.nav.Selected = 0
+	m.running = map[string]bool{"a": true}
+	m.entry = Session{Name: "a", Workdir: "/w/a", Harness: "muse", Model: "opus"}
+	m.live = []string{"old-live"}
+	m.paneSel = "a"
+	updated, _ := m.Update(refreshMsg{data: refreshData{
+		gen: 5, sel: "a",
+		names:   []string{},
+		running: map[string]bool{},
+		live:    []string{"new-live"},
+	}})
+	got := updated.(model)
+	if len(got.names) != 1 || got.names[0] != "a" {
+		t.Fatalf("failed list acquisition must keep last-known sessions, got %v", got.names)
+	}
+	if got.entry.Name != "a" {
+		t.Fatalf("failed list acquisition must keep last-known metadata, got %+v", got.entry)
+	}
+	if !strings.Contains(got.status, "last-known data") {
+		t.Fatalf("failed list acquisition must label staleness, got %q", got.status)
+	}
+	if len(got.live) != 1 || got.live[0] != "new-live" {
+		t.Fatalf("healthy panes must still install on partial failure, got %v", got.live)
 	}
 }
 
@@ -287,7 +322,7 @@ func TestRefreshApplyPreservesForeignStatus(t *testing.T) {
 	m.nav.Selected = 0
 	m.running = map[string]bool{"a": true}
 	m.status = staleProjectionPrefix + " (forged by another writer)"
-	updated, _ := m.Update(refreshMsg{data: refreshData{
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen: 5, sel: "a",
 		names:   []string{"a"},
 		running: map[string]bool{"a": true},

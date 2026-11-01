@@ -252,12 +252,16 @@ func MaintainRetention() int {
 // safe: all rotation state (stream file, generation, failure
 // marker) is file-backed, so a new sweeper continues the persisted
 // generation instead of resetting history. Concurrent sweepers are
-// safe: per-session locks serialize rotations.
-func StartRetentionSweeper(interval time.Duration, stop <-chan struct{}) {
+// safe: per-session locks serialize rotations. The returned channel
+// closes when the supervisor goroutine has exited, so callers can join
+// it after closing stop; no sweep runs after done closes.
+func StartRetentionSweeper(interval time.Duration, stop <-chan struct{}) (done <-chan struct{}) {
 	if interval <= 0 {
 		interval = retentionSweepDefaultInterval
 	}
+	d := make(chan struct{})
 	go func() {
+		defer close(d)
 		t := time.NewTicker(interval)
 		defer t.Stop()
 		for {
@@ -269,4 +273,5 @@ func StartRetentionSweeper(interval time.Duration, stop <-chan struct{}) {
 			}
 		}
 	}()
+	return d
 }

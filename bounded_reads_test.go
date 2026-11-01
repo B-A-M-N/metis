@@ -206,7 +206,7 @@ func TestLiveContentSnapshotBoundedRefresh(t *testing.T) {
 		t.Fatalf("git pane must propagate non-repo status, got %v", snap.git)
 	}
 	// Markers must survive assembly into refreshData.
-	rd := assembleRefresh(refreshSnapshots{content: snap}, 1, "pty:s")
+	rd := assembleRefresh(refreshSnapshots{sessionsOk: true, content: snap}, 1, "pty:s")
 	if len(rd.live) == 0 || rd.live[0] != snap.live[0] {
 		t.Fatal("refreshData dropped live truncation marker")
 	}

@@ -69,6 +69,20 @@ func seedOwnedSession(t *testing.T, name, owner string) {
 	}
 }
 
+// A corrupt registry must report failure instead of an empty list:
+// sessionsRound's trust flag lets the installer keep last-known
+// sessions rather than wiping the panes (P1).
+func TestSessionsRoundCorruptRegistryReportsFailure(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	if err := os.WriteFile(registryPath(), []byte("{corrupt"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, _, listOK := sessionsRound()
+	if listOK {
+		t.Fatal("corrupt registry must report list failure, got ok")
+	}
+}
+
 func TestResolveOwnedTargetBindsID(t *testing.T) {
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	installFakeTmux(t, "tok-1")

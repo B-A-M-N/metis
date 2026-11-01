@@ -126,6 +126,12 @@ func (m *model) applyRefresh(d refreshData) {
 	// Record whose panes these are before installing them: panes
 	// collected for d.sel must never render as another session's.
 	m.paneSel = d.sel
+	if !d.sessionsOk {
+		// Partial acquisition: healthy panes still install below,
+		// but the session list may be incomplete, so say so
+		// instead of silently presenting last-known as live.
+		m.installStaleMarker(fmt.Sprintf("session list unavailable (gen %d); showing last-known data", d.gen))
+	}
 	// Each component installs its own slice of the valid
 	// projection (tui_install.go); this shell keeps the freshness
 	// gates above and the cross-component detach below, which no

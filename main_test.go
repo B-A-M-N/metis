@@ -322,7 +322,7 @@ func TestRefreshMsgStaleIgnored(t *testing.T) {
 	m.refreshCtl.Gen = 2
 	m.names = []string{"a"}
 	m.nav.Selected = 0
-	updated, _ := m.Update(refreshMsg{data: refreshData{
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen:   1,
 		names: []string{"x", "y"},
 	}})
@@ -342,7 +342,7 @@ func TestRefreshMsgAppliesPreservesSelectionAndGit(t *testing.T) {
 	m.nav.Selected = 1 // "b"
 	m.gitLines = []string{"git: cached"}
 	m.live = []string{"old"}
-	updated, _ := m.Update(refreshMsg{data: refreshData{
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen:     5,
 		names:   []string{"a", "b", "c"},
 		running: map[string]bool{"a": true, "b": false, "c": true},
@@ -398,7 +398,7 @@ func TestTabDisconnectDropsAttach(t *testing.T) {
 	m.nav.Selected = 0
 	m.running = map[string]bool{"a": true}
 	m.nav = m.nav.EnterAttach()
-	updated, _ := m.Update(refreshMsg{data: refreshData{
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen:     1,
 		names:   []string{"a"},
 		running: map[string]bool{"a": false},
@@ -422,7 +422,7 @@ func TestTabViewportScrolls(t *testing.T) {
 	m.names = names
 	m.nav.Selected = 59
 	m.running = map[string]bool{}
-	updated, _ := m.Update(refreshMsg{data: refreshData{gen: 0, names: names, running: map[string]bool{}}})
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true, gen: 0, names: names, running: map[string]bool{}}})
 	got := updated.(model)
 	v := got.View()
 	if !strings.Contains(v, "s59") {
@@ -486,7 +486,7 @@ func TestLogRotationGapStatus(t *testing.T) {
 	m.nav.Selected = 0
 	m.running = map[string]bool{"a": true}
 	m.logGen = map[string]int{"a": 3}
-	updated, _ := m.Update(refreshMsg{data: refreshData{
+	updated, _ := m.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen:     0,
 		names:   []string{"a"},
 		running: map[string]bool{"a": true},
@@ -503,7 +503,7 @@ func TestLogRotationGapStatus(t *testing.T) {
 	m2.nav.Selected = 0
 	m2.running = map[string]bool{"a": true}
 	m2.logGen = map[string]int{"a": 4}
-	updated2, _ := m2.Update(refreshMsg{data: refreshData{
+	updated2, _ := m2.Update(refreshMsg{data: refreshData{sessionsOk: true,
 		gen:     0,
 		names:   []string{"a"},
 		running: map[string]bool{"a": true},

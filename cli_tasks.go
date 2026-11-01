@@ -209,8 +209,8 @@ func cliWorkerLoop(args []string) int {
 	// F-09: the long-lived loop owns autonomous stream retention so
 	// unobserved sessions stay bounded while a worker is supervised.
 	sweepStop := make(chan struct{})
-	StartRetentionSweeper(0, sweepStop)
-	defer close(sweepStop)
+	sweepDone := StartRetentionSweeper(0, sweepStop)
+	defer func() { close(sweepStop); <-sweepDone }()
 	for {
 		ran, err := runWorkerOnce(*session, a, req)
 		if err != nil {

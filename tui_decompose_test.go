@@ -58,7 +58,7 @@ func (f fakeRefreshSource) snapshots(sel string, everyGit bool) refreshSnapshots
 }
 
 func cannedSnapshots() refreshSnapshots {
-	return refreshSnapshots{
+	return refreshSnapshots{sessionsOk: true,
 		sessions: []sessionSnapshot{
 			{name: "a", running: true,
 				entry:  Session{Name: "a", Workdir: "/w/a", Harness: "muse", Model: "opus"},

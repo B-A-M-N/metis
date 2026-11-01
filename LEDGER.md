@@ -2337,6 +2337,40 @@ projection; commits on master (no reproducible baseline yet).
 - Residual: rail `tabInfo` stays keyed per session (legitimate list
   content); feed/panel projections are global by design.
 
+## P1 ledger — session-list acquisition failures labeled — FIXED
+- ID/severity: P1 (silent conversion of registry/PTY-DB failures
+  into empty session lists: `metas, _ = ptyListAll()` dropped every
+  PTY session; corrupt registry JSON unmarshalled to empty).
+- Intended single owner: `applySessionsRefresh` installs only when
+  `refreshData.sessionsOk`; `applyRefresh` labels partial failure
+  with the existing stale marker. Trust = registry clean AND PTY
+  query ok (`loadRegistryKnown`, `sessionsRound` 5th return).
+- Files changed: `session_registry.go` (`loadRegistryKnown`;
+  `loadRegistry` delegates, contract unchanged),
+  `tui_source.go` (trust flag through `sessionsRound` →
+  `refreshSnapshots` → `refreshData`), `tui_projection.go`
+  (field), `tui_install.go` (skip on !ok),
+  `tui_state.go` (partial-failure stale marker),
+  `p0c_projection_test.go`
+  (`TestRefreshSessionsFailureKeepsLastKnown`),
+  `session_test.go`
+  (`TestSessionsRoundCorruptRegistryReportsFailure`), 6 test
+  files (21 literals declare `sessionsOk: true` — test-only),
+  `TUI_DOX.md` (sessions row).
+- Tests that failed before correction: both pins red pre-fix
+  (missing field/return = build failure; installer skip removal
+  and forced-trust mutations re-redden them — see below).
+- Mutation proof: installer-skip removal makes the keep-last-known
+  pin FAIL; forced trust on corrupt JSON makes the corrupt-registry
+  pin FAIL; both restored → green.
+- Tests that passed after correction: projection/session/
+  boundary/assembly suites green; vet clean; FULL GATE pending
+  (runs next).
+- Residual: PTY DB-error path shares the flag by construction
+  (fault-injecting `openTasksDB` is out of scope — no seam);
+  `loadRegistry` keeps the lenient contract for non-UI callers
+  (documented); feed/panel failure handling untouched.
+
 ## Phase 3 ledger — mode ownership moved into Nav — FIXED
 - ID/severity: P1 structural (criterion 7: navigation's `mode`
   was written directly by shell/attach/input/state — 10 raw-string
@@ -2367,3 +2401,45 @@ projection; commits on master (no reproducible baseline yet).
   (display/viewport state, single-writer or display-only);
   zero-value `Nav.Mode("")` routes as nav — documented, matches
   the old empty-string default.
+
+## Phase 4a ledger — P0c stale-install + P1 acquisition trust + sweeper shutdown — FIXED
+- P0c root cause: `applySessionsRefresh` installed terminal panes
+  without rebinding `m.paneSel` to the snapshot's selected session,
+  so freshly acquired worker B output rendered under worker A's
+  identity slot (cross-session contamination).
+- P1 root cause: acquisition failures (corrupt/unreadable registry,
+  PTY errors) collapsed into empty session lists; failed lists
+  overwrote last-known projections. `tui_source.go` had no
+  failure-vs-empty distinction; no trust flag flowed to install.
+- Files changed: `tui_install.go` (rebind `paneSel` on install +
+  skip projection install on `!listOK`, stale marker set),
+  `tui_state.go` (`installStaleMarker`), `tui_source.go`
+  (`sessionsRound` 5th return `listOK`), `tui_projection.go`
+  (`refreshData.sessionsOk` plumbed through `refreshSnapshots`→
+  `refreshData`), `session_registry.go` (`loadRegistryKnown`:
+  missing file = empty-ok, corrupt/unreadable = failure;
+  lenient `loadRegistry` kept for non-UI callers),
+  `p0c_projection_test.go` (pins), `session_test.go`,
+  `tui_projection_test.go`, `bounded_reads_test.go`,
+  `main_test.go`, `muse_tab_test.go`, `tui_decompose_test.go`
+  (fixtures onto bound panes).
+- Retention shutdown race (found during gating): `TestRetentionSurvivesRestart`
+  failed only on TempDir `RemoveAll` cleanup — sweeper tick wrote
+  into the state dir after removal; `close(stop)` never joined the
+  supervisor. Fix: `StartRetentionSweeper` returns a `done` channel
+  closed on supervisor exit (`retention.go`); tests join it
+  (`retention_autonomy_test.go`); `worker-loop` (`cli_tasks.go`)
+  also joins on shutdown. Doc comment updated.
+- Tests that failed before correction: `TestRenderSelectionChangeHidesPreviousSession`,
+  `TestSanitizedOverview`, `TestRefreshSessionsFailureKeepsLastKnown`,
+  `TestSessionsRoundCorruptRegistryReportsFailure`,
+  `TestRefreshApplyPreservesForeignStatus` (each red pre-fix);
+  `TestRetentionSurvivesRestart` cleanup error pre-fix.
+- Tests that passed after correction: full P0c/P1 focused suites +
+  boundary guards green; retention autonomy 5x repeat + `-race`
+  green; FULL GATE green, exit 0 — ok tui-dash 286.264s +
+  musewire/termview/tui ok, 0 FAIL lines (`/tmp/td-gate-sessions2.log`).
+- Residual: P1b refresh concurrency (`internal/tui/refresh.go`
+  exact-request correlation) still open; residual god objects
+  (`verdict.go`, `worker_subprocess.go`, `mcp_terminal_tools.go`)
+  triage pending.

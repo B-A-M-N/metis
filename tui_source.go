@@ -66,9 +66,14 @@ type panelSnapshot struct {
 // component. It is pure data: no controllers, no formatting.
 type refreshSnapshots struct {
 	sessions []sessionSnapshot
-	content  contentSnapshot
-	feed     feedSnapshot
-	panel    panelSnapshot
+	// sessionsOk says whether the session list is trustworthy: the
+	// registry read cleanly AND the PTY query succeeded. Either
+	// failure means the list may be incomplete, so the installer
+	// keeps last-known sessions instead of wiping the panes.
+	sessionsOk bool
+	content    contentSnapshot
+	feed       feedSnapshot
+	panel      panelSnapshot
 }
 
 // refreshSource serves the data behind one dashboard refresh. The
@@ -86,7 +91,8 @@ type liveRefreshSource struct{}
 
 func (liveRefreshSource) snapshots(sel string, everyGit bool) refreshSnapshots {
 	var out refreshSnapshots
-	reg, metas, metaByDisplay, batchLive := sessionsRound()
+	reg, metas, metaByDisplay, batchLive, listOK := sessionsRound()
+	out.sessionsOk = listOK
 	out.sessions = liveSessionsSnapshot(reg, metas, metaByDisplay, batchLive)
 	out.content = liveContentSnapshot(reg, metaByDisplay, sel, everyGit)
 	out.feed = liveFeedSnapshot()
@@ -102,9 +108,12 @@ func (liveRefreshSource) snapshots(sel string, everyGit bool) refreshSnapshots {
 // pane: one registry load, one PTY list, one batched tmux
 // liveness classification. Pane builders below share these maps
 // instead of reopening stores per session.
-func sessionsRound() (reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool) {
-	reg = loadRegistry()
-	metas, _ = ptyListAll()
+func sessionsRound() (reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool, listOK bool) {
+	var regOK bool
+	reg, regOK = loadRegistryKnown()
+	var ptyErr error
+	metas, ptyErr = ptyListAll()
+	listOK = regOK && ptyErr == nil
 	metaByDisplay = make(map[string]ptyMeta, len(metas))
 	for _, mt := range metas {
 		metaByDisplay[ptyDisplay(mt.Name)] = mt
@@ -115,7 +124,7 @@ func sessionsRound() (reg map[string]Session, metas []ptyMeta, metaByDisplay map
 	if lv, err := tmuxLiveSessions(); err == nil {
 		batchLive = lv
 	}
-	return reg, metas, metaByDisplay, batchLive
+	return reg, metas, metaByDisplay, batchLive, listOK
 }
 
 // liveSessionsSnapshot builds the session-list pane from one shared
@@ -256,6 +265,7 @@ func latestTitleByAgent() map[string]string {
 // read-model snapshots. Pure: no controllers, no formatting, no I/O.
 func assembleRefresh(s refreshSnapshots, gen int, sel string) refreshData {
 	out := refreshData{gen: gen, sel: sel, logGen: map[string]int{}, tabInfo: map[string]tabDetail{}}
+	out.sessionsOk = s.sessionsOk
 	out.names = make([]string, 0, len(s.sessions))
 	out.running = make(map[string]bool, len(s.sessions))
 	for _, r := range s.sessions {

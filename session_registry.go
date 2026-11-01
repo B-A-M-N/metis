@@ -58,16 +58,27 @@ func hardenStatePerms() {
 func registryPath() string { return filepath.Join(stateDir(), "sessions.json") }
 
 func loadRegistry() map[string]Session {
+	reg, _ := loadRegistryKnown()
+	return reg
+}
+
+// loadRegistryKnown reports whether the registry read succeeded. A
+// missing file is a genuine empty list (first run), not a failure;
+// corrupt JSON or an unreadable file is a failure the caller must
+// not mistake for "no sessions".
+func loadRegistryKnown() (map[string]Session, bool) {
 	reg := map[string]Session{}
 	data, err := os.ReadFile(registryPath())
 	if err != nil {
-		return reg
+		return reg, os.IsNotExist(err)
 	}
-	_ = json.Unmarshal(data, &reg)
+	if err := json.Unmarshal(data, &reg); err != nil {
+		return map[string]Session{}, false
+	}
 	if reg == nil {
 		reg = map[string]Session{}
 	}
-	return reg
+	return reg, true
 }
 
 func saveRegistry(reg map[string]Session) error {

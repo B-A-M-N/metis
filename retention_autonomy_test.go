@@ -72,8 +72,10 @@ func TestRetentionAutonomousWithoutReader(t *testing.T) {
 	seedOwnedSession(t, "w", "f09a")
 
 	stop := make(chan struct{})
-	StartRetentionSweeper(10*time.Millisecond, stop)
-	defer close(stop)
+	done := StartRetentionSweeper(10*time.Millisecond, stop)
+	// Join the supervisor before TempDir cleanup: an in-flight tick
+	// writes into the state dir, racing RemoveAll.
+	defer func() { close(stop); <-done }()
 
 	for i := 0; i < 3; i++ {
 		writeOverCapBurst(t, "w", 'x')
@@ -106,21 +108,22 @@ func TestRetentionSurvivesRestart(t *testing.T) {
 	seedOwnedSession(t, "w", "f09b")
 
 	stop1 := make(chan struct{})
-	StartRetentionSweeper(10*time.Millisecond, stop1)
+	done1 := StartRetentionSweeper(10*time.Millisecond, stop1)
 	writeOverCapBurst(t, "w", 'x')
 	deadline := time.Now().Add(5 * time.Second)
 	for streamSizeOrFail(t, "w") > tmuxStreamCap && time.Now().Before(deadline) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	close(stop1) // "restart": first supervisor goes away entirely
+	<-done1
 	waitStreamGeneration(t, "w", 1, 5*time.Second)
 
 	// More output lands while nobody supervises, then a new sweeper
 	// starts (fresh process state, same files).
 	writeOverCapBurst(t, "w", 'y')
 	stop2 := make(chan struct{})
-	StartRetentionSweeper(10*time.Millisecond, stop2)
-	defer close(stop2)
+	done2 := StartRetentionSweeper(10*time.Millisecond, stop2)
+	defer func() { close(stop2); <-done2 }()
 	deadline = time.Now().Add(5 * time.Second)
 	for streamSizeOrFail(t, "w") > tmuxStreamCap && time.Now().Before(deadline) {
 		time.Sleep(10 * time.Millisecond)

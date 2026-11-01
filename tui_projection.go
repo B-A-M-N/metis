@@ -20,9 +20,14 @@ type refreshData struct {
 	// collected for ("" when nothing was selected). applyRefresh
 	// refuses data collected for a different session, so a slow
 	// collect can never paint another session's detail panes.
-	sel     string
-	names   []string
-	running map[string]bool
+	sel string
+	// sessionsOk says whether the session list is trustworthy. When
+	// false the installer keeps last-known sessions and labels the
+	// staleness instead of wiping the panes with an incomplete
+	// list — while healthy panes still install.
+	sessionsOk bool
+	names      []string
+	running    map[string]bool
 	// logGen carries each PTY session's output generation so the UI
 	// can report discarded history instead of showing a silent gap.
 	logGen map[string]int

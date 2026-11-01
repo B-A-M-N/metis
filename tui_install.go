@@ -11,8 +11,14 @@ import "fmt"
 // writes another component's fields.
 
 // applySessionsRefresh installs the session projection: list,
-// liveness, registry entry, and rail identity blocks.
+// liveness, registry entry, and rail identity blocks. An
+// untrustworthy list (registry/PTY failure) installs nothing:
+// wiping the panes with an incomplete list would strand the UI on
+// a phantom empty state while the sessions are still alive.
 func (m *model) applySessionsRefresh(d refreshData) {
+	if !d.sessionsOk {
+		return
+	}
 	m.names = d.names
 	m.running = d.running
 	m.entry = d.entry

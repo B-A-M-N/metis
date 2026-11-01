@@ -74,12 +74,12 @@ func TestFeedFailureKeepsLastKnown(t *testing.T) {
 	before := []OrchEvent{{Seq: 7, EventType: OrchMessageSent}}
 	m.feed = before
 	m.refreshCtl.Gen = 3
-	m.applyRefresh(refreshData{gen: 3, feedOk: false})
+	m.applyRefresh(refreshData{sessionsOk: true, gen: 3, feedOk: false})
 	if len(m.feed) != 1 || m.feed[0].Seq != 7 {
 		t.Fatalf("miss must keep last-known feed, got %+v", m.feed)
 	}
 	after := []OrchEvent{{Seq: 9, EventType: OrchMessageDelivered}}
-	m.applyRefresh(refreshData{gen: 3, feed: after, feedOk: true})
+	m.applyRefresh(refreshData{sessionsOk: true, gen: 3, feed: after, feedOk: true})
 	if len(m.feed) != 1 || m.feed[0].Seq != 9 {
 		t.Fatalf("successful read must replace the feed, got %+v", m.feed)
 	}

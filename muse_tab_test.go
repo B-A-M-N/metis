@@ -207,7 +207,7 @@ func TestMuseFeedStaleRefused(t *testing.T) {
 	m := newModel("")
 	m.refreshCtl.Gen = 5
 	m.feed = []OrchEvent{{EventType: OrchMessageSent, Payload: "old"}}
-	d := refreshData{gen: 4, feed: []OrchEvent{{EventType: OrchMessageSent, Payload: "new"}}}
+	d := refreshData{sessionsOk: true, gen: 4, feed: []OrchEvent{{EventType: OrchMessageSent, Payload: "new"}}}
 	m.applyRefresh(d)
 	if len(m.feed) != 1 || m.feed[0].Payload != "old" {
 		t.Fatal("stale generation must not replace the feed")
