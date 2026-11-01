@@ -39,7 +39,21 @@ func museCmdDaemon(provider, profile string) error {
 	cmd := exec.Command(path, "serve", "--provider", provider, "--listen")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Env = append(os.Environ(), museDaemonEnv(c)...)
 	return cmd.Run()
+}
+
+// museDaemonEnv returns the environment override that pins the
+// daemon child to its commander's store. The serve child resolves
+// its store from XDG_DATA_HOME; without the override a profiled
+// daemon (musefi) inherits the caller's ambient store and serves
+// the wrong socket (found live: `muse daemon --profile musefi`
+// listened on ~/.local/share instead of MUSEFI_DATA_HOME).
+func museDaemonEnv(c museCommander) []string {
+	if c.DataHome == "" {
+		return nil
+	}
+	return []string{"XDG_DATA_HOME=" + c.DataHome}
 }
 
 // museRequireDaemon refuses to proceed when no session daemon

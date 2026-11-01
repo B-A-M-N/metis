@@ -34,7 +34,7 @@ audit only when no unresolved finding invalidates it.
 | P5-1 | worker.reported native-session join   | FIXED       | TestWorkerReportedCarriesNativeSession |
 | P5-2 | Native child/subagent event projection | BLOCKED     | wire shape unknown; echo provider never emits child events; needs live-provider qualification, not a guessed parser |
 | P6-1 | musefi profile path (no-inference)    | FIXED       | TestMuseFiProfileServesEchoSession |
-| P6-2 | Live FI-backed turn + four triads     | BLOCKED     | spends real quota; needs explicit authorization, then cross-machine + recovery qual |
+| P6-2 | Live FI-backed turn + four triads     | PARTIAL     | single meta/musefi turn QUALIFIED (bind/turn/status/receipts + QUAL-OK reply, cleanup verified); triads + cross-machine + recovery still need authorization/backends |
 | P1-2 | Arbitrary workdir/command, no policy | FIXED       | TestMCPProvision{RefusesUnregisteredRoot,CustomCommandNeedsCapability,HarnessCommandAllowedOnPlainRoot}; project-root-register CLI-only |
 | P1-3 | Single package, no enforced bounds   | SUPERSEDED  | Enforced where extraction carries direction (internal/tui,termview,musewire + AST guards); further splits need a triggering conflict |
 | P1-4 | No committed revision                | BLOCKED     | repo hook fails closed: no review config |

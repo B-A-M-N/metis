@@ -57,3 +57,17 @@ func TestMuseFiProfileServesEchoSession(t *testing.T) {
 		t.Fatal("musefi served an empty native session id")
 	}
 }
+
+// The daemon child must serve its commander's store, not the
+// caller's ambient one: XDG_DATA_HOME pins the serve process to
+// the profile root (live-found: without this the musefi daemon
+// listened on ~/.local/share).
+func TestMuseDaemonEnvPinsCommanderStore(t *testing.T) {
+	got := museDaemonEnv(museCommander{Name: "musefi", Binary: "musefi", DataHome: "/tmp/fi-qual"})
+	if len(got) != 1 || got[0] != "XDG_DATA_HOME=/tmp/fi-qual" {
+		t.Fatalf("musefi commander must pin XDG_DATA_HOME, got %q", got)
+	}
+	if got := museDaemonEnv(museCommander{}); got != nil {
+		t.Fatalf("empty DataHome must not override the environment, got %q", got)
+	}
+}

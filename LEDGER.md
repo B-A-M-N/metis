@@ -2608,3 +2608,42 @@ projection; commits on master (no reproducible baseline yet).
   operator authorization: P6-2 live FI-backed turns (quota),
   P5-2 child-event wire shape (live provider), cross-machine
   transport, project triads.
+
+## Phase 6 ledger — P6-2 single live FI-backed turn — QUALIFIED (1 turn)
+- Authorized: one FI-backed turn on meta/musefi, then stop + report.
+- Path: isolated store (`MUSEFI_DATA_HOME=/tmp/livequal-fi`,
+  `XDG_DATA_HOME` override, isolated `TUI_DASH_STATE`) →
+  `muse daemon --provider meta --profile musefi` → `agent start
+  --harness demo` anchor → `muse bind` → `muse turn --text
+  'Reply with exactly: QUAL-OK'` → `muse status` → full cleanup.
+- Evidence: bind `livequal1 -> native 01a19978-00d9-...`
+  (provider meta, profile musefi); turn `01a19978-393b-...`
+  terminal=completed cursor `v4:...:27` (31s); model reply
+  QUAL-OK verified in daemon transcript snapshots; status cursor
+  matches turn cursor; binding row + acknowledged intent with
+  pinned workspace in isolated tasks DB. Spend: one minimal
+  prompt; Metis records no usage accounting — exact tokens only
+  in FI billing.
+- Cleanup verified: no muse serve processes, no tmux server, no
+  demo worker; qual session dir + index row removed from ambient
+  store; /tmp/livequal-* removed; ambient socket dir restored to
+  pre-run state (only pre-existing clients/ remains).
+- Findings on the path (fixed / documented):
+  (1) FIXED: `muse daemon --profile musefi` did not propagate the
+  profile store — serve inherited ambient XDG_DATA_HOME and
+  listened on ~/.local/share (caught before any turn; ambient
+  daemon briefly started, stopped, socket+lock residue removed).
+  Fix: `museDaemonEnv` pins `XDG_DATA_HOME=c.DataHome` in
+  `museCmdDaemon`; `TestMuseDaemonEnvPinsCommanderStore`
+  (mutation-proven: nil-return → FAIL). Files: `muse_cmds.go`,
+  `musefi_profile_test.go`.
+  (2) DOCUMENTED (daemon-side, not Metis code): session
+  transcripts land in ambient `~/.local/share/muse/sessions`
+  even when the daemon serves an isolated store (socket + index
+  honored the store; transcripts did not). Future quals must
+  clean the ambient session dir + index row. Cannot fix in-repo.
+- Residual P6-2: triads, cross-machine, recovery-after-disconnect
+  still need authorization + backends (unchanged BLOCKED items).
+- Observation (not fixed, own slice needed): `agent stop` on an
+  already-dead session errors instead of reporting stopped;
+  zero user impact here (isolated registry deleted).
