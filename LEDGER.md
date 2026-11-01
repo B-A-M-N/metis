@@ -2512,3 +2512,34 @@ projection; commits on master (no reproducible baseline yet).
 - Disposition: VERIFIED COHESIVE for all five — file size alone is
   not a conflict; no dual writers, no bypassed invariants, no
   second dispatchers found. No code changes.
+
+## Convergence gate — P1b tree full suite — GREEN
+- `go test -count=1 -buildvcs=false -timeout 25m ./...` on tree
+  `d4ef57d` + triage ledger: exit 0, 0 `--- FAIL` lines —
+  ok tui-dash 344.915s + musewire/termview/tui ok
+  (`/tmp/td-gate-p1b.log`). Covers P1b shell change (`tui.go`
+  `OnDelivered(msg.data.gen)`).
+
+## Product capability matrix (2026-11-01; local evidence only)
+- IMPLEMENTED + LOCALLY QUALIFIED (hermetic tests, no quota):
+  12-worker fleet (`TestTwelveWorkerFleet`: 12 distinct workers,
+  lease isolation, capacity gate); provision/bind/depend/correct
+  with idempotent intents + crash-heal; dispatch w/ consumer
+  identity + heartbeat + pickup deadline (F-07); terminal
+  input/resize/stop via lease authority + generation fence +
+  idempotency (F-08); task hierarchy/activity/guidance via MCP
+  control smoke loop; provider/model revalidation + `cursor_turn`
+  attribution; verdict assurance + receipts (F-03/04); retention
+  sweeper autonomy; refresh boundedness + pure renderer + render
+  snapshots (`tui_render_snapshot_test.go`, 11 tests); presence as
+  5 typed facts w/ explicit Unknown (F-14) + lease-driven Hatch
+  glyph (operator decision 2026-11-01).
+- LIVE-QUALIFIED: none with real paid models (no quota spent).
+- BLOCKED (exact prerequisite + qualification):
+  P6-2 live FI-backed turn + triads — needs explicit quota
+  authorization, then cross-machine + recovery qual; P5-2
+  child/subagent events — wire shape unknown, echo provider emits
+  no child events, needs live-provider qualification not a guessed
+  parser; cross-machine remote transport — explicitly refused by
+  design (local-only), any real round trip needs operator setup;
+  project triads (Locus/Jeverb/Ocliv backends absent).
