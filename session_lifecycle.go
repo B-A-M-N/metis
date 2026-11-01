@@ -1,0 +1,148 @@
+package main
+
+// session_lifecycle.go: tmux session lifecycle — start, stop, adopt.
+//
+// startSession runs a reserved/start/confirm lifecycle: validation
+// reserves nothing observable, the tmux session is started and
+// ownership-stamped, and the registry insert confirms under the
+// registry lock. A confirm failure compensates by killing the session
+// just created, so a duplicate or unwritable registry can never leave
+// an orphaned live tmux session behind (P0-B). stopSession and
+// adoptSession keep their ownership-bound behavior. Extracted from
+// session.go; behavior unchanged except the P0-B compensating
+// cleanup on registry-confirm failure.
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+)
+
+func startSession(name, workdir, command, harness, model string) error {
+	// Reserve: validate everything validatable before any side effect.
+	if !nameRe.MatchString(name) {
+		return fmt.Errorf("name must match [A-Za-z0-9_-]{1,64}")
+	}
+	abs, err := filepath.Abs(workdir)
+	if err != nil {
+		return err
+	}
+	if fi, err := os.Stat(abs); err != nil || !fi.IsDir() {
+		return fmt.Errorf("workdir does not exist: %s", abs)
+	}
+	if sessionRunning(name) {
+		return fmt.Errorf("session already running: %s", name)
+	}
+	guidance := filepath.Join(abs, "guidance.md")
+	if _, err := os.Stat(guidance); err != nil {
+		_ = os.WriteFile(guidance, []byte("# Guidance\n\nGuidance sent from TUI-Dash / orchestrator.\nThe worker reads this file; direct tmux typing is off by default.\n\n"), 0o600)
+	}
+	appendEvent(abs, "session_started", name+": "+command)
+	// Start: tmux new-session with a shell string: use sh -c so the command
+	// can be any shell command, as in the Python version.
+	_, err = tmux("new-session", "-d", "-s", tmuxName(name), "-c", abs, "sh", "-c", command)
+	if err != nil {
+		return fmt.Errorf("tmux start failed: %w", err)
+	}
+	owner := fmt.Sprintf("%d-%d", time.Now().UnixNano(), os.Getpid())
+	if _, err := tmux("set-environment", "-t", tmuxName(name), "TUI_DASH_OWNER", owner); err != nil {
+		_, _ = tmux("kill-session", "-t", tmuxName(name))
+		return fmt.Errorf("failed to stamp session ownership: %w", err)
+	}
+	// Confirm: the registry insert under the lock is the atomicity
+	// point. A concurrent start that won the name, or an unwritable
+	// registry, fails here — after the tmux session is already live.
+	entry := Session{Name: name, Tmux: tmuxName(name), Workdir: abs, Command: command, Created: time.Now().UTC().Format(time.RFC3339), Owner: owner, Harness: harness, Model: model}
+	if err := withRegistryLock(func() error {
+		locked := loadRegistry()
+		if _, dup := locked[name]; dup {
+			return fmt.Errorf("session already registered: %s", name)
+		}
+		locked[name] = entry
+		return saveRegistry(locked)
+	}); err != nil {
+		// Compensating cleanup (P0-B): the tmux session we just
+		// created and stamped is ours alone — no registry entry
+		// exists for anyone else to adopt or act on — so killing it
+		// by name cannot touch a foreign session.
+		_, _ = tmux("kill-session", "-t", tmuxName(name))
+		return err
+	}
+	ensureStreamPipe(name)
+	return nil
+}
+
+// adoptSession explicitly claims a recorded-but-unowned live session.
+// Unlike verification, adoption is a deliberate operator decision: it
+// stamps a fresh token, persists it, and records an auditable event.
+// It refuses unknown names, dead sessions, and sessions that already
+// carry a credential (those need no adoption).
+func adoptSession(name string) (Session, error) {
+	// Check, stamp, and record under the registry lock so two concurrent
+	// adopters cannot both stamp the same live session and diverge.
+	var adopted Session
+	if err := withRegistryLock(func() error {
+		locked := loadRegistry()
+		entry, ok := locked[name]
+		if !ok {
+			return fmt.Errorf("no such session: %s", name)
+		}
+		if entry.Owner != "" {
+			return fmt.Errorf("session %q already has an ownership credential", name)
+		}
+		if !sessionRunning(name) {
+			return fmt.Errorf("session %q is not running; nothing to adopt", name)
+		}
+		entry.Owner = fmt.Sprintf("%d-%d", time.Now().UnixNano(), os.Getpid())
+		if _, err := tmux("set-environment", "-t", tmuxName(name), "TUI_DASH_OWNER", entry.Owner); err != nil {
+			return fmt.Errorf("cannot stamp session ownership: %w", err)
+		}
+		locked[name] = entry
+		if err := saveRegistry(locked); err != nil {
+			return err
+		}
+		adopted = entry
+		return nil
+	}); err != nil {
+		return Session{}, err
+	}
+	appendEvent(adopted.Workdir, "session_adopted", name)
+	return adopted, nil
+}
+
+func stopSession(name string) error {
+	reg := loadRegistry()
+	entry, target, err := resolveOwnedTarget(reg, name)
+	if err != nil {
+		return err
+	}
+	disableStreamPipeTarget(target)
+	// Terminate first and confirm the kill against the bound session ID.
+	// The stopped state is recorded only after termination is confirmed, so
+	// a failed kill never leaves a live session marked stopped.
+	if _, err := tmux("kill-session", "-t", target); err != nil {
+		return fmt.Errorf("kill session %q: %w", name, err)
+	}
+	for i := 0; i < 50; i++ {
+		if !sessionRunning(name) {
+			break
+		}
+		if i == 49 {
+			return fmt.Errorf("session %q still running after kill", name)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	appendEvent(entry.Workdir, "session_stopped", name)
+	retireInputSenders(name)
+	return withRegistryLock(func() error {
+		locked := loadRegistry()
+		cur, ok := locked[name]
+		if !ok {
+			return fmt.Errorf("no such session: %s", name)
+		}
+		cur.Stopped = true
+		locked[name] = cur
+		return saveRegistry(locked)
+	})
+}

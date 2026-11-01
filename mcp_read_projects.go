@@ -1,0 +1,108 @@
+package main
+
+import (
+	"encoding/json"
+	"sort"
+	"strings"
+)
+
+// mcp_read_projects.go: read-only project MCP tools (no execution
+// side effects). Split from mcp_read_tools.go; behavior unchanged.
+
+// mcpProjectInspect details one workdir: its sessions plus the
+// tasks filed through those sessions, oldest first. Unknown
+// workdirs return an empty inspect, never an error that could be
+// mistaken for a missing project authority.
+func mcpProjectInspect(workdir string) (mcpToolResult, error) {
+	// Unified projection: tmux registry sessions plus managed PTY
+	// supervisors in the same workdir, display-qualified.
+	reg := loadRegistry()
+	var names []string
+	for name, s := range reg {
+		if s.Workdir == workdir {
+			names = append(names, name)
+		}
+	}
+	if metas, err := ptyListAll(); err != nil {
+		return mcpToolError("projects: %v", err)
+	} else {
+		for _, m := range metas {
+			if m.Workdir == workdir {
+				names = append(names, ptyDisplay(m.Name))
+			}
+		}
+	}
+	sort.Strings(names)
+	inSet := map[string]bool{}
+	for _, n := range names {
+		inSet[n] = true
+	}
+	all, err := listTasks("")
+	if err != nil {
+		return mcpToolResult{}, err
+	}
+	rows := []map[string]any{}
+	runs := []string{}
+	seenRun := map[string]bool{}
+	for _, tk := range all {
+		if !inSet[tk.Agent] {
+			continue
+		}
+		rows = append(rows, mcpTaskRow(tk))
+		if !seenRun[tk.Run] {
+			seenRun[tk.Run] = true
+			runs = append(runs, tk.Run)
+		}
+	}
+	sort.Strings(runs)
+	return mcpTextResult(map[string]any{
+		"workdir": workdir, "sessions": names, "tasks": rows, "runs": runs,
+	})
+}
+
+// mcpToolProjects: project inspection.
+func mcpToolProjects(raw json.RawMessage) (mcpToolResult, error) {
+	// Projects are a read-only projection, not a registry:
+	// distinct session workdirs, sorted. With `workdir`,
+	// inspect one: its sessions plus the tasks filed through
+	// those sessions. No workdir is ever created or claimed.
+	if len(strings.TrimSpace(string(raw))) > 0 {
+		var args map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &args); err != nil {
+			return mcpToolResult{}, &mcpParamError{"arguments must be an object"}
+		}
+		if wd := mcpStr(args, "workdir"); wd != "" {
+			return mcpProjectInspect(wd)
+		}
+	}
+	reg := loadRegistry()
+	byDir := map[string][]string{}
+	for name, s := range reg {
+		if s.Workdir == "" {
+			continue
+		}
+		byDir[s.Workdir] = append(byDir[s.Workdir], name)
+	}
+	if metas, err := ptyListAll(); err != nil {
+		return mcpToolError("projects: %v", err)
+	} else {
+		for _, m := range metas {
+			if m.Workdir == "" {
+				continue
+			}
+			byDir[m.Workdir] = append(byDir[m.Workdir], ptyDisplay(m.Name))
+		}
+	}
+	dirs := make([]string, 0, len(byDir))
+	for d := range byDir {
+		dirs = append(dirs, d)
+	}
+	sort.Strings(dirs)
+	projs := []map[string]any{}
+	for _, d := range dirs {
+		names := byDir[d]
+		sort.Strings(names)
+		projs = append(projs, map[string]any{"workdir": d, "sessions": names})
+	}
+	return mcpTextResult(map[string]any{"projects": projs, "total": len(projs)})
+}

@@ -1,0 +1,298 @@
+package main
+
+import (
+	"path/filepath"
+)
+
+// tui_source.go: the read-model behind one dashboard refresh.
+//
+// collectRefreshData (tui_projection.go) used to own both the
+// controller queries (registry, PTY store, tmux, tasks DB,
+// orchestration feed, graph store) and the assembly of refreshData.
+// The queries now live here behind the refreshSource interface; the
+// projection only assembles snapshots into refreshData and formats
+// nothing. Tests inject a fake refreshSource to exercise assembly
+// with no tmux, filesystem, or database.
+//
+// One snapshots() call performs one query round (one registry load,
+// one PTY list) so a refresh costs the same I/O it always did; the
+// per-component snapshot structs mirror the view-state components
+// (sessions, terminal content, muse feed, panels).
+
+// sessionSnapshot is one row of the session list read-model.
+type sessionSnapshot struct {
+	name    string
+	running bool
+	entry   Session
+	// logGen is the session's output generation; hasGen is false
+	// when the store reports none (tmux sessions report theirs
+	// through the content snapshot instead).
+	logGen int
+	hasGen bool
+	detail tabDetail
+}
+
+// contentSnapshot is the selected session's terminal content.
+type contentSnapshot struct {
+	found  bool
+	entry  Session
+	live   []string
+	git    []string
+	hasGit bool
+	events []string
+	// streamGen carries the persisted stream rotation counter for
+	// tmux sessions; hasStreamGen is false for PTY sessions (their
+	// generation already rides the session snapshot) and for
+	// unknown selections.
+	streamGen    int
+	hasStreamGen bool
+}
+
+// feedSnapshot is the global orchestration projection.
+type feedSnapshot struct {
+	feed          []OrchEvent
+	ok            bool
+	state         string
+	open, blocked int
+}
+
+// panelSnapshot is the MD path-traversal banner projection.
+type panelSnapshot struct {
+	run   string
+	lines []string
+}
+
+// refreshSnapshots groups one refresh's read-model by view-state
+// component. It is pure data: no controllers, no formatting.
+type refreshSnapshots struct {
+	sessions []sessionSnapshot
+	content  contentSnapshot
+	feed     feedSnapshot
+	panel    panelSnapshot
+}
+
+// refreshSource serves the data behind one dashboard refresh. The
+// production implementation queries the controllers; refresh
+// assembly and rendering consume only this interface.
+type refreshSource interface {
+	snapshots(sel string, everyGit bool) refreshSnapshots
+}
+
+// liveRefreshSource is the production refreshSource: it queries the
+// session registry, PTY store, tmux, tasks DB, orchestration feed,
+// and graph store. It runs off the Bubble Tea update path (inside
+// refreshCmd), never inside Update or View.
+type liveRefreshSource struct{}
+
+func (liveRefreshSource) snapshots(sel string, everyGit bool) refreshSnapshots {
+	var out refreshSnapshots
+	reg, metas, metaByDisplay, batchLive := sessionsRound()
+	out.sessions = liveSessionsSnapshot(reg, metas, metaByDisplay, batchLive)
+	out.content = liveContentSnapshot(reg, metaByDisplay, sel, everyGit)
+	out.feed = liveFeedSnapshot()
+	// The banner renders only in worker view, where the muse-tab
+	// fallback never applies: pass false so the selected worker's
+	// own run wins and only an empty/unknown selection falls back
+	// to the newest run.
+	out.panel = livePanelSnapshot(false, sel)
+	return out
+}
+
+// sessionsRound performs one shared query round for the sessions
+// pane: one registry load, one PTY list, one batched tmux
+// liveness classification. Pane builders below share these maps
+// instead of reopening stores per session.
+func sessionsRound() (reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool) {
+	reg = loadRegistry()
+	metas, _ = ptyListAll()
+	metaByDisplay = make(map[string]ptyMeta, len(metas))
+	for _, mt := range metas {
+		metaByDisplay[ptyDisplay(mt.Name)] = mt
+	}
+	// One list-sessions call classifies the whole tmux fleet; a nil
+	// map means the batch failed and rows fall back to per-session
+	// checks.
+	if lv, err := tmuxLiveSessions(); err == nil {
+		batchLive = lv
+	}
+	return reg, metas, metaByDisplay, batchLive
+}
+
+// liveSessionsSnapshot builds the session-list pane from one shared
+// query round. A nil batchLive falls back to per-session liveness
+// checks; unknown names resolve to zero rows. One indexed titles
+// query names every tab; task.Agent is the session name for tmux
+// sessions and either display or bare name for PTY ones.
+func liveSessionsSnapshot(reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool) []sessionSnapshot {
+	var out []sessionSnapshot
+	titles := latestTitleByAgent()
+	for _, n := range combinedNames(reg, metas) {
+		row := sessionSnapshot{name: n}
+		if mt, ok := metaByDisplay[n]; ok {
+			// ptyListAll fetched every record in one query;
+			// classify in memory instead of reopening the
+			// database per session.
+			row.running = ptyClassify(mt) == "running"
+			row.entry = Session{Name: n, Workdir: mt.Workdir, Command: mt.Command,
+				Harness: mt.Harness, Model: mt.Model}
+			row.logGen, row.hasGen = mt.Generation, true
+			title := titles[n]
+			if title == "" {
+				title = titles[mt.Name]
+			}
+			row.detail = tabDetail{Harness: mt.Harness, Model: mt.Model, Title: title}
+		} else if e, ok := reg[n]; ok {
+			if batchLive != nil {
+				row.running = batchLive[tmuxName(n)]
+			} else {
+				row.running = sessionRunning(n)
+			}
+			row.entry = e
+			row.detail = tabDetail{Harness: e.Harness, Model: e.Model, Title: titles[n]}
+		}
+		out = append(out, row)
+	}
+	return out
+}
+
+// liveContentSnapshot reads the selected session's terminal content.
+// Read-only: a missing stream is observed, never healed here.
+// Re-attachment is the session owner's job (attach path,
+// registration); capture falls back to polling.
+//
+// Every pane read here is acquisition-bounded (F-10): PTY logs come
+// through the size-bounded reverse tail reader (never a whole-file
+// ReadFile), events tails carry the default byte budget, and git
+// runs under probe/command deadlines with capped output. Truncation
+// propagates in-band: a "... (truncated ...)" head marker rides the
+// existing live/git/events slices through refreshData, so a capped
+// pane never presents as complete.
+func liveContentSnapshot(reg map[string]Session, metaByDisplay map[string]ptyMeta, sel string, everyGit bool) contentSnapshot {
+	if sel == "" {
+		return contentSnapshot{}
+	}
+	if mt, ok := metaByDisplay[sel]; ok {
+		out := contentSnapshot{found: true,
+			entry: Session{Name: sel, Workdir: mt.Workdir, Command: mt.Command,
+				Harness: mt.Harness, Model: mt.Model}}
+		live, cut := boundedPTYLogLines(mt, 500)
+		if cut {
+			live = markTruncated(live, "truncated: showing last 500 lines")
+		}
+		out.live = live
+		if everyGit {
+			out.git = gitInfo(mt.Workdir)
+			out.hasGit = true
+		}
+		ev, ecut := readTailTruncated(filepath.Join(mt.Workdir, "events.jsonl"), 8)
+		if ecut && len(ev) > 0 {
+			ev = markTruncated(ev, "truncated: showing last 8 lines")
+		}
+		out.events = ev
+		return out
+	}
+	if e, ok := reg[sel]; ok {
+		out := contentSnapshot{found: true, entry: e}
+		out.live = captureOutput(sel, 500)
+		if everyGit {
+			out.git = gitInfo(e.Workdir)
+			out.hasGit = true
+		}
+		// Surface the persisted stream rotation counter so the
+		// model reports discarded history (including rotations
+		// that happened while the dashboard was closed) instead
+		// of showing a silent discontinuity.
+		out.streamGen, out.hasStreamGen = streamGeneration(sel), true
+		ev, ecut := readTailTruncated(filepath.Join(e.Workdir, "events.jsonl"), 8)
+		if ecut && len(ev) > 0 {
+			ev = markTruncated(ev, "truncated: showing last 8 lines")
+		}
+		out.events = ev
+		return out
+	}
+	return contentSnapshot{}
+}
+
+// liveFeedSnapshot reads the global orchestration projection.
+// Best-effort: ok=false leaves the last-known projection, flagged,
+// instead of painting a miss as an empty feed.
+func liveFeedSnapshot() feedSnapshot {
+	var out feedSnapshot
+	if feed, ferr := listLatestOrchEvents(30); ferr == nil {
+		out.feed = feed
+		out.ok = true
+	}
+	out.state, out.open, out.blocked = museActivity()
+	if out.state == "" {
+		out.state = MuseDisconnected
+	}
+	return out
+}
+
+// livePanelSnapshot reads the path banner projection: the graph
+// lineage for the selected session's run (or the newest run when
+// nothing resolves). Best-effort like the feed — a miss leaves the
+// last-known banner, never a fabricated lineage.
+func livePanelSnapshot(muse bool, sel string) panelSnapshot {
+	run := resolvePanelRun(muse, sel)
+	return panelSnapshot{run: run, lines: graphMDLines(run, panelCollectCap)}
+}
+
+// latestTitleByAgent returns the newest task objective per worker
+// session. It delegates to the indexed store projection
+// (latestObjectiveByAgent): one grouped query over (agent,
+// created), never a full task-history scan on the refresh path. A
+// missing entry means no task yet; a store error keeps last-known
+// titles rather than blanking the rail.
+func latestTitleByAgent() map[string]string {
+	titles, err := latestObjectiveByAgent()
+	if err != nil {
+		return map[string]string{}
+	}
+	return titles
+}
+
+// assembleRefresh builds the immutable refreshData projection from
+// read-model snapshots. Pure: no controllers, no formatting, no I/O.
+func assembleRefresh(s refreshSnapshots, gen int, sel string) refreshData {
+	out := refreshData{gen: gen, sel: sel, logGen: map[string]int{}, tabInfo: map[string]tabDetail{}}
+	out.names = make([]string, 0, len(s.sessions))
+	out.running = make(map[string]bool, len(s.sessions))
+	for _, r := range s.sessions {
+		out.names = append(out.names, r.name)
+		out.running[r.name] = r.running
+		if r.hasGen {
+			out.logGen[r.name] = r.logGen
+		}
+		out.tabInfo[r.name] = r.detail
+	}
+	// The feed is global and gen-gated like everything else in the
+	// projection: a refused generation never paints a stale feed as
+	// live. A failed feed read keeps last-known data; only a
+	// successful read replaces it — a miss must not masquerade as
+	// empty.
+	if s.feed.ok {
+		out.feed = s.feed.feed
+	}
+	out.feedOk = s.feed.ok
+	out.museState = s.feed.state
+	out.museOpen = s.feed.open
+	out.museBlocked = s.feed.blocked
+	// The path banner is a pure graph projection: same lineage in,
+	// same markdown out.
+	out.panelRun = s.panel.run
+	out.panel = s.panel.lines
+	if s.content.found {
+		out.entry = s.content.entry
+		out.live = s.content.live
+		out.events = s.content.events
+		if s.content.hasGit {
+			out.git = s.content.git
+			out.hasGit = true
+		}
+		if s.content.hasStreamGen {
+			out.logGen[sel] = s.content.streamGen
+		}
+	}
+	return out
+}

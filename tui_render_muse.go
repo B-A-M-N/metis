@@ -1,0 +1,115 @@
+package main
+
+import (
+	"fmt"
+	"strings"
+	"time"
+)
+
+// tui_render_muse.go: the pinned Muse orchestrator tab and its
+// global event feed. Presentation only: indicator states arrive
+// pre-derived from the typed presence facts (deriveMuseState), so
+// this file maps state words to glyphs and rows — it never infers
+// liveness itself. Payload text is worker-influenced, so it is
+// sanitized like live output before rendering.
+
+// museTabLabel renders the pinned first rail row: glyph, name, and
+// state word, color-wrapped like worker harness backgrounds.
+func museTabLabel(selected bool, state string, innerW int) string {
+	glyph, color := museGlyph(state)
+	prefix := "  "
+	if selected {
+		prefix = "> "
+	}
+	plain := pad(truncW(sanitizeLine(prefix+glyph+" MUSE · "+state), innerW), innerW)
+	if color != "" {
+		return color + plain + "\x1b[0m"
+	}
+	return plain
+}
+
+func museGlyph(state string) (glyph, color string) {
+	switch state {
+	case MuseActive:
+		return "◉", "\x1b[32;1m"
+	case MuseActiveEstimated:
+		// Labeled estimate, not verified activity: same
+		// active glyph in non-bold so traffic-only presence
+		// reads as weaker than a verified turn.
+		return "◉", "\x1b[32m"
+	case MuseConnected:
+		return "◍", "\x1b[36m"
+	case MuseDelegated:
+		return "●", "\x1b[32m"
+	case MuseAttention:
+		return "▲", "\x1b[33m"
+	case MuseError:
+		return "✖", "\x1b[31m"
+	case MuseDisconnected:
+		return "◌", "\x1b[2m"
+	default: // MuseIdle and unknown
+		return "○", "\x1b[2m"
+	}
+}
+
+// firstPayloadLine reduces an event payload to its first line for
+// the feed row. Payloads are exact recorded content, truncated at
+// the ledger bound; the row shows the head, never a reconstruction.
+func firstPayloadLine(p string) string {
+	if i := strings.Index(p, "\n"); i >= 0 {
+		return strings.TrimSpace(p[:i])
+	}
+	return strings.TrimSpace(p)
+}
+
+// shortEventTime renders the event timestamp as clock time; unparseable
+// stamps are shown raw rather than hidden.
+func shortEventTime(ts string) string {
+	if t, err := parseOrchTime(ts); err == nil {
+		return time.Unix(0, t).Format("15:04:05")
+	}
+	if len(ts) >= 19 {
+		return ts[11:19]
+	}
+	return ts
+}
+
+// renderFeedRow formats one orchestration event as a sanitized,
+// width-bound feed row.
+func renderFeedRow(e OrchEvent, cursor string, innerW int) string {
+	from := e.OriginPrincipal
+	if from == "" {
+		from = "metis"
+	}
+	to := e.TargetAgent
+	if to == "" {
+		to = "metis"
+	}
+	head := firstPayloadLine(e.Payload)
+	line := fmt.Sprintf("%s%s %s → %s | %s | %s | %s", cursor,
+		shortEventTime(e.Created), from, to, e.EventType, head, e.Disposition)
+	return sanitizeLine(pad(truncW(line, innerW), innerW))
+}
+
+// renderMusePane renders the orchestration feed box that replaces
+// the terminal and Git panes on the Muse tab.
+func renderMusePane(m model, lay renderLayout) []string {
+	feedTitle := fmt.Sprintf("MUSE Orchestrator · %s — open: %d · blocked: %d (up/down=event, enter=jump to worker)",
+		m.museState, m.museOpen, m.museBlocked)
+	var feedLines []string
+	feedCursor := m.nav.FeedCursor
+	for i, e := range m.feed {
+		cursor := "  "
+		if i == feedCursor {
+			cursor = "> "
+		}
+		feedLines = append(feedLines, renderFeedRow(e, cursor, lay.rightW-4))
+	}
+	if len(feedLines) == 0 {
+		feedLines = []string{"(no orchestration events yet — delegating through Metis records the feed)"}
+	}
+	if len(feedLines) > lay.feedH-2 {
+		feedLines = feedLines[len(feedLines)-(lay.feedH-2):]
+	}
+	return boxLines(feedTitle, feedLines, lay.rightW, lay.feedH)
+}
