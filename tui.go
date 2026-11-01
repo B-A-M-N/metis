@@ -130,9 +130,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tickCmd()
 	case refreshMsg:
-		// The outstanding acquisition completed (installed or
-		// refused inside applyRefresh): re-arm dispatch.
-		m.refreshCtl = m.refreshCtl.OnDelivered()
+		// The acquisition completed (installed or refused inside
+		// applyRefresh): re-arm dispatch exactly when this is the
+		// outstanding round's delivery. Stale, superseded,
+		// duplicate, and foreign deliveries leave accounting
+		// untouched; the install-side gen gate in applyRefresh
+		// refuses their data all the same.
+		m.refreshCtl = m.refreshCtl.OnDelivered(msg.data.gen)
 		// Freshness is enforced inside applyRefresh: mismatched
 		// projections are refused with an explicit stale marker
 		// instead of being silently dropped or, worse, installed.

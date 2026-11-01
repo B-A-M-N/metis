@@ -2443,3 +2443,40 @@ projection; commits on master (no reproducible baseline yet).
   exact-request correlation) still open; residual god objects
   (`verdict.go`, `worker_subprocess.go`, `mcp_terminal_tools.go`)
   triage pending.
+
+## Phase 4b ledger — P1b refresh exact-request correlation + stall deadline — FIXED
+- Root causes (all in refresh accounting, `internal/tui/refresh.go`
+  + one shell call site): (1) `OnDelivered()` cleared `Pending`
+  unconditionally, so a stale/superseded/duplicate delivery re-armed
+  dispatch while the current round was still running — unbounded
+  restacking across periodic ticks + rapid navigation; (2)
+  `Reselect()` marked nothing outstanding when idle, so an
+  idle-reselect dispatch plus the next odd tick ran two concurrent
+  collections; (3) no deadline: a hung acquisition held `Pending`
+  forever and ticks coalesced forever — refresh stalled permanently.
+- Intended single owner: `Refresh` transitions (unchanged
+  ownership); shell only builds commands and reports each
+  delivery's gen.
+- Files changed: `internal/tui/refresh.go` (exact correlation:
+  `outstanding` gen + `dispatchedAt` tick, `OnDelivered(gen)`,
+  `stallAfterTicks = 10` abandonment, `dispatch()` shared by
+  tick/reselect), `internal/tui/refresh_test.go` (4 new
+  failing-first tests; 2 existing tests migrated to the correlated
+  contract — stale delivery no longer re-arms, by design),
+  `tui.go` (shell passes `msg.data.gen`), `TUI_DOX.md` (item 5),
+  `internal/tui/AGENTS.md` (refresh contract).
+- Tests that failed before correction (red): new tests did not
+  compile pre-fix (`too many arguments in call to r.OnDelivered`).
+- Mutation proof: unconditional-clear restore → 4 FAIL
+  (`ReselectBypassesPending`, `DeliveryCorrelatesExactly`,
+  `ReselectStorm`, `HungRound`); deadline+reselect-marking removal
+  → 3 FAIL; fix restored → green.
+- Tests that passed after correction: 8 pure `internal/tui`
+  refresh tests; `TestRefreshSkipsWhileOneIsInFlight` integration
+  pin (delivers the real collected gen) green; focused
+  refresh/assemble/boundary suites + `-race` (internal/tui and
+  main refresh/boundary groups) green; vet clean.
+- Residual: full gate at convergence (avoid repeated ~300s runs
+  per slice); residual god objects
+  (`verdict.go`, `worker_subprocess.go`, `mcp_terminal_tools.go`)
+  triage still pending.
