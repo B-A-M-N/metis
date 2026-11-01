@@ -36,7 +36,7 @@ audit only when no unresolved finding invalidates it.
 | P6-1 | musefi profile path (no-inference)    | FIXED       | TestMuseFiProfileServesEchoSession |
 | P6-2 | Live FI-backed turn + four triads     | BLOCKED     | spends real quota; needs explicit authorization, then cross-machine + recovery qual |
 | P1-2 | Arbitrary workdir/command, no policy | FIXED       | TestMCPProvision{RefusesUnregisteredRoot,CustomCommandNeedsCapability,HarnessCommandAllowedOnPlainRoot}; project-root-register CLI-only |
-| P1-3 | Single package, no enforced bounds   | DEFERRED    | interface stabilization first         |
+| P1-3 | Single package, no enforced bounds   | SUPERSEDED  | Enforced where extraction carries direction (internal/tui,termview,musewire + AST guards); further splits need a triggering conflict |
 | P1-4 | No committed revision                | BLOCKED     | repo hook fails closed: no review config |
 | D-1  | Dispatch monolith (P0-A)             | FIXED       | TestDispatchConcurrentCrossSessionOneWinnerNoOrphan, TestDispatchCommitRevalidatesDependencies; full suite green |
 | D-2  | Session god module (P0-B)            | FIXED       | TestStartSessionRegistryFailureCleansUpTmux (failing-first); full suite green |
@@ -44,7 +44,7 @@ audit only when no unresolved finding invalidates it.
 | D-4  | TUI application model (P0-D)         | FIXED       | TestInputBackspaceRuneAware (failing-first), TestAttachEnterUsesAsyncCommand, TestViewRendersFromCacheOnly; full suite green |
 | D-5  | Workspace alloc (P1-A)               | FIXED       | workspace_extract_test.go (3 tests); full suite green |
 | D-6  | Approvals + recovery (P1-B/D)        | FIXED       | Verbatim extraction (muse_host.go untouched); full suite green + race subset green |
-| D-7  | Schema centralization (P1-C)         | DEFERRED    | Order dependency: after package extraction (review step 07) |
+| D-7  | Schema centralization (P1-C)         | VERIFIED NON-ISSUE | One ensure per table (Tx mirrors only); epoch migration owns ordering; centralizing would create a god file |
 | D-8  | coverage_obligations (P2)            | FIXED       | Superseded by R-A (store/policy/service/gate split) |
 | R-0  | MCP depend/correct atomicity (P0)    | FIXED       | TestMCPDepend/CorrectConcurrentConflictAtomic + rollback tests (-race); full suite green |
 | R-A  | Coverage split (P1-A)                | FIXED       | TestCoverageRevisedEvidenceReopensGate (failing-first); full suite green |
@@ -53,7 +53,7 @@ audit only when no unresolved finding invalidates it.
 | R-D  | Provision transport split (P1-D)     | FIXED       | Zero mcpTool refs in domain; 39 Provision/Bind tests; full suite green |
 | R-E  | Team policy + session intent (P1-E/F)| FIXED       | Focused + live Muse wire tests; vet clean; full suite green |
 | R-F  | DOX ownership overlaps               | FIXED       | Map corrected (terminal/placement/workspace rows); boundary_test.go enforces tea/SQL splits |
-| R-G  | Go package boundaries                | DEFERRED    | Order dependency: contracts stable; file-level authority done first |
+| R-G  | Go package boundaries                | SUPERSEDED  | Same as P1-3: isolation where it enforces direction; reopen only on a concrete bypass file boundaries cannot express |
 | S-0  | Report/coverage tx (P0) + reports split | FIXED  | TestDuplicateReportLeavesCoverageUnchanged (failing-first); single-tx submit; receipt policy explicit; full suite + race green |
 | S-1  | run_policy split (P0-A)              | FIXED       | One tx-scoped dependency admission; convergence tests; race green |
 | S-2  | Worker phase extraction (P1-C)       | FIXED       | 5 typed phases + coordinator; 4 phase tests; race green |

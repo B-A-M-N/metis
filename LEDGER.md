@@ -2570,3 +2570,28 @@ projection; commits on master (no reproducible baseline yet).
 - Residual: none locally actionable — live-operator keystroke
   delivery timing under real load is live-qualification (blocked on
   operator-run sessions, no quota spent).
+
+## Phase 5b ledger — deferred rows re-audited (D-7, P1-3, R-G)
+- D-7 schema centralization → VERIFIED NO-ACTION. 31 `ensure*Table`
+  helpers across domains, each table with exactly one logical
+  owner: the only doubled DDL (`task_receipts`,
+  `coverage_obligations`) is the sanctioned Table/Tx mirror pair
+  inside one domain file each. Migration ordering is owned by
+  `task_schema.go` epoch gating (F-15). Centralizing DDL would
+  create a god file and break domain co-location with zero
+  behavior gain — the opposite of the remediation direction.
+  Invariant holds: one ensure per table, epoch-gated migration.
+- P1-3 single package bounds → SUPERSEDED by enforcement already
+  in place. Compile-time isolation exists where extraction
+  happened: `internal/{tui,termview,musewire}` import stdlib only
+  (+termview), main imports them one-way; AST guards pin no-tea in
+  terminal/session/pty domains, no-SQL in read/UI surface, and the
+  TUI import closure. Further extraction without a triggering
+  authority conflict would be file-splitting, explicitly out of
+  scope ("decompose only when responsibilities genuinely
+  conflict").
+- R-G Go package boundaries → same disposition as P1-3: file-level
+  authority + package isolation where it carries a dependency
+  direction; no remaining violation names a package that must
+  exist. Reopen only on a concrete bypass a file boundary cannot
+  express.
