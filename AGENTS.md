@@ -30,7 +30,7 @@ audit only when no unresolved finding invalidates it.
 | P0-C2 | depend/correct stale-key convergence | FIXED       | TestMCP{Depend,Correct}ReplayConflict |
 | P3-b | provision result states distinct      | FIXED       | TestMCPProvisionResultStates (+reconciled flag on crash-heal) |
 | P1-1 | PTY/tmux split provisioning paths    | FIXED       | TestMCPAgentsListsUnifiedSessions, TestMCPProvisionPtyBackend, metis_terminal status/output |
-| P1-1b | Model-facing input/resize/terminate  | DEFERRED    | needs lease-authority design; blind send-keys stays unqualified |
+| P1-1b | Model-facing input/resize/terminate  | FIXED       | Lease authority delivered (F-08/F-11/TD-061); 4 send-keys sites all lease-mediated; AST guard TestBoundarySendKeysRequiresLease (mutation-proven); lease/input/attach/boundary race green |
 | P5-1 | worker.reported native-session join   | FIXED       | TestWorkerReportedCarriesNativeSession |
 | P5-2 | Native child/subagent event projection | BLOCKED     | wire shape unknown; echo provider never emits child events; needs live-provider qualification, not a guessed parser |
 | P6-1 | musefi profile path (no-inference)    | FIXED       | TestMuseFiProfileServesEchoSession |
