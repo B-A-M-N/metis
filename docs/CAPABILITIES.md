@@ -36,6 +36,17 @@ evidence row states.
 - Multi-turn continuity (one native session, 3 turns) + daemon-crash
   resilience: client ops succeed via short-lived hosts against the
   durable store (commit `008ae9f` ledger note).
+- Concurrent two-session native workflow via production surfaces
+  (F-21 qual, $0 echo, isolated TUI_DASH_STATE + XDG_DATA_HOME):
+  MCP `metis_provision` (muse-native) + `metis_bind` for qa/qb →
+  distinct native IDs; concurrent CLI `muse turn` on both
+  (completed, ~0.4s each); second turn on qa advanced the same
+  native cursor :12 → :24; `metis_bind` replay under the same
+  request_id returned the same native ID (no duplicate);
+  `muse status` idle + correct cursors; `metis_agents` listed
+  both `native:*` alive; `doctor` reported both backends/roots;
+  `diagnose --session` bundle complete. Evidence: F-21 ledger row;
+  driver + logs in /tmp/qual-step6 (mcp.py, daemon.log).
 - `TestCmdStatusLeavesCursor` PASS against a live echo daemon
   (SKIP without one).
 

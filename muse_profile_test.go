@@ -115,3 +115,35 @@ func TestMuseProfileMigration(t *testing.T) {
 		t.Fatalf("migrated row must carry timestamps: %+v", b)
 	}
 }
+
+// TestCheckMuseExecutionScopeNativeOnly: a native-only session (a
+// logical record, no tmux registry row, no PTY) must pass the
+// execution-scope check — the decoupled workspace resolver exists
+// precisely so native sessions bind, turn, and resume with no shell
+// backing. A re-homed binding must still be refused.
+func TestCheckMuseExecutionScopeNativeOnly(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	ws, err := canonicalRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := claimLogicalSession(logicalSession{
+		Name: "nl", Backend: TargetMuseNative, Workspace: ws,
+		Provider: "echo",
+	})
+	if err != nil || !claimed {
+		t.Fatalf("seed logical session: claimed=%v err=%v", claimed, err)
+	}
+	assertNoShellBacking(t, "native scope")
+	b := museBinding{Workspace: ws}
+	if err := checkMuseExecutionScope("nl", b); err != nil {
+		t.Fatalf("native-only session must pass scope on its own workspace: %v", err)
+	}
+	other, err := canonicalRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := checkMuseExecutionScope("nl", museBinding{Workspace: other}); err == nil {
+		t.Fatal("turn on a re-homed native session must be refused")
+	}
+}

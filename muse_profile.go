@@ -88,8 +88,12 @@ func museRequireDaemonFor(c museCommander) error {
 // no longer resolves to the workspace (or declared model) the
 // binding was scoped to. A re-homed or re-modelled session is a
 // different execution environment; turns never silently follow it.
+// The workspace resolves through the decoupled resolver: a live
+// shell backing stays authoritative over the record, while a
+// native-only session resolves from its logical record — scope that
+// refuses native sessions could never turn, observe, or deliver.
 func checkMuseExecutionScope(session string, b museBinding) error {
-	workdir, err := sessionWorkdir(session)
+	workdir, err := resolveSessionWorkspace(session)
 	if err != nil {
 		return err
 	}
