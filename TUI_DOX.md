@@ -36,8 +36,9 @@ as typed messages, never direct writes.
   status names the origin `session` (finding G).
 - `refreshSource` interface — acquisition seam behind
   `collectRefreshData`; production `liveRefreshSource`, tests inject fakes.
-  The package-global `activeRefreshSource` is the D finding: migrate to
-  instance-scoped injection (constructors, no mutable global).
+  The former package-global `activeRefreshSource` was the D finding,
+  resolved by instance-scoped injection (constructors, no mutable
+  global); see "Resolved convergences" below.
 
 ## Resolved findings
 
@@ -144,13 +145,11 @@ as typed messages, never direct writes.
    mutation-proven at both levels (busy-check removal → FAIL,
    restored → green); `TestBoundaryGuidanceRoutedThroughComponent`
    pins the routing (Complete bypass → FAIL, restored → green).
-2. **B**: distribute `applyRefresh` per-component installers behind one
-   freshness gate; recipients decide how valid results change their state.
-3. **C**: split `liveRefreshSource.snapshots` acquisition per pane with
-   independent failure flags (feed already has `feedOk`; extend the pattern).
-4. **A/Phase 2**: migrate components to `internal/tui` behind port
-   interfaces, one component at a time; replace `model{...}` test literals
-   with constructors as each component moves.
+
+> Historical note: an earlier revision of this section repeated items
+> B, C, and A/Phase 2 a second time as open work. Those duplicates
+> were stale — the items above record them done — and were removed
+> so agents stop re-planning completed migrations.
 
 ## Verification
 

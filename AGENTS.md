@@ -1,10 +1,25 @@
 # Metis — agent working agreement
 
+## Docs index
+
+- `docs/TESTING.md` — gate ladder, inventory, Short policy.
+- `docs/DEBUGGING.md` — failure class → command → owning domain.
+- `docs/OWNERSHIP.md` — cross-domain rules (map itself stays below).
+- `docs/CAPABILITIES.md` — implemented vs qualified vs blocked.
+- `LEDGER.md` — historical findings and evidence (append-only).
+- `TUI_DOX.md` — TUI component contracts. `internal/*/AGENTS.md`
+  for package contracts. Start here before touching a subsystem.
+
 ## Gates
 
 - Build: `go build -buildvcs=false -o tui-dash .` (see Makefile; plain `go build` fails on VCS stamping).
 - Test during work: `GOCACHE=/tmp/td-gocache go test -count=1 -run '<Name>' .` plus `go vet .`.
-- Full gate before calling work done: `go test ./...` (Makefile `test`).
+- Gate ladder (Makefile; see `docs/TESTING.md`): `make test-fast` every
+  iteration, `make test-domain AREA=<name>` after a coherent fix,
+  `make test-integration` after workflow changes (builds a fresh binary
+  first), `make test-full` at checkpoints and release (full + race subset).
+  `make test` is the release alias. Never add `t.Parallel`; slow
+  integration tests carry `testing.Short` (see `test-inventory.json`).
 
 ## Audit dispositions
 
