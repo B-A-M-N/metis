@@ -277,13 +277,15 @@ func doctorLeases(add func(string, string, string, string), db *sql.DB) {
 	return
 }
 
-// doctorSessions reports registry entries with transport,
-// ownership, and liveness. db may be nil (no database at all).
+// doctorSessions reports every backend independently: tmux
+// registry entries, PTY supervisors, and native logical sessions.
+// A backend whose store is missing or unreadable reports UNKNOWN —
+// never a silent OK — while the remaining backends still report.
+// db may be nil (no database at all).
 func doctorSessions(add func(string, string, string, string), db *sql.DB) {
 	reg := loadRegistry()
 	if len(reg) == 0 {
-		add("sessions", ConditionOK, "no registered sessions", "sessions.json")
-		return
+		add("sessions", ConditionOK, "no registered tmux sessions", "sessions.json")
 	}
 	for name, e := range reg {
 		transport := "tmux"
@@ -297,33 +299,102 @@ func doctorSessions(add func(string, string, string, string), db *sql.DB) {
 		}
 		add("session:"+name, status, detail, "sessions.json + tmux ls")
 	}
-	// PTY sessions live in the database, not the registry.
-	if db != nil && tablePresent(db, "pty_sessions") {
-		rows, err := db.Query(`SELECT name, status, worker_pid FROM pty_sessions`)
-		if err != nil {
-			add("pty-sessions", ConditionUnknown, fmt.Sprintf("pty scan failed: %v", err), "SELECT pty_sessions")
-			return
-		}
-		defer rows.Close()
-		n := 0
-		for rows.Next() {
-			var name, status string
-			var pid int
-			if err := rows.Scan(&name, &status, &pid); err != nil {
-				continue
-			}
-			n++
-			st := ConditionOK
-			if status != "running" {
-				st = ConditionDegraded
-			}
-			add("pty:"+name, st, fmt.Sprintf("status=%s worker_pid=%d alive=%v", status, pid, procAlive(pid)), "pty_sessions + /proc")
-		}
-		if n == 0 {
-			add("pty-sessions", ConditionOK, "no PTY sessions recorded", "SELECT pty_sessions")
-		}
-	}
+	doctorPtySessions(add, db)
+	doctorNativeSessions(add, db)
 	return
+}
+
+// tableProbe reports table presence, distinguishing "missing" from
+// "unreadable": a failed probe is an error, never an absent table.
+func tableProbe(db *sql.DB, name string) (bool, error) {
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, name).Scan(&n); err != nil {
+		return false, err
+	}
+	return n == 1, nil
+}
+
+// doctorPtySessions reports managed PTY supervisors, which live in
+// the database rather than the registry.
+func doctorPtySessions(add func(string, string, string, string), db *sql.DB) {
+	if db == nil {
+		add("pty-sessions", ConditionUnknown, "no database: PTY fleet unscannable", "tasks.db")
+		return
+	}
+	present, err := tableProbe(db, "pty_sessions")
+	if err != nil {
+		add("pty-sessions", ConditionUnknown, fmt.Sprintf("pty scan failed: %v", err), "SELECT pty_sessions")
+		return
+	}
+	if !present {
+		add("pty-sessions", ConditionOK, "no PTY sessions recorded", "SELECT pty_sessions")
+		return
+	}
+	rows, err := db.Query(`SELECT name, status, worker_pid FROM pty_sessions`)
+	if err != nil {
+		add("pty-sessions", ConditionUnknown, fmt.Sprintf("pty scan failed: %v", err), "SELECT pty_sessions")
+		return
+	}
+	defer rows.Close()
+	n := 0
+	for rows.Next() {
+		var name, status string
+		var pid int
+		if err := rows.Scan(&name, &status, &pid); err != nil {
+			continue
+		}
+		n++
+		st := ConditionOK
+		if status != "running" {
+			st = ConditionDegraded
+		}
+		add("pty:"+name, st, fmt.Sprintf("status=%s worker_pid=%d alive=%v", status, pid, procAlive(pid)), "pty_sessions + /proc")
+	}
+	if n == 0 {
+		add("pty-sessions", ConditionOK, "no PTY sessions recorded", "SELECT pty_sessions")
+	}
+}
+
+// doctorNativeSessions reports muse-native logical sessions, which
+// live in logical_sessions rather than the registry or PTY table.
+// Recorded state only: doctor never dials a daemon, so a bound
+// native session reports its stored state, not a live check.
+func doctorNativeSessions(add func(string, string, string, string), db *sql.DB) {
+	if db == nil {
+		add("native-sessions", ConditionUnknown, "no database: native fleet unscannable", "tasks.db")
+		return
+	}
+	present, err := tableProbe(db, "logical_sessions")
+	if err != nil {
+		add("native-sessions", ConditionUnknown, fmt.Sprintf("native scan failed: %v", err), "SELECT logical_sessions")
+		return
+	}
+	if !present {
+		add("native-sessions", ConditionOK, "no native sessions recorded", "SELECT logical_sessions")
+		return
+	}
+	rows, err := listLogicalSessions(db)
+	if err != nil {
+		add("native-sessions", ConditionUnknown, fmt.Sprintf("native scan failed: %v", err), "SELECT logical_sessions")
+		return
+	}
+	if len(rows) == 0 {
+		add("native-sessions", ConditionOK, "no native sessions recorded", "SELECT logical_sessions")
+		return
+	}
+	for _, ls := range rows {
+		st := ConditionOK
+		if ls.State != "active" {
+			st = ConditionDegraded
+		}
+		bound := "unbound"
+		if ls.NativeID != "" {
+			bound = "bound"
+		}
+		add("native:"+ls.Name, st, fmt.Sprintf("backend=%s state=%s %s provider=%s profile=%s run=%s root=%s",
+			ls.Backend, ls.State, bound, ls.Provider, ls.Profile, ls.Run, ls.Workspace),
+			"SELECT logical_sessions")
+	}
 }
 
 // doctorStreams checks stream file size, freshness, and rotation

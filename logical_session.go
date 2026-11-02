@@ -128,6 +128,38 @@ func loadLogicalSession(name string) (logicalSession, bool, error) {
 	return ls, true, nil
 }
 
+// listLogicalSessions enumerates every logical (muse-native)
+// session row. Read-only: the caller owns table setup and the
+// database handle, so diagnostics can probe without migrating.
+func listLogicalSessions(db *sql.DB) ([]logicalSession, error) {
+	rows, err := db.Query(`SELECT name, backend, workspace, harness, model, provider, profile,
+		run, objective, native_id, state, generation, created, updated
+		FROM logical_sessions ORDER BY name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []logicalSession
+	for rows.Next() {
+		var ls logicalSession
+		var generation sql.NullInt64
+		if err := rows.Scan(
+			&ls.Name, &ls.Backend, &ls.Workspace, &ls.Harness, &ls.Model, &ls.Provider,
+			&ls.Profile, &ls.Run, &ls.Objective, &ls.NativeID, &ls.State,
+			&generation, &ls.Created, &ls.Updated); err != nil {
+			return nil, err
+		}
+		if generation.Valid {
+			ls.Generation = generation.Int64
+		}
+		out = append(out, ls)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // claimLogicalSession records one logical session. It reports
 // (false, nil) when the name is already established: the caller
 // loads the winner and converges or conflicts, exactly like the

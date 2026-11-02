@@ -10,6 +10,11 @@ import (
 // execution side effects). Split from mcp_read_tools.go; behavior
 // unchanged.
 
+// nativePrefix namespaces muse-native sessions in the unified
+// display ("native:<name>"), mirroring ptyPrefix. Transport-owned:
+// listing only, never an attachment capability.
+const nativePrefix = "native:"
+
 // mcpWriteAuth binds mutations to operator identity when the server
 // runs with METIS_MCP_WRITE_TOKEN set. The token travels in the
 // `auth` argument; Ocliv operators inject the secret with
@@ -51,12 +56,15 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 		}
 		after = mcpStr(args, "after")
 	}
-	// Unified session view: the tmux registry plus managed PTY
-	// supervisors. Display names are backend-qualified
-	// ("pty:<name>"); tmux registry names cannot contain ':'
-	// (nameRe), so the two namespaces never collide. A worker
-	// invisible here is invisible to the model: metis_agents is
-	// the authoritative listing, not a tmux-only projection.
+	// Unified session view: the tmux registry, managed PTY
+	// supervisors, and muse-native logical sessions. Display names
+	// are backend-qualified ("pty:<name>", "native:<name>"); tmux
+	// registry names cannot contain ':' (nameRe), so the three
+	// namespaces never collide. A worker invisible here is
+	// invisible to the model: metis_agents is the authoritative
+	// listing, not a tmux-only projection. Listing is observation
+	// only: a native entry is not a terminal attachment capability
+	// (a native session is not a fake PTY).
 	reg := loadRegistry()
 	metas, err := ptyListAll()
 	if err != nil {
@@ -66,11 +74,30 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 	for _, m := range metas {
 		byPty[ptyDisplay(m.Name)] = m
 	}
-	names := make([]string, 0, len(reg)+len(byPty))
+	nativeDB, err := openTasksDB()
+	if err != nil {
+		return mcpToolError("agents: %v", err)
+	}
+	defer nativeDB.Close()
+	if err := ensureLogicalSessionTable(nativeDB); err != nil {
+		return mcpToolError("agents: native sessions: %v", err)
+	}
+	nativeRows, err := listLogicalSessions(nativeDB)
+	if err != nil {
+		return mcpToolError("agents: native sessions: %v", err)
+	}
+	byNative := make(map[string]logicalSession, len(nativeRows))
+	for _, ls := range nativeRows {
+		byNative[nativePrefix+ls.Name] = ls
+	}
+	names := make([]string, 0, len(reg)+len(byPty)+len(byNative))
 	for name := range reg {
 		names = append(names, name)
 	}
 	for display := range byPty {
+		names = append(names, display)
+	}
+	for display := range byNative {
 		names = append(names, display)
 	}
 	sort.Strings(names)
@@ -99,6 +126,17 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 				Harness: m.Harness, Model: m.Model,
 				Alive:   workerSessionAlive(name),
 				Workdir: m.Workdir,
+			})
+			continue
+		}
+		if ls, ok := byNative[name]; ok {
+			// Recorded state only: no daemon dial, so Alive
+			// reflects the stored lifecycle, not a live check.
+			out = append(out, agentView{
+				Name: name, Backend: TargetMuseNative,
+				Harness: ls.Harness, Model: ls.Model,
+				Alive:   ls.State == "active",
+				Workdir: ls.Workspace, Created: ls.Created,
 			})
 			continue
 		}

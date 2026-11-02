@@ -70,6 +70,114 @@ func TestDoctorNeverMigrates(t *testing.T) {
 	}
 }
 
+// Backend-neutral session inventory: a PTY-only fleet must appear
+// in doctor output even when the tmux registry is empty. The old
+// early return hid the entire PTY scan behind a nonempty registry.
+func TestDoctorSessionsPtyOnlyFleetListed(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	seedPtyRow(t, "pp", t.TempDir())
+	db, err := openTasksDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var names []string
+	doctorSessions(func(name, status, detail, source string) {
+		names = append(names, name)
+		if source == "" {
+			t.Errorf("condition %q must name its evidence source", name)
+		}
+	}, db)
+	for _, n := range names {
+		if n == "pty:pp" {
+			return
+		}
+	}
+	t.Fatalf("PTY-only fleet missing from doctor sessions: %v", names)
+}
+
+// A native-only fleet (logical_sessions row, empty registry, no PTY
+// rows) must appear as native:<name>, not vanish.
+func TestDoctorSessionsNativeOnlyListed(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	seedLogicalRow(t, "nw")
+	db, err := openTasksDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var names []string
+	doctorSessions(func(name, status, detail, source string) {
+		names = append(names, name)
+	}, db)
+	for _, n := range names {
+		if n == "native:nw" {
+			return
+		}
+	}
+	t.Fatalf("native-only fleet missing from doctor sessions: %v", names)
+}
+
+// Mixed fleets report every backend independently.
+func TestDoctorSessionsMixedBackends(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	installFakeTmux(t, "doc-mix")
+	seedOwnedSession(t, "tm", "doc-mix")
+	seedPtyRow(t, "pp", t.TempDir())
+	seedLogicalRow(t, "nw")
+	db, err := openTasksDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	seen := map[string]bool{}
+	doctorSessions(func(name, status, detail, source string) {
+		seen[name] = true
+	}, db)
+	for _, want := range []string{"session:tm", "pty:pp", "native:nw"} {
+		if !seen[want] {
+			t.Fatalf("mixed fleet missing %q: %v", want, seen)
+		}
+	}
+}
+
+// A missing database must surface UNKNOWN for DB-backed sections,
+// not a silent OK and not a panic. The file-backed tmux section
+// still reports from the registry.
+func TestDoctorSessionsMissingDBUnknown(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	var unknowns []string
+	doctorSessions(func(name, status, detail, source string) {
+		if status == ConditionUnknown {
+			unknowns = append(unknowns, name)
+		}
+	}, nil)
+	if len(unknowns) == 0 {
+		t.Fatal("nil database must yield UNKNOWN sections, got none")
+	}
+}
+
+// A broken database (failed queries) must also surface UNKNOWN,
+// never silently drop the section.
+func TestDoctorSessionsFailedQueryUnknown(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	seedPtyRow(t, "pp", t.TempDir())
+	db, err := openTasksDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.Close() // every subsequent query fails
+	var unknowns []string
+	doctorSessions(func(name, status, detail, source string) {
+		if status == ConditionUnknown {
+			unknowns = append(unknowns, name)
+		}
+	}, db)
+	if len(unknowns) == 0 {
+		t.Fatal("failed queries must yield UNKNOWN sections, got none")
+	}
+}
+
 func contains(s, sub string) bool {
 	return len(s) >= len(sub) && (func() bool {
 		for i := 0; i+len(sub) <= len(s); i++ {

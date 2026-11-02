@@ -13,6 +13,24 @@ import (
 	"testing"
 )
 
+func seedLogicalRow(t *testing.T, name string) {
+	t.Helper()
+	db, err := openTasksDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := ensureLogicalSessionTable(db); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO logical_sessions
+		(name, backend, workspace, harness, model, provider, profile, run, objective, native_id, state, generation, created, updated)
+		VALUES (?, 'muse-native', ?, 'muse-native', 'echo', 'meta', 'fi', 'r1', 'do', 'nid-1', 'active', 0, ?, ?)`,
+		name, t.TempDir(), nowUTC(), nowUTC()); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func seedPtyRow(t *testing.T, name, workdir string) {
 	t.Helper()
 	db, err := openTasksDB()
@@ -80,6 +98,41 @@ func TestMCPAgentsListsUnifiedSessions(t *testing.T) {
 	second, _ := agents[1].(map[string]any)
 	if first["name"] != "pty:pw" || second["name"] != "tm" {
 		t.Fatalf("listing not sorted: %v, %v", first["name"], second["name"])
+	}
+}
+
+// Native sessions live in logical_sessions, not the tmux registry
+// or PTY table. A native worker invisible to metis_agents is the
+// same split-brain the unified view was built to eliminate — with
+// one hard rule: listing is observation only, never a terminal
+// attachment capability (a native session is not a fake PTY).
+func TestMCPAgentsListsNativeSessions(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	installFakeTmux(t, "unified-native")
+	seedLogicalRow(t, "nw")
+	res, err := mcpCallTool("metis_agents", mustJSON(t, map[string]any{}))
+	if err != nil {
+		t.Fatalf("agents: %v", err)
+	}
+	if res.IsError {
+		t.Fatalf("agents isError: %s", res.Content[0].Text)
+	}
+	out := mcpTaskText(t, res)
+	agents, _ := out["agents"].([]any)
+	byName := map[string]map[string]any{}
+	for _, a := range agents {
+		m, _ := a.(map[string]any)
+		byName[m["name"].(string)] = m
+	}
+	nw, ok := byName["native:nw"]
+	if !ok {
+		t.Fatalf("native session missing from unified listing: %v", out)
+	}
+	if nw["backend"] != "muse-native" {
+		t.Fatalf("native session backend = %v, want muse-native", nw["backend"])
+	}
+	if nw["workdir"] == "" {
+		t.Fatal("native session must project its workdir")
 	}
 }
 
