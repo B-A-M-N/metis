@@ -909,6 +909,36 @@
    "status": "pass",
    "deps": []
   },
+  "TestDoctorSessionsFailedQueryUnknown": {
+   "file": "doctor_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestDoctorSessionsMissingDBUnknown": {
+   "file": "doctor_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestDoctorSessionsMixedBackends": {
+   "file": "doctor_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestDoctorSessionsNativeOnlyListed": {
+   "file": "doctor_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestDoctorSessionsPtyOnlyFleetListed": {
+   "file": "doctor_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
   "TestDuplicateReportLeavesCoverageUnchanged": {
    "file": "report_coverage_tx_test.go",
    "seconds": 0.53,
@@ -1556,6 +1586,12 @@
    "file": "loop_wait_test.go",
    "seconds": 0.46,
    "status": "pass",
+   "deps": []
+  },
+  "TestMCPAgentsListsNativeSessions": {
+   "file": "unified_agents_test.go",
+   "seconds": null,
+   "status": "unknown",
    "deps": []
   },
   "TestMCPAgentsListsUnifiedSessions": {

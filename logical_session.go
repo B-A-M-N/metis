@@ -128,6 +128,22 @@ func loadLogicalSession(name string) (logicalSession, bool, error) {
 	return ls, true, nil
 }
 
+// listNativeSessions enumerates muse-native sessions for read-only
+// transport listings, opening the tasks database itself like
+// ptyListAll. Storage-owned persistence access: transports call
+// this instead of opening the database themselves.
+func listNativeSessions() ([]logicalSession, error) {
+	db, err := openTasksDB()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+	if err := ensureLogicalSessionTable(db); err != nil {
+		return nil, err
+	}
+	return listLogicalSessions(db)
+}
+
 // listLogicalSessions enumerates every logical (muse-native)
 // session row. Read-only: the caller owns table setup and the
 // database handle, so diagnostics can probe without migrating.

@@ -74,15 +74,7 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 	for _, m := range metas {
 		byPty[ptyDisplay(m.Name)] = m
 	}
-	nativeDB, err := openTasksDB()
-	if err != nil {
-		return mcpToolError("agents: %v", err)
-	}
-	defer nativeDB.Close()
-	if err := ensureLogicalSessionTable(nativeDB); err != nil {
-		return mcpToolError("agents: native sessions: %v", err)
-	}
-	nativeRows, err := listLogicalSessions(nativeDB)
+	nativeRows, err := listNativeSessions()
 	if err != nil {
 		return mcpToolError("agents: native sessions: %v", err)
 	}
