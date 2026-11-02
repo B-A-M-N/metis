@@ -70,6 +70,7 @@ func usage() {
       Local stdio MCP adapter for model clients (also hosted by
       Ocliv mcp expose for remote access). No HTTP listener.
   tui-dash doctor [--json]
+  tui-dash diagnose --session NAME [--json]
   tui-dash demo --workdir DIR [--steps N] [--delay SECONDS]
   tui-dash pty-start --name NAME --workdir DIR --cmd CMD [--harness H] [--model M]
   tui-dash pty-list [--json] | pty-log | pty-input | pty-receipt | pty-resize | pty-status | pty-stop
@@ -240,6 +241,8 @@ func dispatchCLI(cmd string, args []string) int {
 		return cliTaskVerdict(args)
 	case "doctor":
 		return cliDoctor(args)
+	case "diagnose":
+		return cliDiagnose(args)
 	case "task-reconcile":
 		return cliTaskReconcile(args)
 	case "task-verify":
