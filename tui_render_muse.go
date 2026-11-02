@@ -21,7 +21,7 @@ func museTabLabel(selected bool, state string, innerW int) string {
 	if selected {
 		prefix = "> "
 	}
-	plain := pad(truncW(sanitizeLine(prefix+glyph+" MUSE · "+state), innerW), innerW)
+	plain := pad(truncW(sanitizeLine(prefix+glyph+" META.AI · "+state), innerW), innerW)
 	if color != "" {
 		return color + plain + "\x1b[0m"
 	}
@@ -94,7 +94,7 @@ func renderFeedRow(e OrchEvent, cursor string, innerW int) string {
 // renderMusePane renders the orchestration feed box that replaces
 // the terminal and Git panes on the Muse tab.
 func renderMusePane(m model, lay renderLayout) []string {
-	feedTitle := fmt.Sprintf("MUSE Orchestrator · %s — open: %d · blocked: %d (up/down=event, enter=jump to worker)",
+	feedTitle := fmt.Sprintf("Meta.ai Orchestrator · activity feed, not a chat · %s — open: %d · blocked: %d (up/down=event, enter=jump to worker)",
 		m.museState, m.museOpen, m.museBlocked)
 	var feedLines []string
 	feedCursor := m.nav.FeedCursor
@@ -103,13 +103,13 @@ func renderMusePane(m model, lay renderLayout) []string {
 		if i == feedCursor {
 			cursor = "> "
 		}
-		feedLines = append(feedLines, renderFeedRow(e, cursor, lay.rightW-4))
+		feedLines = append(feedLines, renderFeedRow(e, cursor, lay.mainW-4))
 	}
 	if len(feedLines) == 0 {
-		feedLines = []string{"(no orchestration events yet — delegating through Metis records the feed)"}
+		feedLines = []string{"(no controller events yet)", "", "This tab is a dedicated MCP controller slot.", "It does not mirror a Meta.ai web conversation."}
 	}
 	if len(feedLines) > lay.feedH-2 {
 		feedLines = feedLines[len(feedLines)-(lay.feedH-2):]
 	}
-	return boxLines(feedTitle, feedLines, lay.rightW, lay.feedH)
+	return boxLines(feedTitle, feedLines, lay.mainW, lay.contentH)
 }

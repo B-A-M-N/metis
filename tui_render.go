@@ -24,7 +24,7 @@ func (m model) View() string {
 	if m.width < 80 || m.height < 24 {
 		return "Terminal too small: need at least 80x24. Resize or q to quit.\n"
 	}
-	lay := computeLayout(m.width, m.height)
+	lay := computeLayoutWithInfo(m.width, m.height, m.infoOpen && !m.nav.OnMuse)
 	sel, running, mode := selectedSummary(m)
 	var b strings.Builder
 	b.WriteString(renderHeaderLine(m, sel, running, mode, lay.w) + "\n")
@@ -33,20 +33,18 @@ func (m model) View() string {
 	// Worker output is untrusted: pane renderers sanitize control
 	// sequences before painting so a session cannot repaint the
 	// dashboard.
-	var live, git []string
+	var main, info []string
 	if m.nav.OnMuse {
-		// Muse tab: the orchestration feed replaces the terminal
-		// and Git panes.
-		live = renderMusePane(m, lay)
-		git = []string{}
+		main = renderMusePane(m, lay)
 	} else {
-		live = renderLivePane(m, sel, lay)
-		git = renderGitPane(m, sel, lay)
+		main = renderLivePane(m, sel, lay)
+		if lay.infoW > 0 {
+			info = renderInfoPane(m, sel, lay)
+		}
 	}
-	for _, row := range joinPanes(left, live, git, lay) {
+	for _, row := range joinSessionPanes(left, main, info, lay) {
 		b.WriteString(row + "\n")
 	}
-	b.WriteString(renderEventsLine(m, sel, lay.w) + "\n")
 	b.WriteString(renderPromptLine(m, lay.w) + "\n")
 	b.WriteString(renderStatusLine(m, lay.w) + "\n")
 	return b.String()

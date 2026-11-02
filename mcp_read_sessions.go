@@ -98,6 +98,8 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 		Backend     string `json:"backend"`
 		Harness     string `json:"harness"`
 		Model       string `json:"model"`
+		Provider    string `json:"provider,omitempty"`
+		Profile     string `json:"profile,omitempty"`
 		Alive       bool   `json:"alive"`
 		Workdir     string `json:"workdir"`
 		Created     string `json:"created"`
@@ -128,7 +130,7 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 			// reflects the stored lifecycle, not a live check.
 			out = append(out, agentView{
 				Name: name, Backend: TargetMuseNative,
-				Harness: ls.Harness, Model: ls.Model,
+				Harness: ls.Harness, Model: ls.Model, Provider: ls.Provider, Profile: ls.Profile,
 				Alive:   ls.State == "active",
 				Workdir: ls.Workspace, Created: ls.Created,
 				Lifecycle: ls.State, Observation: "not_probed",
@@ -138,7 +140,7 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 		s := reg[name]
 		out = append(out, agentView{
 			Name: name, Backend: TargetTMUX,
-			Harness: s.Harness, Model: s.Model,
+			Harness: s.Harness, Model: s.Model, Provider: s.Provider, Profile: s.Profile,
 			Alive:   workerSessionAlive(name),
 			Workdir: s.Workdir, Created: s.Created,
 		})

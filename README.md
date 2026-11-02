@@ -1,9 +1,11 @@
 # Metis
 
-Metis is a local control plane and Bubble Tea dashboard for coding
-agents. It coordinates work, records evidence, and gives operators a
-shared view across tmux, PTY, and native Muse sessions. The command is
-`metis`; `tui-dash` remains available as a compatibility name.
+Metis is a tabbed terminal manager for interactive Muse Code sessions,
+with an AI-accessible controller through the existing MCP tools. It
+starts and tracks sessions in tmux; the command is `metis`, and
+`tui-dash` remains available as a compatibility name. Task, evidence,
+fleet, PTY, and native Muse services remain available behind the
+session interface.
 The `tui-dash` command and existing state/work directories remain
 compatible. New sessions use the `metis-` tmux prefix; registered
 sessions with the old `tui-` prefix remain usable. `METIS_STATE` is
@@ -11,11 +13,12 @@ preferred; `TUI_DASH_STATE` remains accepted.
 
 ## What this is, and is not
 
-- **It is:** an operator dashboard and CLI for tmux, PTY, and native
-  Muse workers, with task dispatch, evidence, and session guidance.
-- **It is not:** a view into Muse's own chat work. Muse in chat has
-  no attachable TUI. Metis shows workers and durable orchestration
-  records; it does not mirror the chat conversation.
+- **It is:** a session manager for real Muse Code terminals, with
+  separate session identity, provider/model metadata, prompt delivery,
+  external tmux attach, and a pinned Meta.ai controller slot.
+- **It is not:** a replacement for Muse Code or a mirror of a Meta.ai
+  web conversation. The pinned controller tab shows Metis activity;
+  it does not invent a chat transcript.
 
 ## Build and run
 
@@ -30,8 +33,8 @@ cd tui-dash
 # folder is not a git repository (exit 128). Disabling the
 # stamp changes nothing else about the binary.
 
-# The main entry point: start a demo worker if needed, then open the TUI.
-./metis up
+# Open the session manager:
+./metis watch
 
 # With your own session / workdir / worker:
 ./metis up --session mywork --workdir ~/mywork --cmd "hermes chat"
@@ -39,8 +42,16 @@ cd tui-dash
 # TUI only, no auto-start:
 ./metis watch --session mywork
 
-# Attach directly to the raw agent pane (no dashboard):
-tmux attach -t metis-mywork
+# Legacy demo entry point remains available:
+./metis up
+
+# Register a project once, then launch one interactive Muse Code session:
+./metis project-root-register --root ~/Locus
+./metis launch --name locus-01 --workdir ~/Locus \
+  --provider meta --model muse-spark-1.3
+
+# Attach directly to the exact raw agent terminal (no dashboard):
+tmux attach -t metis-locus-01
 
 # Existing sessions created before the rename still use tui-<name>.
 # Their registered target is retained so attach and control still work.
@@ -63,27 +74,39 @@ second per step.
 `~/.local/share/tui-dash` when present and uses
 `~/.local/share/metis` for a fresh install.
 
-Requirements: Go 1.23+, `tmux`, `git` (for the git pane; without a
-repo the pane lists files instead), a terminal at least 80x24.
+Requirements: Go 1.25+, `tmux`, `muse` on PATH for `metis launch`, and
+a terminal at least 80x24.
 Go was installed on the build machine at `~/workspace/tools/go`
 because it was not preinstalled there; on pop-os use the Go you
 already have. No other runtime is needed once the binary is built.
 
-## Panes and keys
+## Session view and keys
 
-- **Sessions:** left, `*` = running, `>` = selected.
-- **Live:** right top, `tmux capture-pane` for the selected session.
-- **Git:** right middle, `git status --short` + `git diff --stat`.
-- **Guidance input:** bottom. Default is file mode: guidance is
-  appended to `<workdir>/guidance.md` and to `events.jsonl`, and the
-  worker polls that file, so your text never races its typing.
-  Press `d` to toggle direct mode, which also sends the text to
-  the tmux pane with `send-keys`; that can collide with agent
-  input, so it is off by default.
+- **Session tabs:** left; labels show project and instance number,
+  while the session ID remains the control identity.
+- **Text snapshot:** selected tmux pane, sanitized and read-only as a
+  screen preview. It is not a full terminal emulator.
+- **Full terminal:** press `F5` to suspend Metis and attach the normal
+  terminal to that exact owned tmux session. Detaching returns to Metis.
+- **Info drawer:** press `F6` to show provider/model, profile, working
+  directory, process state, and recent session events. It is closed by
+  default.
+- **Prompt bar:** press `i`, type text, and press Enter. Submission
+  captures the selected session ID and uses the input lease; `d`
+  switches to durable guidance-file delivery. On the Meta.ai tab the
+  prompt is disabled; use MCP tools to target a worker explicitly.
+- **Meta.ai tab:** pinned controller slot and activity feed. Use the
+  existing MCP tools to provision, list, target, instruct, and observe
+  sessions. The feed is Metis activity, not a web conversation; no chat
+  stream is linked.
 
-Keys: `Up/Down` or `j/k` select, `i` or `Tab` input, `Esc` back to
-nav, `Enter` send, `g` path-traversal panel, `d` direct toggle,
-`r` tail, `PgUp/PgDn` scroll live, `q` quit.
+Keys: `Up/Down` or `j/k` select, `i` prompt, `Esc` back to nav,
+`Enter` limited keyboard attach, `F5` full terminal attach, `F6` info drawer,
+`d` toggle prompt delivery, `PgUp/PgDn` scroll snapshot, `q` quit.
+
+The in-TUI preview strips terminal control state. Muse Code full-screen
+interaction uses native tmux attach, where colors, cursor movement,
+resizing, and terminal modes are handled by tmux and the normal terminal.
 
 ## Limits, verified not assumed
 
@@ -96,7 +119,7 @@ nav, `Enter` send, `g` path-traversal panel, `d` direct toggle,
   fleet node through its gateway or SSH, per the fleet transport
   rule.
 
-## Verification
+## Verification and qualification
 
 ```bash
 go vet ./...
@@ -104,16 +127,14 @@ make build
 go test ./...
 ```
 
-`go test` includes unit tests (validation, inject/snapshot,
-demo guidance ack) and a tmux integration test that is skipped
-unless `./metis` is built in this folder.
-The integration test starts the demo in tmux, checks snapshot live
-output, injects guidance, waits for `GUIDANCE RECEIVED`, and checks git
-status.
-
-TUI rendering was also checked by running `metis up` inside a
-tmux session and capturing its pane, and by typing guidance in
-the TUI and watching the demo acknowledge it.
+For the Muse Code MVP change, `go build -buildvcs=false` and `go vet .`
+passed. A zero-inference echo-provider demo launched two Muse Code
+sessions in the same Locus directory, switched between their Metis tabs,
+attached through `F5` to each exact session, detached without restarting
+either process, sent one prompt only to the selected session, and opened
+the `F6` info drawer. No Meta/local provider prompt was submitted. The
+in-TUI screen remains a text snapshot; full-screen interaction uses the
+normal tmux terminal attach.
 
 ## Files
 

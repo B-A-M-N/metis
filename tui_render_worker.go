@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"metis/internal/termview"
 )
@@ -15,17 +17,85 @@ import (
 // session.
 func renderLivePane(m model, sel string, lay renderLayout) []string {
 	entry := boundEntry(m, sel)
-	rawLive := sliceLines(boundLines(m, sel, m.live), lay.liveH, m.scroll)
+	detail := m.tabInfo[sel]
+	provider, model := entry.Provider, entry.Model
+	if provider == "" {
+		provider = detail.Provider
+	}
+	if model == "" {
+		model = detail.Model
+	}
+	rawLive := sliceLines(boundLines(m, sel, m.live), lay.contentH, m.scroll)
 	liveContent := make([]string, len(rawLive))
 	for i, l := range rawLive {
 		liveContent[i] = termview.SanitizeLine(l)
 	}
-	title := fmt.Sprintf("Live: %s (%s/%s, PgUp/PgDn scroll, r=tail)", sel,
-		orDash(entry.Harness), orDash(entry.Model))
+	title := fmt.Sprintf("Text snapshot: %s (%s/%s; F5 opens full terminal)", sel,
+		orDash(provider), orDash(model))
 	if m.isNativeSelection(sel) {
 		title = "Native activity: " + sel + " (i=structured steering)"
 	}
-	return boxLines(title, liveContent, lay.rightW, lay.liveH)
+	return boxLines(title, liveContent, lay.mainW, lay.contentH)
+}
+
+func renderInfoPane(m model, sel string, lay renderLayout) []string {
+	entry := boundEntry(m, sel)
+	detail := m.tabInfo[sel]
+	label := detail.Label
+	if label == "" {
+		label = sel
+	}
+	health := "stopped"
+	if m.running[sel] {
+		health = "running"
+	}
+	provider := detail.Provider
+	if provider == "" {
+		provider = entry.Provider
+	}
+	model := detail.Model
+	if model == "" {
+		model = entry.Model
+	}
+	profile := detail.Profile
+	if profile == "" {
+		profile = entry.Profile
+	}
+	workdir := detail.Workdir
+	if workdir == "" {
+		workdir = entry.Workdir
+	}
+	lines := []string{
+		"Project: " + label,
+		"Session ID: " + sel,
+		"Provider: " + orDash(provider),
+		"Model: " + orDash(model),
+		"Profile: " + orDash(profile),
+		"Process: " + health,
+		"Working directory:",
+		workdir,
+		"Recent session events:",
+	}
+	ev := boundLines(m, sel, m.events)
+	var selectedEvents []string
+	for _, line := range ev {
+		var event struct {
+			Text string `json:"text"`
+		}
+		if json.Unmarshal([]byte(line), &event) == nil && (event.Text == sel || strings.HasPrefix(event.Text, sel+":")) {
+			selectedEvents = append(selectedEvents, sanitizeLine(line))
+		}
+	}
+	if len(selectedEvents) == 0 {
+		lines = append(lines, "(none recorded)")
+	} else {
+		start := len(selectedEvents) - 4
+		if start < 0 {
+			start = 0
+		}
+		lines = append(lines, selectedEvents[start:]...)
+	}
+	return boxLines("Info · F6 closes", sliceLines(lines, lay.contentH, 0), lay.infoW, lay.contentH)
 }
 
 // renderGitPane renders the lower right box: either the MD path

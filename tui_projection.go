@@ -62,9 +62,13 @@ type refreshData struct {
 
 // tabDetail is one terminal tab's identity block.
 type tabDetail struct {
-	Harness string
-	Model   string
-	Title   string
+	Harness  string
+	Provider string
+	Profile  string
+	Model    string
+	Workdir  string
+	Label    string
+	Title    string
 }
 
 type refreshMsg struct{ data refreshData }

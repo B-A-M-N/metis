@@ -45,6 +45,8 @@ func usage() {
       Open the dashboard (same as: run).
   metis up [--session NAME] [--workdir DIR] [--cmd CMD]
       Start the session if it is not running, then open the dashboard.
+  metis launch --name NAME --workdir DIR [--provider meta|local|echo] [--model ID] [--profile ID]
+      Launch one interactive Muse Code session through tmux.
   metis agent start --name NAME --workdir DIR [--cmd CMD | --harness H --prompt TEXT] [--model M]
   metis agent list [--json]  (also: agents, workers, sessions)
   metis agent stop --name NAME | agent adopt --name NAME
@@ -196,6 +198,8 @@ func main() {
 // preamble above still runs first.
 func dispatchCLI(cmd string, args []string) int {
 	switch cmd {
+	case "launch":
+		return cliLaunch(args)
 	case "up":
 		return cliUp(args)
 	case "run":

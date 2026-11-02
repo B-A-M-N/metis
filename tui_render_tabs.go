@@ -1,5 +1,7 @@
 package main
 
+import "strings"
+
 // tui_render_tabs.go: worker rail rows plus the pinned Muse row and
 // the rail scroll window. Pure presentation over the cached session
 // list: no controller queries, no tmux, no filesystem.
@@ -28,10 +30,42 @@ func harnessBG(harness string) string {
 	return tabPalettes[h%len(tabPalettes)]
 }
 
+// providerModelBG colors Muse Code tabs from the configured provider/model,
+// never from the Muse Code harness name.
+func providerModelBG(provider, model string) string {
+	family := strings.ToLower(model)
+	switch {
+	case strings.HasPrefix(family, "claude"):
+		return "\x1b[48;5;52m"
+	case strings.HasPrefix(family, "agy"):
+		return "\x1b[48;5;60m"
+	case strings.HasPrefix(family, "gpt"), strings.HasPrefix(family, "chatgpt"):
+		return "\x1b[48;5;236m"
+	}
+	switch strings.ToLower(provider) {
+	case "meta":
+		return "\x1b[48;5;18m"
+	case "claude":
+		return "\x1b[48;5;52m"
+	case "agy":
+		return "\x1b[48;5;60m"
+	case "chatgpt", "openai":
+		return "\x1b[48;5;236m"
+	case "local":
+		return "\x1b[48;5;238m"
+	default:
+		return ""
+	}
+}
+
 // tabLabel builds one rail row: connection mark, session id, model,
 // and title — background-colored by harness.
 func tabLabel(prefix, mark, name string, detail tabDetail, innerW int) string {
-	plain := prefix + mark + " " + name
+	displayName := detail.Label
+	if displayName == "" {
+		displayName = name
+	}
+	plain := prefix + mark + " " + displayName
 	if detail.Model != "" {
 		plain += " [" + detail.Model + "]"
 	}
@@ -39,7 +73,8 @@ func tabLabel(prefix, mark, name string, detail tabDetail, innerW int) string {
 		plain += " — " + detail.Title
 	}
 	plain = pad(truncW(sanitizeLine(plain), innerW), innerW)
-	if bg := harnessBG(detail.Harness); bg != "" {
+	bg := providerModelBG(detail.Provider, detail.Model)
+	if bg != "" {
 		return bg + plain + "\x1b[0m"
 	}
 	return plain

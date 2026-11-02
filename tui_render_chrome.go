@@ -17,6 +17,9 @@ import (
 // clamp to the nearest live row (finding F). Renderers and
 // operation requests share this gate, so no caller re-derives it.
 func selectedSummary(m model) (sel string, running bool, mode string) {
+	if m.nav.OnMuse {
+		return "Meta.ai controller", false, "MCP"
+	}
 	sel = m.selName()
 	if sel == "" {
 		sel = "(none)"
@@ -56,9 +59,20 @@ func boundLines(m model, sel string, lines []string) []string {
 
 // renderHeaderLine renders the top dashboard status line.
 func renderHeaderLine(m model, sel string, running bool, mode string, w int) string {
+	if m.nav.OnMuse {
+		return pad(" Metis  Meta.ai Orchestrator  controller=MCP  web-chat=not-connected ", w)
+	}
 	entry := boundEntry(m, sel)
-	top := fmt.Sprintf(" Metis  session=%s harness=%s model=%s running=%v mode=%s direct=%v ",
-		sel, orDash(entry.Harness), orDash(entry.Model), running, mode, m.direct)
+	detail := m.tabInfo[sel]
+	provider, model := entry.Provider, entry.Model
+	if provider == "" {
+		provider = detail.Provider
+	}
+	if model == "" {
+		model = detail.Model
+	}
+	top := fmt.Sprintf(" Metis  session=%s provider=%s model=%s running=%v mode=%s direct=%v ",
+		sel, orDash(provider), orDash(model), running, mode, m.direct)
 	return pad(top, w)
 }
 
@@ -82,13 +96,16 @@ func renderEventsLine(m model, sel string, w int) string {
 
 // renderPromptLine renders the guidance/attach prompt row.
 func renderPromptLine(m model, w int) string {
+	if m.nav.OnMuse {
+		return pad("[CONTROLLER] use MCP tools · no linked chat stream", w)
+	}
 	kind := "FILE"
 	if m.direct {
 		kind = "DIRECT"
 	}
-	prompt := fmt.Sprintf("[%s] guidance> %s", kind, m.guideCtl.Buf)
+	prompt := fmt.Sprintf("[%s] prompt> %s", kind, m.guideCtl.Buf)
 	if m.nav.Mode == tuistate.ModeAttach {
-		prompt = "[ATTACHED] typing goes to session  (esc=detach  ctrl+c=interrupt)"
+		prompt = "[LIMITED INPUT] keys go to session  (text snapshot only; F5 opens full terminal; esc detaches)"
 	}
 	return pad(prompt, w)
 }

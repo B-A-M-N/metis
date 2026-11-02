@@ -39,8 +39,10 @@ type Session struct {
 	// hermes) and Model names the loaded model, if known. Display-only:
 	// they distinguish sessions sharing a provider, nothing derives
 	// control or verification from them.
-	Harness string `json:"harness,omitempty"`
-	Model   string `json:"model,omitempty"`
+	Harness  string `json:"harness,omitempty"`
+	Model    string `json:"model,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	Profile  string `json:"profile,omitempty"`
 }
 
 // PublicSession is the display/JSON projection of a Session.
@@ -49,14 +51,16 @@ type Session struct {
 // Session) but must never cross the machine-readable boundary.
 // Use Public() at every CLI/JSON emission point.
 type PublicSession struct {
-	Name    string `json:"name"`
-	Tmux    string `json:"tmux"`
-	Workdir string `json:"workdir"`
-	Command string `json:"command"`
-	Created string `json:"created"`
-	Stopped bool   `json:"stopped,omitempty"`
-	Harness string `json:"harness,omitempty"`
-	Model   string `json:"model,omitempty"`
+	Name     string `json:"name"`
+	Tmux     string `json:"tmux"`
+	Workdir  string `json:"workdir"`
+	Command  string `json:"command"`
+	Created  string `json:"created"`
+	Stopped  bool   `json:"stopped,omitempty"`
+	Harness  string `json:"harness,omitempty"`
+	Model    string `json:"model,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	Profile  string `json:"profile,omitempty"`
 }
 
 // Public strips control credentials for external display.
@@ -64,7 +68,7 @@ func (s Session) Public() PublicSession {
 	return PublicSession{
 		Name: s.Name, Tmux: s.Tmux, Workdir: s.Workdir,
 		Command: s.Command, Created: s.Created, Stopped: s.Stopped,
-		Harness: s.Harness, Model: s.Model,
+		Harness: s.Harness, Model: s.Model, Provider: s.Provider, Profile: s.Profile,
 	}
 }
 

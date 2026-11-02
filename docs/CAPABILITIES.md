@@ -35,6 +35,23 @@ evidence row states.
 
 ## Live qualified
 
+- Interactive Muse Code/TUI MVP (2026-11-02, isolated tmux server,
+  `METIS_STATE` and Muse data under `/tmp`, echo provider): launched two
+  Muse Code processes in `/home/bamn/Locus` as `locus-01` and `locus-02`;
+  both had distinct tmux session IDs and stayed on the same pane PIDs while
+  Metis switched the selected tab. The rail showed `Locus · 01` and
+  `Locus · 02`; each `F5` attach opened its exact session and detach returned
+  to Metis. One prompt was delivered only to `locus-01` through the input
+  lease; the other pane remained at its initial prompt. The text snapshot was
+  readable but does not preserve full terminal control state. `F6` showed the
+  cached info drawer. No Meta/local provider prompt or inference was run.
+- Interactive launcher uses a curated `muse-code` command through
+  `ProvisionService` and the tmux lifecycle. Provision confirmation checks
+  that `muse` is the actual pane process; a shell-only pane is not accepted.
+- The pinned Meta.ai tab is an MCP controller/activity surface, not a web
+  conversation mirror. Prompt, direct-toggle, and terminal-attach actions are
+  disabled there unless a worker tab is selected.
+
 - One FI-backed `meta`/`musefi` turn (P6-2): bind, turn, status,
   receipts, and a `QUAL-OK` reply were observed. This is the only
   recorded FI-backed turn.

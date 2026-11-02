@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // cli_session.go: session lifecycle commands (up/run/start/stop/adopt/list/snapshot). Extracted from main.go; behavior unchanged.
@@ -92,6 +93,59 @@ func cliStart(args []string) int {
 		return 1
 	}
 	fmt.Printf("started %s\n", *name)
+	return 0
+}
+
+// cliLaunch provisions the MVP worker shape: one interactive Muse Code
+// process in one owned tmux session. The command is built from argv values,
+// then shell-quoted only at the tmux lifecycle boundary.
+func cliLaunch(args []string) int {
+	fs := flag.NewFlagSet("launch", flag.ContinueOnError)
+	name := fs.String("name", "", "Metis session name")
+	workdir := fs.String("workdir", "", "existing project directory")
+	provider := fs.String("provider", "meta", "Muse Code provider: meta, local, or echo")
+	model := fs.String("model", "", "Muse Code model ID (uses Muse Code default when omitted)")
+	profile := fs.String("profile", "", "Muse Code permission profile ID")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if !nameRe.MatchString(*name) || strings.TrimSpace(*workdir) == "" {
+		fmt.Fprintln(os.Stderr, "launch requires --name NAME and --workdir DIR; name must match [A-Za-z0-9_-]{1,64}")
+		return 2
+	}
+	if *provider != "meta" && *provider != "local" && *provider != "echo" {
+		fmt.Fprintln(os.Stderr, "--provider must be meta, local, or echo")
+		return 2
+	}
+	if strings.ContainsAny(*model+*profile, "\x00\n\r") {
+		fmt.Fprintln(os.Stderr, "model and profile cannot contain control characters")
+		return 2
+	}
+	work, err := filepath.Abs(*workdir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "workdir:", err)
+		return 2
+	}
+	if info, err := os.Stat(work); err != nil || !info.IsDir() {
+		fmt.Fprintln(os.Stderr, "workdir must be an existing directory:", work)
+		return 2
+	}
+	result, err := DefaultProvisionService().Provision(ProvisionRequest{
+		Actor: "local-cli", RequestID: newRequestID(), Session: *name,
+		Workdir: work, Backend: provisionBackendTMUX, Harness: "muse-code",
+		Model: *model, Provider: *provider, Profile: *profile,
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	entry := loadRegistry()[result.SessionID]
+	target := entry.Tmux
+	if target == "" {
+		target = tmuxName(result.SessionID)
+	}
+	fmt.Printf("Muse Code running: session=%s provider=%s model=%s workdir=%s\n", result.SessionID, *provider, orDash(*model), work)
+	fmt.Printf("External terminal: tmux attach -t %s\n", target)
 	return 0
 }
 

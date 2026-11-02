@@ -43,6 +43,21 @@ func tmux(args ...string) (string, error) {
 	return tmuxContext(context.Background(), args...)
 }
 
+// resolveOwnedTmuxTarget provides an immutable, ownership-verified target for
+// native terminal attachment and destructive session controls.
+func resolveOwnedTmuxTarget(name string) (string, error) {
+	reg := loadRegistry()
+	_, target, err := resolveOwnedTarget(reg, name)
+	return target, err
+}
+
+// ownedTmuxAttachCommand builds the normal-terminal fallback for the selected
+// tmux session. The caller owns execution and terminal suspension; this package
+// owns the tmux command shape and immutable target.
+func ownedTmuxAttachCommand(target string) *exec.Cmd {
+	return exec.Command("tmux", "attach-session", "-t", target)
+}
+
 func tmuxContext(ctx context.Context, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, "tmux", args...)
 	out, err := cmd.Output()

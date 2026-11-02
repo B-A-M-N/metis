@@ -135,7 +135,7 @@ func (mcpProvisionSessionBackend) LaunchProvisionSession(want mcpProvisionRecord
 	if label == "" {
 		label = "custom"
 	}
-	return startSession(want.Session, want.Workdir, want.Command, label, want.Model)
+	return startSessionConfigured(want.Session, want.Workdir, want.Command, label, want.Model, want.Provider, want.Profile)
 }
 
 // provisionWorkspaceMatches reports whether a live backend record
@@ -173,8 +173,21 @@ func provisionTmuxEstablished(want mcpProvisionRecord) bool {
 	if entry.Owner == "" {
 		return false
 	}
-	if _, _, err := resolveOwnedTarget(reg, want.Session); err != nil {
+	if want.Harness == "muse-code" &&
+		(entry.Harness != want.Harness || entry.Model != want.Model ||
+			entry.Provider != want.Provider || entry.Profile != want.Profile ||
+			entry.Command != want.Command) {
 		return false
+	}
+	_, target, err := resolveOwnedTarget(reg, want.Session)
+	if err != nil {
+		return false
+	}
+	if want.Harness == "muse-code" {
+		command, err := tmux("display-message", "-p", "-t", target, "#{pane_current_command}")
+		if err != nil || !(strings.HasPrefix(command, "muse") || strings.HasPrefix(command, "muse-")) {
+			return false
+		}
 	}
 	return provisionWorkspaceMatches(entry.Workdir, want.Workdir)
 }
@@ -356,7 +369,7 @@ func provisionLaunchVerified(want mcpProvisionRecord, live func(mcpProvisionReco
 // intent, the workdir, and the launch. The domain result is
 // translated here into the MCP response shape.
 func mcpToolProvision(raw json.RawMessage) (mcpToolResult, error) {
-	args, err := mcpNeedArgs(raw, "run", "session", "objective", "actor", "request_id")
+	args, err := mcpNeedArgs(raw, "session", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}

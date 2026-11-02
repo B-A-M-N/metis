@@ -20,6 +20,12 @@ import (
 )
 
 func startSession(name, workdir, command, harness, model string) error {
+	return startSessionConfigured(name, workdir, command, harness, model, "", "")
+}
+
+// startSessionConfigured is the shared tmux lifecycle with display identity
+// metadata recorded at the same confirmation point as the session itself.
+func startSessionConfigured(name, workdir, command, harness, model, provider, profile string) error {
 	// Reserve: validate everything validatable before any side effect.
 	if !nameRe.MatchString(name) {
 		return fmt.Errorf("name must match [A-Za-z0-9_-]{1,64}")
@@ -53,7 +59,7 @@ func startSession(name, workdir, command, harness, model string) error {
 	// Confirm: the registry insert under the lock is the atomicity
 	// point. A concurrent start that won the name, or an unwritable
 	// registry, fails here — after the tmux session is already live.
-	entry := Session{Name: name, Tmux: tmuxName(name), Workdir: abs, Command: command, Created: time.Now().UTC().Format(time.RFC3339), Owner: owner, Harness: harness, Model: model}
+	entry := Session{Name: name, Tmux: tmuxName(name), Workdir: abs, Command: command, Created: time.Now().UTC().Format(time.RFC3339), Owner: owner, Harness: harness, Model: model, Provider: provider, Profile: profile}
 	if err := withRegistryLock(func() error {
 		locked := loadRegistry()
 		if _, dup := locked[name]; dup {

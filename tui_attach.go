@@ -1,10 +1,42 @@
 package main
 
 import (
+	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
 
 	tuistate "metis/internal/tui"
 )
+
+type externalAttachPreparedMsg struct {
+	display string
+	target  string
+	err     error
+}
+
+type externalAttachFinishedMsg struct {
+	display string
+	err     error
+}
+
+// externalAttachPrepareCmd resolves the owned tmux session away from the
+// Bubble Tea update path. The eventual attach uses the immutable tmux target
+// returned by the ownership check, so a reused display name cannot redirect it.
+func externalAttachPrepareCmd(display, canonical string) tea.Cmd {
+	return func() tea.Msg {
+		if isPtySession(display) {
+			return externalAttachPreparedMsg{display: display, err: fmt.Errorf("native terminal attach is available for tmux sessions only")}
+		}
+		target, err := resolveOwnedTmuxTarget(canonical)
+		return externalAttachPreparedMsg{display: display, target: target, err: err}
+	}
+}
+
+func externalAttachProcess(target, display string) tea.Cmd {
+	return tea.ExecProcess(ownedTmuxAttachCommand(target), func(err error) tea.Msg {
+		return externalAttachFinishedMsg{display: display, err: err}
+	})
+}
 
 // tui_attach.go: terminal attachment as an async command.
 //

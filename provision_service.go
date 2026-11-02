@@ -248,6 +248,33 @@ func (s *ProvisionService) admit(req ProvisionRequest) (want mcpProvisionRecord,
 	if backend == provisionBackendNative {
 		return admitNativeProvision(req)
 	}
+	command := req.Command
+	if req.Harness == "muse-code" {
+		if !nameRe.MatchString(req.Session) {
+			return mcpProvisionRecord{}, "", provisionFailure("provision: name must match [A-Za-z0-9_-]{1,64}")
+		}
+		if backend != provisionBackendTMUX {
+			return mcpProvisionRecord{}, "", provisionFailure("provision: muse-code requires the tmux backend")
+		}
+		if req.ExplicitCommand || strings.TrimSpace(req.Command) != "" {
+			return mcpProvisionRecord{}, "", provisionFailure("provision: muse-code uses its curated interactive launcher; custom commands are refused")
+		}
+		if strings.TrimSpace(req.Workdir) == "" {
+			return mcpProvisionRecord{}, "", provisionFailure("provision: muse-code requires an explicit workdir")
+		}
+		absoluteWorkdir, absErr := filepath.Abs(req.Workdir)
+		if absErr != nil {
+			return mcpProvisionRecord{}, "", provisionFailure("provision: Muse Code workdir: %v", absErr)
+		}
+		req.Workdir = absoluteWorkdir
+		if req.Provider == "" {
+			req.Provider = "meta"
+		}
+		command, err = museCodeCommand(req.Workdir, req.Provider, req.Model, req.Profile)
+		if err != nil {
+			return mcpProvisionRecord{}, "", provisionFailure("provision Muse Code: %v", err)
+		}
+	}
 	if a, aerr := lookupAdapter(req.Harness); aerr == nil && a.ManagedTurn != nil && a.BuildCommand == nil {
 		return mcpProvisionRecord{}, "", provisionFailure("provision: harness %q has no shell launch path; bind a native session with metis_bind instead of provisioning a shell session", req.Harness)
 	}
@@ -255,8 +282,7 @@ func (s *ProvisionService) admit(req ProvisionRequest) (want mcpProvisionRecord,
 	if workdir == "" {
 		workdir = filepath.Join(stateDir(), "work", req.Run, req.Session)
 	}
-	command := req.Command
-	if command == "" && req.Harness != "" {
+	if command == "" && req.Harness != "" && req.Harness != "muse-code" {
 		c, cerr := resolveWorkerCommand(req.Harness, "", workdir, req.Objective, req.Model)
 		if cerr != nil {
 			// Explicit capability refusal (e.g. muse-native has
@@ -281,6 +307,7 @@ func (s *ProvisionService) admit(req ProvisionRequest) (want mcpProvisionRecord,
 	want = mcpProvisionRecord{
 		Session: req.Session, Run: req.Run, Objective: req.Objective,
 		Workdir: abs, Backend: backend, Harness: req.Harness, Command: command, Model: req.Model,
+		Provider: req.Provider, Profile: req.Profile,
 	}
 	return want, req.Run, nil
 }

@@ -77,6 +77,7 @@ type model struct {
 	// panelRun/panel carry its last-collected projection, installed
 	// only through applyRefresh like every other pane.
 	graphPanel bool
+	infoOpen   bool
 	panelRun   string
 	panel      []string
 	status     string
@@ -127,7 +128,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.refreshCtl, out = m.refreshCtl.Tick()
 		if out.Dispatch {
 			sel := m.selName()
-			return m, tea.Batch(tickCmd(), m.refreshCmd(out.Gen, sel, out.EveryGit))
+			return m, tea.Batch(tickCmd(), m.refreshCmd(out.Gen, sel, false))
 		}
 		return m, tickCmd()
 	case refreshMsg:
@@ -146,7 +147,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var out tuistate.TickOutcome
 			m.refreshCtl, out = m.refreshCtl.DispatchLatest()
 			if out.Dispatch {
-				return m, m.refreshCmd(out.Gen, m.selName(), out.EveryGit)
+				return m, m.refreshCmd(out.Gen, m.selName(), false)
 			}
 		}
 		return m, nil
@@ -165,6 +166,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case attachResultMsg:
 		m.applyAttachResult(msg)
 		return m, nil
+	case externalAttachPreparedMsg:
+		if m.nav.OnMuse || m.selName() != msg.display {
+			return m, nil
+		}
+		if msg.err != nil {
+			m.status = "terminal attach refused: " + msg.err.Error()
+			return m, nil
+		}
+		m.status = "attached to " + msg.display + " in the normal terminal; detach to return"
+		return m, externalAttachProcess(msg.target, msg.display)
+	case externalAttachFinishedMsg:
+		if msg.err != nil {
+			m.status = "terminal attach ended: " + msg.err.Error()
+		} else {
+			m.status = "returned from terminal attach for " + msg.display
+		}
+		return m, nil
 	case tea.KeyMsg:
 		if m.nav.Mode == tuistate.ModeAttach {
 			return m.attachKey(msg)
@@ -173,6 +191,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 		if m.nav.Mode == tuistate.ModeInput {
+			if m.nav.OnMuse {
+				m.guideCtl = m.guideCtl.Clear()
+				m.nav = m.nav.ToNav()
+				m.status = "Meta.ai controller has no linked chat stream; use the existing MCP tools"
+				return m, nil
+			}
 			switch msg.String() {
 			case "esc":
 				m.nav = m.nav.ToNav()
@@ -226,16 +250,49 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			cmd := m.requestAttach()
 			return m, cmd
+		case "f5":
+			if m.nav.OnMuse {
+				m.status = "Meta.ai controller has no terminal; select a worker tab before full terminal attach"
+				break
+			}
+			sel := m.selName()
+			if sel == "" || !m.running[sel] {
+				m.status = "select a running tmux session before terminal attach"
+				break
+			}
+			if m.isNativeSelection(sel) || isPtySession(sel) {
+				m.status = "normal terminal attach is available for tmux sessions only"
+				break
+			}
+			m.status = "checking owned tmux session " + sel
+			return m, externalAttachPrepareCmd(sel, m.canonicalSession(sel))
 		case "up", "k":
 			navCmd = m.navUp()
 		case "down", "j":
 			navCmd = m.navDown()
 		case "i", "tab":
-			m.nav = m.nav.EnterInput()
+			if m.nav.OnMuse {
+				m.status = "Meta.ai controller is available through MCP; no web conversation is mirrored here"
+			} else {
+				m.nav = m.nav.EnterInput()
+			}
 		case "d":
-			m.toggleDirect()
-		case "g":
-			m.toggleGraphPanel()
+			if m.nav.OnMuse {
+				m.status = "Meta.ai controller uses MCP tools; no worker prompt is active"
+			} else {
+				m.toggleDirect()
+			}
+		case "f6":
+			if m.nav.OnMuse {
+				m.status = "select a worker tab to open its session info drawer"
+				break
+			}
+			m.infoOpen = !m.infoOpen
+			if m.infoOpen {
+				m.status = "session info drawer open (F6 closes)"
+			} else {
+				m.status = "session info drawer closed"
+			}
 		case "r":
 			m.scroll = 0
 		case "pgup":

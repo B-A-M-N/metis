@@ -55,6 +55,10 @@ func (m *model) attachKey(msg tea.KeyMsg) (model, tea.Cmd) {
 	var keys []string
 	local := false
 	switch msg.String() {
+	case "f5":
+		m.nav = m.nav.ToNav()
+		m.status = "checking owned tmux session " + sel
+		return *m, externalAttachPrepareCmd(sel, m.canonicalSession(sel))
 	case "enter":
 		keys = []string{"Enter"}
 	case "backspace":

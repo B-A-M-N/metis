@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 	"time"
@@ -226,4 +227,40 @@ func resolveWorkerCommand(harness, cmd, workdir, prompt, model string) (string, 
 		return "", fmt.Errorf("harness %q has no shell launch command: it provisions through its native session path (bind a native session, do not resolve a command)", harness)
 	}
 	return a.BuildCommand(workdir, prompt, model), nil
+}
+
+// museCodeCommand returns the curated interactive Muse Code invocation. The
+// session lifecycle runs it in workdir under tmux; no prompt is supplied, so
+// exactly one interactive Muse Code process starts and waits for its user.
+func museCodeCommand(workdir, provider, model, profile string) (string, error) {
+	argv, err := museCodeArgv(workdir, provider, model, profile)
+	if err != nil {
+		return "", err
+	}
+	parts := make([]string, len(argv))
+	for i, arg := range argv {
+		parts[i] = shQuote(arg)
+	}
+	return "exec " + strings.Join(parts, " "), nil
+}
+
+func museCodeArgv(workdir, provider, model, profile string) ([]string, error) {
+	if provider != "meta" && provider != "local" && provider != "echo" {
+		return nil, fmt.Errorf("provider must be meta, local, or echo")
+	}
+	if strings.ContainsAny(provider+model+profile+workdir, "\x00\n\r") {
+		return nil, fmt.Errorf("provider, model, profile, and workdir cannot contain control characters")
+	}
+	program, err := exec.LookPath("muse")
+	if err != nil {
+		return nil, fmt.Errorf("muse executable is not on PATH")
+	}
+	argv := []string{program, "--provider", provider, "--workspace", workdir}
+	if model != "" {
+		argv = append(argv, "--model", model)
+	}
+	if profile != "" {
+		argv = append(argv, "--permission-profile", profile)
+	}
+	return argv, nil
 }

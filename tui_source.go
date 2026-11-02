@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -124,7 +125,8 @@ func (liveRefreshSource) snapshots(ctx context.Context, sel string, everyGit boo
 				entry: Session{Name: ls.Name, Workdir: ls.Workspace, Harness: ls.Harness, Model: ls.Model},
 				identity: sessionIdentity{Canonical: ls.Name, Backend: TargetMuseNative,
 					Lifecycle: ls.State, Observation: "durable_local", Provider: ls.Provider, Profile: ls.Profile},
-				detail: tabDetail{Harness: ls.Harness, Model: ls.Model, Title: ls.Objective},
+				detail: tabDetail{Harness: ls.Harness, Provider: ls.Provider, Profile: ls.Profile,
+					Model: ls.Model, Workdir: ls.Workspace, Title: ls.Objective},
 			})
 		}
 	}
@@ -132,20 +134,12 @@ func (liveRefreshSource) snapshots(ctx context.Context, sel string, everyGit boo
 		return refreshSnapshots{sessionsOk: false}
 	}
 	sort.Slice(out.sessions, func(i, j int) bool { return out.sessions[i].name < out.sessions[j].name })
+	assignProjectTabLabels(out.sessions)
 	out.content = liveContentSnapshotContext(ctx, reg, metaByDisplay, sel, everyGit)
 	if strings.HasPrefix(sel, nativePrefix) {
 		out.content = liveNativeContentSnapshot(nativeRows, strings.TrimPrefix(sel, nativePrefix))
 	}
 	out.feed = liveFeedSnapshot()
-	// The banner renders only in worker view, where the muse-tab
-	// fallback never applies: pass false so the selected worker's
-	// own run wins and only an empty/unknown selection falls back
-	// to the newest run.
-	panelSel := sel
-	if strings.HasPrefix(sel, nativePrefix) {
-		panelSel = strings.TrimPrefix(sel, nativePrefix)
-	}
-	out.panel = livePanelSnapshot(false, panelSel)
 	if ctx.Err() != nil {
 		return refreshSnapshots{sessionsOk: false}
 	}
@@ -207,7 +201,8 @@ func liveSessionsSnapshotContext(ctx context.Context, reg map[string]Session, me
 			if title == "" {
 				title = titles[mt.Name]
 			}
-			row.detail = tabDetail{Harness: mt.Harness, Model: mt.Model, Title: title}
+			row.detail = tabDetail{Harness: mt.Harness, Model: mt.Model,
+				Workdir: mt.Workdir, Title: title}
 		} else if e, ok := reg[n]; ok {
 			if batchLive != nil {
 				target := e.Tmux
@@ -219,11 +214,48 @@ func liveSessionsSnapshotContext(ctx context.Context, reg map[string]Session, me
 				row.running = sessionRunningContext(ctx, n)
 			}
 			row.entry = e
-			row.detail = tabDetail{Harness: e.Harness, Model: e.Model, Title: titles[n]}
+			row.detail = tabDetail{Harness: e.Harness, Provider: e.Provider, Profile: e.Profile,
+				Model: e.Model, Workdir: e.Workdir, Title: titles[n]}
 		}
 		out = append(out, row)
 	}
 	return out
+}
+
+// assignProjectTabLabels gives sessions in one directory readable instance
+// ordinals while keeping the canonical name in the identity map and all
+// execution paths. Creation time breaks ties; the backend name is stable.
+func assignProjectTabLabels(rows []sessionSnapshot) {
+	type indexed struct {
+		idx int
+		key string
+	}
+	groups := map[string][]indexed{}
+	for i := range rows {
+		work := rows[i].detail.Workdir
+		if work == "" {
+			work = rows[i].entry.Workdir
+		}
+		project := filepath.Base(filepath.Clean(work))
+		if project == "." || project == string(filepath.Separator) || project == "" {
+			project = rows[i].name
+		}
+		rows[i].detail.Label = project
+		if work != "" {
+			created := rows[i].entry.Created
+			groups[filepath.Clean(work)] = append(groups[filepath.Clean(work)], indexed{idx: i, key: created + "\x00" + rows[i].name})
+		}
+	}
+	for _, group := range groups {
+		sort.Slice(group, func(i, j int) bool { return group[i].key < group[j].key })
+		for n, item := range group {
+			project := filepath.Base(filepath.Clean(rows[item.idx].detail.Workdir))
+			if project == "." || project == string(filepath.Separator) || project == "" {
+				project = rows[item.idx].name
+			}
+			rows[item.idx].detail.Label = fmt.Sprintf("%s · %02d", project, n+1)
+		}
+	}
 }
 
 // liveNativeContentSnapshot projects durable local facts only. It
@@ -326,7 +358,7 @@ func liveContentSnapshotContext(ctx context.Context, reg map[string]Session, met
 	}
 	if e, ok := reg[sel]; ok {
 		out := contentSnapshot{found: true, entry: e}
-		out.live = captureOutputContext(ctx, sel, 500)
+		out.live = capturePaneSnapshot(ctx, sel, sessionTmuxTarget(sel, e.Tmux), 500)
 		if everyGit {
 			out.git = gitInfo(e.Workdir)
 			out.hasGit = true

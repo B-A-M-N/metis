@@ -179,6 +179,27 @@ func captureOutputContext(ctx context.Context, name string, lines int) []string 
 	return ls
 }
 
+// capturePaneSnapshot reads the tmux screen buffer directly. The stream tail
+// preserves ANSI and cursor controls that the Metis overview intentionally
+// strips, while capture-pane returns the current text cells for a plain preview.
+func capturePaneSnapshot(ctx context.Context, name string, target string, lines int) []string {
+	if target == "" {
+		target = sessionTmuxTarget(name, "")
+	}
+	out, err := tmuxContext(ctx, "capture-pane", "-p", "-t", target, "-S", fmt.Sprintf("-%d", lines))
+	if err != nil {
+		return []string{"(session not running)"}
+	}
+	ls := strings.Split(strings.TrimRight(out, "\n"), "\n")
+	for len(ls) > 0 && strings.TrimSpace(ls[len(ls)-1]) == "" {
+		ls = ls[:len(ls)-1]
+	}
+	if len(ls) == 0 {
+		return []string{"(no output yet)"}
+	}
+	return ls
+}
+
 func gitInfo(workdir string) []string {
 	info, err := os.Stat(workdir)
 	if err != nil || !info.IsDir() {

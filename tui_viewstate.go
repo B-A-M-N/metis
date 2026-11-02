@@ -29,7 +29,7 @@ func (m *model) navReselect() tea.Cmd {
 	if wasPending {
 		return nil
 	}
-	return m.refreshCmd(gen, m.selName(), true)
+	return m.refreshCmd(gen, m.selName(), false)
 }
 
 // navUp moves the selection or feed cursor up (Nav.Up); a changed

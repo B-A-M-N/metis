@@ -26,8 +26,13 @@ func newModelWithSource(src refreshSource, preselect string) model {
 	if preselect == "" {
 		nav = tuistate.OnMuseTab()
 	}
+	status := "enter=limited input  F5=full terminal  i=prompt  F6=info drawer  q=quit  PgUp/PgDn=scroll"
+	if preselect == "" {
+		status = "Meta.ai controller uses MCP tools; no web conversation is linked"
+	}
 	return model{source: src, preselect: preselect, nav: nav.ToNav(),
-		status: "enter=attach live  i=guidance  g=path panel  d=direct toggle  q=quit  PgUp/PgDn=scroll"}
+		direct: true,
+		status: status}
 }
 
 // selName resolves the selected session name, or "" when there is
@@ -215,7 +220,7 @@ func (m *model) refresh() {
 	if sel == "" {
 		sel = m.selName()
 	}
-	m.applyRefresh(collectRefreshData(m.source, gen, sel, true))
+	m.applyRefresh(collectRefreshData(m.source, gen, sel, false))
 	if m.preselect != "" {
 		for i, n := range m.names {
 			if n == m.preselect || (isPtySession(n) && ptyBare(n) == m.preselect) {

@@ -11,6 +11,7 @@ import (
 type renderLayout struct {
 	w, h          int
 	leftW, rightW int
+	mainW, infoW  int
 	liveH, gitH   int
 	tabH, workerH int
 	contentH      int
@@ -21,18 +22,29 @@ type renderLayout struct {
 // mirror the original View math exactly: narrow windows are rejected
 // by the caller before layout runs.
 func computeLayout(width, height int) renderLayout {
+	return computeLayoutWithInfo(width, height, false)
+}
+
+func computeLayoutWithInfo(width, height int, infoOpen bool) renderLayout {
 	leftW := width / 4
 	if leftW < 24 {
 		leftW = 24
 	}
 	rightW := width - leftW
-	liveH := (height - 8) * 2 / 3
-	if liveH < 8 {
-		liveH = 8
+	mainW, infoW := rightW, 0
+	if infoOpen {
+		infoW = rightW / 3
+		if infoW < 22 {
+			infoW = 22
+		}
+		if infoW > rightW/2 {
+			infoW = rightW / 2
+		}
+		mainW = rightW - infoW
 	}
-	gitH := height - 5 - liveH
-	if gitH < 4 {
-		gitH = 4
+	contentH := height - 5
+	if contentH < 3 {
+		contentH = 3
 	}
 	tabH := height - 7
 	if tabH < 1 {
@@ -45,12 +57,34 @@ func computeLayout(width, height int) renderLayout {
 	}
 	return renderLayout{
 		w: width, h: height,
-		leftW: leftW, rightW: rightW,
-		liveH: liveH, gitH: gitH,
+		leftW: leftW, rightW: rightW, mainW: mainW, infoW: infoW,
+		liveH: contentH, gitH: 0,
 		tabH: tabH, workerH: workerH,
-		contentH: height - 5,
-		feedH:    liveH + gitH,
+		contentH: contentH,
+		feedH:    contentH,
 	}
+}
+
+func joinSessionPanes(left, main, info []string, lay renderLayout) []string {
+	rows := make([]string, 0, lay.contentH)
+	for i := 0; i < lay.contentH; i++ {
+		l, c, r := "", "", ""
+		if i < len(left) {
+			l = left[i]
+		}
+		if i < len(main) {
+			c = main[i]
+		}
+		if i < len(info) {
+			r = info[i]
+		}
+		row := pad(l, lay.leftW) + pad(c, lay.mainW)
+		if lay.infoW > 0 {
+			row += pad(r, lay.infoW)
+		}
+		rows = append(rows, row)
+	}
+	return rows
 }
 
 func boxLines(title string, content []string, w, h int) []string {
