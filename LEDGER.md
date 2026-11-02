@@ -2668,3 +2668,36 @@ projection; commits on master (no reproducible baseline yet).
   proof (dead path disabled → FAIL; restored → green).
 - Verified: focused stop/resolve/start/cancel suites + `-race`
   group green; vet clean.
+
+## Phase 6c ledger — multi-turn continuity + daemon-crash resilience — QUALIFIED live
+- Scope: bounded live program (3 minimal turns + 1 no-inference
+  bind), isolated store/state, full cleanup verified.
+- Multi-turn continuity: one native session
+  (`01a1999a-f531-...`) carried 3 turns with cursors
+  `:27 → :54 → :81`; all three model replies (TURN-ONE/TWO/DEAD)
+  verified in the daemon journal; `muse status` cursor matches
+  the last turn. Attribution intact across turns.
+- Daemon-crash resilience: daemon killed mid-program (no
+  listener, ss-verified); subsequent bind + turn + status all
+  SUCCEEDED via short-lived hosts against the durable store.
+  Client operations do not depend on daemon liveness; durability
+  comes from the session store + Metis binding rows. This matches
+  the `muse_cmds.go` header ("no daemon is required for
+  correctness").
+- Design tension recorded (no code change, deliberate):
+  `museDaemonReadyFor` is stat-only, so it passes on a STALE
+  socket file — the daemon gate cannot distinguish live from
+  stale. Tightening it to dial-based liveness would newly refuse
+  operations that demonstrably succeed today (regression dressed
+  as hardening) and contradicts the no-daemon-required design;
+  the dispatch-path refusal tests (`exec_target`,
+  `guidance_native`) cover the socket-absent case, which still
+  refuses correctly. Revisit only with an explicit design
+  decision, not as a drive-by.
+- Caveat carried forward: session transcripts land in the
+  ambient store even with an isolated daemon (daemon-binary
+  behavior); cleanup removed both session dirs + index rows.
+- Spend: 3 minimal turns; exact tokens in FI billing only.
+- Cleanup: workers stopped, no tmux/daemon/demo residue,
+  /tmp/livequal2-* removed, ambient restored (only pre-existing
+  user sessions/index rows remain — verified by ID).
