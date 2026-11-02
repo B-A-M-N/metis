@@ -55,7 +55,7 @@ func startTestDaemon(t *testing.T, home string) func() {
 }
 
 func TestMuseBindingRefusesSilentRebind(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "s", "bind")
 	req := OperationRequest{Actor: "test", RequestID: newRequestID()}
 	if err := bindMuseSession("s", "native-1", "c1", "echo", "", req); err != nil {
@@ -90,7 +90,7 @@ func TestMuseBindingRefusesSilentRebind(t *testing.T) {
 }
 
 func TestMuseBindingRequiresRequest(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if err := bindMuseSession("s", "n", "c", "echo", "", OperationRequest{}); err == nil {
 		t.Fatal("anonymous bind must be refused")
 	}
@@ -108,7 +108,7 @@ func TestMuseNativeWorkerLoopEndToEnd(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	t.Setenv("METIS_MUSE_TURN_TIMEOUT", "2m")
@@ -167,7 +167,7 @@ func TestMuseNativeWorkerLoopRefusesUnbound(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	stopDaemon := startTestDaemon(t, home)
@@ -195,7 +195,7 @@ func TestMuseResumeRecovery(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "w", "resume")
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
@@ -264,7 +264,7 @@ func TestMuseResumeRecovery(t *testing.T) {
 // session that moves after binding fails the execution scope
 // check instead of silently executing elsewhere.
 func TestMuseBindingPinsWorkspace(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "w", "ws")
 	req := testReq("orch")
 	if err := bindMuseSession("w", "native-1", "c0", "echo", "", req); err != nil {
@@ -302,7 +302,7 @@ func TestMuseBindingPinsWorkspace(t *testing.T) {
 // Binding a session with no resolvable workspace is refused: a
 // native turn with no authorized root has nowhere legal to run.
 func TestMuseBindRefusesUnknownSession(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if err := bindMuseSession("ghost", "native-1", "c0", "echo", "", testReq("orch")); err == nil {
 		t.Fatal("bind without a session workspace must be refused")
 	}
@@ -312,7 +312,7 @@ func TestMuseBindRefusesUnknownSession(t *testing.T) {
 // not create a second native session: the first ack is replayed
 // from the durable intent instead of retransmitting session/start.
 func TestSessionStartDedupsOnCommandID(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	starts := 0
 	client, server := net.Pipe()
 	stubMuseServer(t, server, func(id int64, method string, params json.RawMessage) (any, *museError) {

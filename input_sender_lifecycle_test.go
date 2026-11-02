@@ -60,7 +60,7 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 // already executing may settle normally; everything still buffered
 // is refused, never delivered.
 func TestInputSenderRetireDrainsQueuedWork(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	release := make(chan struct{})
 	started := make(chan struct{})
 	var startOnce sync.Once
@@ -122,7 +122,7 @@ func TestInputSenderRetireDrainsQueuedWork(t *testing.T) {
 
 // Close is idempotent and also severs the lane from the registry.
 func TestInputSenderCloseIsIdempotent(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	stubExecConfirm(t)
 	const name = "life-idem"
 	lane := newInputSender(name)
@@ -154,7 +154,7 @@ func TestInputSenderCloseIsIdempotent(t *testing.T) {
 // Replacement (new Owner generation) retires the predecessor's
 // lane and hands out a fresh one; the registry holds exactly one.
 func TestInputSenderReplacementRetiresPredecessor(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	stubExecConfirm(t)
 	const name = "life-replace"
 	setOwner := func(owner string) {
@@ -202,7 +202,7 @@ func TestInputSenderReplacementRetiresPredecessor(t *testing.T) {
 // lane rejects it without executing, so stale input never reaches
 // a successor session even if it is forced onto the live lane.
 func TestInputSenderStaleGenerationNeverExecutes(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	executed := stubExecConfirm(t)
 	const name = "life-stale"
 	lane := newInputSender(name)
@@ -236,7 +236,7 @@ func TestInputSenderStaleGenerationNeverExecutes(t *testing.T) {
 // predecessor are rejected, the successor delivers normally, and
 // exec never observes the stale jobs.
 func TestInputSenderQueuedStaleDrainsOnReplace(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	release := make(chan struct{})
 	started := make(chan struct{})
 	var startOnce sync.Once
@@ -302,7 +302,7 @@ func TestInputSenderQueuedStaleDrainsOnReplace(t *testing.T) {
 // Retirement is scoped: retiring one session leaves the other's
 // lane live, and retiring unknown/retired names retires zero.
 func TestRetireInputSendersIsScopedAndIdempotent(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	stubExecConfirm(t)
 	a := newInputSender("life-scope-a")
 	b := newInputSender("life-scope-b")
@@ -335,7 +335,7 @@ func TestRetireInputSendersIsScopedAndIdempotent(t *testing.T) {
 // Session stop retires the lane: after stopSession confirms the
 // kill, no lane (and no goroutine) remains for the session.
 func TestStopSessionRetiresInputLane(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	stubExecConfirm(t)
 	const owner = "life-stop-owner"
 	installFakeTmux(t, owner)
@@ -382,7 +382,7 @@ func TestStopSessionRetiresInputLane(t *testing.T) {
 // and heap near baseline: the F-11 leak made both grow per session
 // with no path back.
 func TestInputSenderLifecycleHundredsReturnToBaseline(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	stubExecConfirm(t)
 	t.Cleanup(func() { retireAllInputSenders() })
 

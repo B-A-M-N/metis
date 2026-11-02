@@ -50,7 +50,7 @@ func cliGraph(args []string) int {
 	// Read-only deterministic projections over a run's lineage.
 	// No TUI, no daemon, no execution: pure SQLite reads.
 	if (len(args) + 2) < 4 {
-		fmt.Fprintln(os.Stderr, "usage: tui-dash graph walk|blockers|ready|coverage --run RUN")
+		fmt.Fprintln(os.Stderr, "usage: metis graph walk|blockers|ready|coverage --run RUN")
 		return 2
 	}
 	if err := graphCmd(args[0], args[1:]); err != nil {
@@ -66,7 +66,7 @@ func cliMcp(args []string) int {
 	// directly; remote models through Ocliv's `mcp expose`,
 	// which hosts this stdio interface). No HTTP listener here.
 	if (len(args)+2) < 3 || args[0] != "serve" {
-		fmt.Fprintln(os.Stderr, "usage: tui-dash mcp serve")
+		fmt.Fprintln(os.Stderr, "usage: metis mcp serve")
 		return 2
 	}
 	mcpServeStdio()

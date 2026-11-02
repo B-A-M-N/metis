@@ -95,7 +95,7 @@ func TestRecoveryProjectionIsPure(t *testing.T) {
 // terminal reconcile closes it (DONE, hook records the duration).
 // No reconcile decision or retry behavior may change.
 func TestReconcileHookTracksUncertainToResolved(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	resetRecoveryMetrics()
 	installFakeTmux(t, "rcm")
 	seedOwnedSession(t, "w", "rcm")

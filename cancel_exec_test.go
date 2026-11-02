@@ -14,7 +14,7 @@ import (
 // actually stopped: the exact PID bound to the attempt is gone
 // afterwards and the receipt says confirmed.
 func TestCancelStopsManagedProcess(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cx1")
 	seedOwnedSession(t, "w", "cx1")
 	tk, err := createTask("run-cx1", "w", "obj", "acc")
@@ -64,7 +64,7 @@ func TestCancelStopsManagedProcess(t *testing.T) {
 // bound execution) must never be signaled: the result is
 // uncertain, not confirmed.
 func TestCancelRefusesRecycledPID(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cx2")
 	seedOwnedSession(t, "w", "cx2")
 	tk, err := createTask("run-cx2", "w", "obj", "acc")
@@ -106,7 +106,7 @@ func TestLoopHonorsMidRunCancel(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (timing-bound); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cx3")
 	seedOwnedSession(t, "w", "cx3")
 	tk, err := createTask("run-cx3", "w", "obj", "acc")

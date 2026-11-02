@@ -20,7 +20,7 @@ import (
 )
 
 func TestProvisionStaleTransitionMustNotClobber(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestProvisionTransitionTable(t *testing.T) {
 }
 
 func TestProvisionConflictCreatesNoWorkdir(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "prov-conflict-dir")
 	markFakeTmuxDead(t)
 	work := t.TempDir()
@@ -146,7 +146,7 @@ func TestProvisionConflictCreatesNoWorkdir(t *testing.T) {
 }
 
 func TestProvisionReservedIntentReconcilesMissingWorkdir(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "prov-reconcile")
 	markFakeTmuxDead(t)
 	work := t.TempDir()

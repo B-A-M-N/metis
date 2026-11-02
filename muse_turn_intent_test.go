@@ -21,7 +21,7 @@ func TestTurnResubmitDedups(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	h, err := startMuseHost(ctx, "muse", "echo", nil, "--join")
@@ -71,7 +71,7 @@ func seedBoundTask(t *testing.T, session, run string) Task {
 }
 
 func TestTurnIntentReusedOnRetry(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	req := testReq("loop")
 	first, err := ensureTurnIntent("t1", 0, "w", "n1", "", "echo", "/repo-a", "do x", req)
 	if err != nil {
@@ -126,7 +126,7 @@ func nativeFakeAdapter(turnErr error, term string) Adapter {
 }
 
 func TestUncertainSubmitKeepsWorking(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "niu")
 	seedOwnedSession(t, "w", "niu")
 	if err := bindMuseSession("w", "n1", "c0", "echo", "", testReq("op")); err != nil {
@@ -158,7 +158,7 @@ func TestUncertainSubmitKeepsWorking(t *testing.T) {
 }
 
 func TestPreSubmitStillRefunds(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "nipr")
 	seedOwnedSession(t, "w", "nipr")
 	if err := bindMuseSession("w", "n1", "c0", "echo", "", testReq("op")); err != nil {
@@ -180,7 +180,7 @@ func TestPreSubmitStillRefunds(t *testing.T) {
 // conflict and must not submit a second turn. The original
 // prompt must still reconcile through the SAME command id.
 func TestChangedPayloadAfterUncertainSubmitRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "nip")
 	seedOwnedSession(t, "w", "nip")
 	if err := bindMuseSession("w", "n1", "c0", "echo", "", testReq("op")); err != nil {
@@ -265,7 +265,7 @@ func TestChangedPayloadAfterUncertainSubmitRefused(t *testing.T) {
 // digest. Same payload on a different session, native session,
 // profile, provider, or workspace is a conflict.
 func TestTurnIntentRejectsIdentityMismatch(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	req := testReq("loop")
 	if _, err := ensureTurnIntent("t9", 0, "w", "n1", "", "echo", "/repo-a", "do x", req); err != nil {
 		t.Fatal(err)

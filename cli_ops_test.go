@@ -34,8 +34,8 @@ func seedOpsSink(t *testing.T, n int) {
 
 func seedOpsSinkReq(t *testing.T, n int, req string) {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
-	t.Setenv("TUI_DASH_OPS_DIAG", "1")
+	t.Setenv("METIS_STATE", t.TempDir())
+	t.Setenv("METIS_OPS_DIAG", "1")
 	opsReset()
 	opsSinkMu.Lock()
 	opsSinkLines = -1
@@ -93,8 +93,8 @@ func TestCliOpsJSON(t *testing.T) {
 }
 
 func TestCliOpsMissingSink(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
-	t.Setenv("TUI_DASH_OPS_DIAG", "")
+	t.Setenv("METIS_STATE", t.TempDir())
+	t.Setenv("METIS_OPS_DIAG", "")
 	if _, err := os.Stat(opsSinkPath()); !os.IsNotExist(err) {
 		t.Skip("sink exists in this state dir; nothing to prove")
 	}
@@ -126,8 +126,8 @@ func TestCliOpsReadOnly(t *testing.T) {
 // session, one phase, one error class, errors only. Filters apply
 // within the bounded read; --limit still bounds the read itself.
 func TestCliOpsFilters(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
-	t.Setenv("TUI_DASH_OPS_DIAG", "1")
+	t.Setenv("METIS_STATE", t.TempDir())
+	t.Setenv("METIS_OPS_DIAG", "1")
 	opsReset()
 	opsSinkMu.Lock()
 	opsSinkLines = -1
@@ -168,8 +168,8 @@ func TestCliOpsFilters(t *testing.T) {
 }
 
 func TestCliOpsOutputStaysRedacted(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
-	t.Setenv("TUI_DASH_OPS_DIAG", "1")
+	t.Setenv("METIS_STATE", t.TempDir())
+	t.Setenv("METIS_OPS_DIAG", "1")
 	opsReset()
 	opsSinkMu.Lock()
 	opsSinkLines = -1

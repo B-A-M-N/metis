@@ -62,7 +62,7 @@ func judgmentCount(t *testing.T, taskID string, attempt int) int {
 // verify when its only support is operator acceptance: asserted
 // strings without independent outcome evidence prove nothing.
 func TestAssuranceOperatorAcceptanceIsNotTechnicalProof(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fa1")
 	seedOwnedSession(t, "w", "fa1")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")
@@ -101,7 +101,7 @@ func TestAssuranceOperatorAcceptanceIsNotTechnicalProof(t *testing.T) {
 // the disagreement is visible and verification blocks until
 // independent resolution.
 func TestAssuranceConflictingJudgmentsPersistAndBlockVerify(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fa2")
 	seedOwnedSession(t, "w", "fa2")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")
@@ -137,7 +137,7 @@ func TestAssuranceConflictingJudgmentsPersistAndBlockVerify(t *testing.T) {
 // latest-per-reviewer unanimity at the current revision unblocks
 // verification without rewriting history.
 func TestAssuranceSelfSupersedeResolvesDispute(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fa3")
 	seedOwnedSession(t, "w", "fa3")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")
@@ -164,7 +164,7 @@ func TestAssuranceSelfSupersedeResolvesDispute(t *testing.T) {
 // A judgment reviews the evidence revision it was filed at: new
 // evidence supersedes the old judgment instead of inheriting it.
 func TestAssuranceStaleRevisionJudgmentDoesNotCarry(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fa4")
 	seedOwnedSession(t, "w", "fa4")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")
@@ -193,7 +193,7 @@ func TestAssuranceStaleRevisionJudgmentDoesNotCarry(t *testing.T) {
 // with reviewer, verdict, evidence, reason, and request ID
 // intact — old judgments keep counting instead of vanishing.
 func TestAssuranceLegacyRowsMigrateWithAttribution(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fa5")
 	seedOwnedSession(t, "w", "fa5")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")
@@ -258,7 +258,7 @@ func TestAssuranceLegacyRowsMigrateWithAttribution(t *testing.T) {
 // override / operator-accepted: honest approval, never technical
 // correctness.
 func TestAssuranceOperatorOverrideDisposition(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fa6")
 	seedOwnedSession(t, "worker2", "fa6")
 	tk, err := createTask("runv", "worker2", "obj", "acc")
@@ -289,7 +289,7 @@ func TestAssuranceOperatorOverrideDisposition(t *testing.T) {
 // Unknown judgment methods are refused at the gate: the typed
 // source is closed, not free-form.
 func TestAssuranceUnknownMethodRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fa7")
 	seedOwnedSession(t, "w", "fa7")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")
@@ -373,7 +373,7 @@ func TestCoverageGateKeepsRequiredReviewsRole(t *testing.T) {
 // id tiebreak shuffles same-second rows and latest-per-reviewer
 // becomes a coin flip. The tiebreak must be insertion order.
 func TestJudgmentsSameSecondKeepFilingOrder(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)

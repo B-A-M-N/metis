@@ -25,6 +25,9 @@ func (m *model) applySessionsRefresh(d refreshData) {
 	if d.tabInfo != nil {
 		m.tabInfo = d.tabInfo
 	}
+	if d.identities != nil {
+		m.identities = d.identities
+	}
 }
 
 // applyFeedRefresh installs the orchestration feed and its derived

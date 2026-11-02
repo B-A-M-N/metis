@@ -16,7 +16,7 @@ import (
 
 func openAuthorityTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatalf("openTasksDB: %v", err)

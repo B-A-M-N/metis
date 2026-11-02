@@ -15,7 +15,7 @@ import (
 // the declared bound, the excess is drained (producer never
 // blocks), and a truncation receipt names the loss.
 func TestOutputCappedDuringStreaming(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "oc1")
 	seedOwnedSession(t, "w", "oc1")
 	tk, err := createTask("run-oc1", "w", "obj", "acc")
@@ -52,7 +52,7 @@ func TestOutputCappedDuringStreaming(t *testing.T) {
 // the TUI reads that file first, so real execution shows where
 // the operator looks.
 func TestOutputMirroredToSessionStream(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "oc2")
 	seedOwnedSession(t, "w", "oc2")
 	tk, err := createTask("run-oc2", "w", "obj", "acc")

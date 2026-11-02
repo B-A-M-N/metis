@@ -16,7 +16,7 @@ import (
 // afterwards, while idempotent replay of an existing key still
 // returns its row (replay creates no new work).
 func TestClosedRunRefusesAdmission(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk, err := createTaskIdem("run-closed", "agent", "work", "done", "key-1")
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +46,7 @@ func TestClosedRunRefusesAdmission(t *testing.T) {
 // leaves pending, its edges are frozen absent an explicit plan
 // revision.
 func TestDependencyEditRestrictedToPending(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "depp")
 	seedOwnedSession(t, "w", "depp")
 	a, err := createTask("run-depp", "agent", "a", "")
@@ -79,7 +79,7 @@ func TestConcurrentDepEdgesSerialize(t *testing.T) {
 	}
 	for i := 0; i < 10; i++ {
 		func() {
-			t.Setenv("TUI_DASH_STATE", t.TempDir())
+			t.Setenv("METIS_STATE", t.TempDir())
 			a, err := createTask(fmt.Sprintf("run-race-%d", i), "agent", "a", "")
 			if err != nil {
 				t.Fatal(err)
@@ -125,7 +125,7 @@ func TestConcurrentDepEdgesSerialize(t *testing.T) {
 // caller must not inherit local-operator trust merely because
 // Metis runs locally.
 func TestRemoteIngressDisablesLocalTrust(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("METIS_MCP_REMOTE_INGRESS", "1")
 	os.Unsetenv("METIS_MCP_WRITE_TOKEN")
 	raw := []byte(`{"run":"r","session":"s","objective":"o","actor":"mallory","request_id":"q1"}`)
@@ -146,7 +146,7 @@ func TestFinalizeRacesTaskAdmission(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (concurrency stress); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	for iter := 0; iter < 12; iter++ {
 		run := fmt.Sprintf("run-race-%d", iter)
 		seed, err := createTask(run, "agent", "seed", "done")

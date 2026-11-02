@@ -110,7 +110,7 @@ func bindTestHost(t *testing.T, starts *atomic.Int32, lastRoot *string, mu *sync
 // pass under the same request key reuses the claimed command, which
 // the lower-level dedup replays without retransmitting.
 func TestBindRetrySameKeyCreatesOneNativeSession(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "wb", "bind-idem")
 	workspaceRoot, model := bindTestScope(t, "wb")
 	req := OperationRequest{Actor: "orch", RequestID: "bind-retry-1"}
@@ -184,7 +184,7 @@ func TestBindRetrySameKeyCreatesOneNativeSession(t *testing.T) {
 // same command in submitted state, and the subsequent start
 // transmits exactly once.
 func TestBindUncertainIntentStaysRecoverable(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "wu", "bind-uncertain")
 	workspaceRoot, model := bindTestScope(t, "wu")
 	req := OperationRequest{Actor: "orch", RequestID: "bind-uncertain-1"}
@@ -228,7 +228,7 @@ func TestBindUncertainIntentStaysRecoverable(t *testing.T) {
 // principal — is a conflict, never a silent convergence, and the
 // frozen intent is left untouched.
 func TestBindConflictingPayloadRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "wc", "bind-conflict")
 	workspaceRoot, model := bindTestScope(t, "wc")
 	req := OperationRequest{Actor: "orch", RequestID: "bind-conflict-1", Principal: "tok-a"}
@@ -273,7 +273,7 @@ func TestBindConflictingPayloadRefused(t *testing.T) {
 // created native session instead of transmitting a second
 // session/start. Once bound, there is nothing left to reconcile.
 func TestAckedButUnboundReconcilesAcrossKeys(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "wr", "bind-reconcile")
 	workspaceRoot, model := bindTestScope(t, "wr")
 

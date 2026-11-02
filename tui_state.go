@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 // tui_state.go: selection, attachment, and refresh-generation state transitions. Extracted from tui.go; behavior unchanged.
@@ -47,10 +48,36 @@ func (m *model) attachTarget() (string, bool) {
 		return "", false
 	}
 	sel := m.selName()
-	if sel == "" || !m.running[sel] {
+	if sel == "" || !m.running[sel] || m.isNativeSelection(sel) {
 		return "", false
 	}
 	return sel, true
+}
+
+func (m model) canonicalSession(display string) string {
+	if id, ok := m.identities[display]; ok && id.Canonical != "" {
+		return id.Canonical
+	}
+	if strings.HasPrefix(display, nativePrefix) {
+		return strings.TrimPrefix(display, nativePrefix)
+	}
+	return display
+}
+
+func (m model) displayIdentity(canonical string) string {
+	if _, ok := m.identities[canonical]; ok {
+		return canonical
+	}
+	for key, id := range m.identities {
+		if id.Canonical == canonical && id.Backend == TargetMuseNative {
+			return key
+		}
+	}
+	return canonical
+}
+
+func (m model) isNativeSelection(display string) bool {
+	return strings.HasPrefix(display, nativePrefix) || m.identities[display].Backend == TargetMuseNative
 }
 
 // jumpToFeedTarget follows the feed cursor to its worker tab when
@@ -66,13 +93,16 @@ func (m *model) jumpToFeedTarget() {
 		m.status = "orchestration feed is empty; select a worker tab to attach"
 		return
 	}
-	target := m.feed[cursor].TargetAgent
+	target := m.displayIdentity(m.feed[cursor].TargetAgent)
 	if target == "" {
 		m.status = "feed event has no worker target; select a worker tab to attach"
 		return
 	}
 	if nav, ok := m.nav.JumpToFeedTarget(m.names, target); ok {
 		m.nav = nav
+		if m.isNativeSelection(target) {
+			m.direct = false
+		}
 		m.status = "jumped to worker " + target
 		return
 	}

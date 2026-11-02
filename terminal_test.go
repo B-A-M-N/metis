@@ -23,7 +23,7 @@ func ptyAvailable() bool {
 }
 
 func TestPtyLease(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if err := ptyAcquireLease("s", ""); err == nil {
 		t.Fatal("empty owner should fail")
 	}
@@ -39,7 +39,7 @@ func TestPtyLease(t *testing.T) {
 }
 
 func TestPtyUnknown(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if _, err := ptyLog("nope", 100); err == nil {
 		t.Fatal("log of unknown should fail")
 	}
@@ -70,7 +70,7 @@ func TestPtySuperviseLifecycle(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	if err := ptyStart("out", work, "echo pty-hello; sleep 30", "demo", "test-m"); err != nil {
 		t.Fatalf("ptyStart: %v", err)
@@ -180,7 +180,7 @@ func TestCombinedNames(t *testing.T) {
 }
 
 func TestAtomicLeaseRace(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	const racers = 16
 	wins := make(chan string, racers)
 	var wg sync.WaitGroup
@@ -218,7 +218,7 @@ func TestFramedInputLarge(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	if err := ptyStart("big", work, "cat", "", ""); err != nil {
 		t.Fatalf("ptyStart: %v", err)
@@ -300,7 +300,7 @@ func TestSupervisorIdentityFencing(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	if err := ptyStart("fenced", work, "sleep 30", "demo", ""); err != nil {
 		t.Fatalf("ptyStart: %v", err)
@@ -371,7 +371,7 @@ func TestStaleStartingRecovery(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	ptyTestDB(t)
 	db, err := openTasksDB()
@@ -413,7 +413,7 @@ func TestLiveStartingRefusesTakeover(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	if err := ptyStart("live1", work, "sleep 30", "demo", ""); err != nil {
 		t.Fatalf("ptyStart: %v", err)
@@ -447,7 +447,7 @@ func TestConcurrentTakeoverOneWinner(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	ptyTestDB(t)
 	db, err := openTasksDB()
@@ -493,12 +493,12 @@ func TestBatchedFleetRefresh(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "ob")
 	seedOwnedSession(t, "k1", "ob")
 	seedOwnedSession(t, "k2", "ob")
 	seedOwnedSession(t, "k3", "ob")
-	t.Setenv("FAKE_TMUX_LIST", "tui-k1 tui-k2")
+	t.Setenv("FAKE_TMUX_LIST", "metis-k1 metis-k2")
 	work := t.TempDir()
 	if err := ptyStart("bp", work, "sleep 30", "demo", ""); err != nil {
 		t.Fatalf("ptyStart: %v", err)
@@ -533,7 +533,7 @@ func TestSixWorkersFleet(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	var names []string
 	for i := 0; i < 6; i++ {
@@ -596,7 +596,7 @@ func TestHighOutputIsolation(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	if err := ptyStart("heavy", work, `for i in $(seq 1 30000); do echo heavy-$i; done; sleep 30`, "demo", ""); err != nil {
 		t.Fatalf("ptyStart heavy: %v", err)
@@ -632,7 +632,7 @@ func TestPtyWorkerExitRecorded(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if err := ptyStart("quick", t.TempDir(), "echo bye; exit 3", "", ""); err != nil {
 		t.Fatalf("ptyStart: %v", err)
 	}

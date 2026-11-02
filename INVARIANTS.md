@@ -1,4 +1,4 @@
-# TUI-dash — Normative Invariants Specification v1.0
+# Metis — Normative Invariants Specification v1.0
 
 Target: `/home/bamn/tui-dash` — Go/Bubble Tea implementation\
 Scope: External AI orchestration, multi-agent delegation, live terminal interaction, evidence-backed reviews, corrective workflows, and operational correctness.
@@ -25,7 +25,7 @@ Priority: P0 = required for safe/correct operation; P1 = required for intended p
 
 ## I. Product and authority invariants
 
-- TD-001 [P0] — External Orchestrator Authority: TUI-dash MUST execute, observe, and report orchestration operations without autonomously deciding the user's next strategic objective.
+- TD-001 [P0] — External Orchestrator Authority: Metis MUST execute, observe, and report orchestration operations without autonomously deciding the user's next strategic objective.
 - TD-002 [P0] — No Shadow Orchestrator: Internal scheduling logic MUST NOT independently reinterpret or expand an external orchestrator's requested work.
 - TD-003 [P0] — Controller Independence: Task execution and monitoring MUST continue independently of whether the Bubble Tea interface is running.
 - TD-004 [P0] — UI Non-Authority: The TUI MUST NOT be the authoritative owner of worker lifecycle, task state, verification, or report disposition.
@@ -215,7 +215,7 @@ Exception precedence: Security and ownership guarantees outrank operational conv
 
 These are architecture-level prohibitions intended to prevent the implementation from satisfying superficial tests while missing the actual product goal.
 
-| ID     | TUI-dash MUST NOT                                                                              |
+| ID     | Metis MUST NOT                                                                              |
 | ------ | ---------------------------------------------------------------------------------------------- |
 | AS-001 | Become another autonomous reasoning/orchestration framework                                    |
 | AS-002 | Depend on tmux as the mandatory execution substrate for all managed interactive workers        |
@@ -332,7 +332,7 @@ The audit should first identify conflicting requirements, then group violations 
 
 ## Definition of done
 
-TUI-dash reaches its intended baseline when an external AI can delegate to multiple real coding agents—including several simultaneous Muse Code instances—receive reports, cross-reference those reports, assign corrective work, verify outcomes, and continue after disconnection, while the human can observe or interact with any eligible live session.
+Metis reaches its intended baseline when an external AI can delegate to multiple real coding agents—including several simultaneous Muse Code instances—receive reports, cross-reference those reports, assign corrective work, verify outcomes, and continue after disconnection, while the human can observe or interact with any eligible live session.
 
 The system must preserve authority, identity, evidence, and uncertainty throughout that workflow.
 

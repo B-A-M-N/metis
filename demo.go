@@ -1,13 +1,13 @@
 package main
 
-// Demo worker: `tui-dash demo`.
-// A stand-in worker, not a model. It exists so `tui-dash up` can be
+// Demo worker: `metis demo`.
+// A stand-in worker, not a model. It exists so `metis up` can be
 // run and verified without an API key, a Hermes gateway, or a model
 // endpoint. Behaviour matches the Python demo_agent.py:
 //   - prints a step line per step and writes step-NNN.txt per step
 //   - polls guidance.md for unseen lines, prints GUIDANCE RECEIVED,
 //     and appends to guidance_ack.md
-// A real worker replaces the --cmd in `tui-dash start` / `up`.
+// A real worker replaces the --cmd in `metis start` / `up`.
 // Hermes --oneshot workers show process output only, not a live
 // tool-call trace; a live view needs an interactive/streaming worker.
 

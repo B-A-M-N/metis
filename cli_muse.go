@@ -17,7 +17,7 @@ func cliMuse(args []string) int {
 	// own short-lived host and resumes the durable native
 	// session, so no daemon is required for correctness.
 	if (len(args) + 2) < 3 {
-		fmt.Fprintln(os.Stderr, "usage: tui-dash muse daemon|bind|turn|status|approvals|approve ...")
+		fmt.Fprintln(os.Stderr, "usage: metis muse daemon|bind|turn|status|approvals|approve ...")
 		return 2
 	}
 	switch args[0] {
@@ -121,7 +121,7 @@ func cliMuse(args []string) int {
 			return 1
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "usage: tui-dash muse bind|turn|status ...")
+		fmt.Fprintln(os.Stderr, "usage: metis muse bind|turn|status ...")
 		return 2
 	}
 	return 0

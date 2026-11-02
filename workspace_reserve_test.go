@@ -16,7 +16,7 @@ func TestDispatchWorkspaceRaceSingleOwner(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (concurrency stress); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "wrace")
 	seedOwnedSession(t, "w", "wrace")
 
@@ -74,7 +74,7 @@ func TestDispatchWorkspaceRaceSingleOwner(t *testing.T) {
 // The reservation lifecycle: a held root refuses a second owner,
 // and a terminal transition releases it for the next task.
 func TestWorkspaceReservationReleaseOnTerminal(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "wrel")
 	seedOwnedSession(t, "w", "wrel")
 	root, err := sessionRoot("w")
@@ -106,7 +106,7 @@ func TestWorkspaceReservationReleaseOnTerminal(t *testing.T) {
 // Pickup enforces the reservation: a dispatched task whose root is
 // held by someone else (or nothing at all) cannot go working.
 func TestPickupRequiresWorkspaceReservation(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "wpick")
 	seedOwnedSession(t, "w", "wpick")
 	a, err := createTask("run-pick", "w", "holder", "done")

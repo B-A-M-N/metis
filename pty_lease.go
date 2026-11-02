@@ -21,7 +21,7 @@ var (
 	// A constant owner string would let two TUI processes hold the
 	// same lease identity and defeat exclusivity; the pid+start
 	// component makes each process distinct.
-	controllerIDValue = fmt.Sprintf("tui-%d-%d", os.Getpid(), time.Now().UnixNano())
+	controllerIDValue = fmt.Sprintf("metis-%d-%d", os.Getpid(), time.Now().UnixNano())
 	// fifoMu serializes multi-frame commands from this process so one
 	// command's frames cannot interleave with another's. Cross-process
 	// atomicity comes from keeping every frame under PIPE_BUF with a

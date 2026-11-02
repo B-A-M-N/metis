@@ -79,7 +79,7 @@ func TestMuseServerRequestsSurfaced(t *testing.T) {
 // Requested folds upsert a pending row; resolved marks it with the
 // server's terminal decision. Unknown approvals never fabricate rows.
 func TestMuseApprovalTable(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	req := []byte(`{"approvalId":"ap-9","itemId":"it-3","currentRequirementId":{"sourceIndex":0},
 		"availableChoices":[{"choiceId":"allow","label":"Allow"},{"choiceId":"deny","label":"Deny"}]}`)
 	if err := recordMuseApprovalRequested("w", "native-1", req); err != nil {
@@ -134,7 +134,7 @@ func TestMuseApprovalTable(t *testing.T) {
 // commandId and the stored requirement guard. Anything else is
 // refused locally, before any byte reaches the server.
 func TestMuseDecideApproval(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	var mu sync.Mutex
 	var decideCalls []map[string]any
 	failDecide := 0
@@ -232,7 +232,7 @@ func TestMuseDecideApproval(t *testing.T) {
 // must-answer requests once recorded — receipt means durably
 // recorded and operator-visible, never a decision.
 func TestMuseApprovalObserverReceipt(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	client, server := net.Pipe()
 	// Receipts arrive on the stub-server goroutine; the test goroutine
 	// consumes them through this channel, which is the happens-before
@@ -351,7 +351,7 @@ func TestMuseListPendingPassthrough(t *testing.T) {
 // to a different decision payload: same choice reuses the id for
 // server dedup, a different choice mints a fresh one.
 func TestDecideBindsCommandIDToPayload(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	var mu sync.Mutex
 	var decideCmds []string
 	client, server := net.Pipe()

@@ -210,7 +210,7 @@ func TestRenderSelectionChangeHidesPreviousSession(t *testing.T) {
 	var header, liveTitle, gitTitle, eventsLine string
 	for _, l := range lines {
 		switch {
-		case strings.Contains(l, "TUI-Dash"):
+		case strings.Contains(l, "Metis"):
 			header = l
 		case strings.Contains(l, "Live:"):
 			liveTitle = l

@@ -10,14 +10,14 @@ import (
 )
 
 func TestReadModelTaskStatusDetailUnknownTask(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if _, _, _, _, err := taskStatusDetail("no-such-task"); err == nil {
 		t.Fatalf("taskStatusDetail(unknown) = nil error, want getTask failure")
 	}
 }
 
 func TestReadModelTaskStatusDetailRoundTrip(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	created, err := createTask("run-1", "agent-1", "objective head\nbody", "accept!")
 	if err != nil {
 		t.Fatalf("createTask: %v", err)
@@ -41,7 +41,7 @@ func TestReadModelTaskStatusDetailRoundTrip(t *testing.T) {
 }
 
 func TestReadModelLatestRunEmpty(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if got := latestRun(); got != "" {
 		t.Errorf("latestRun() = %q, want empty", got)
 	}
@@ -51,7 +51,7 @@ func TestReadModelLatestRunEmpty(t *testing.T) {
 }
 
 func TestReadModelLatestRunRoundTrip(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if _, err := createTask("run-9", "agent-9", "obj", "acc"); err != nil {
 		t.Fatalf("createTask: %v", err)
 	}

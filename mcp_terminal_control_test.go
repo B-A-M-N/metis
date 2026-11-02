@@ -111,7 +111,7 @@ func terminalErrText(t *testing.T, res mcpToolResult, err error) string {
 // reaches the transport. After the rival releases, the same
 // request_id resumes instead of replaying a failure.
 func TestMCPTerminalInputRivalWriters(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "rival-owner")
 	seedOwnedSession(t, "s", "rival-owner")
 	if err := tmuxAcquireLease("s", "rival-writer"); err != nil {
@@ -149,7 +149,7 @@ func TestMCPTerminalInputRivalWriters(t *testing.T) {
 // The same fencing holds on the PTY channel: a rival lease holder
 // vetoes the write before any frame is queued.
 func TestMCPTerminalInputRivalWritersPty(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedLiveSelfPtyRow(t, "p")
 	if err := ptyAcquireLease("p", "rival-writer"); err != nil {
 		t.Fatalf("seed rival lease: %v", err)
@@ -165,7 +165,7 @@ func TestMCPTerminalInputRivalWritersPty(t *testing.T) {
 // A stale generation is refused before any lease is touched; the
 // matching generation proceeds to the transport.
 func TestMCPTerminalInputStaleGeneration(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedLiveSelfPtyRow(t, "p")
 	openFifoReader(t, "p")
 
@@ -188,7 +188,7 @@ func TestMCPTerminalInputStaleGeneration(t *testing.T) {
 // Input into a one-shot harness is blocked with a typed outcome:
 // no send, never silent success.
 func TestMCPTerminalInputBlocked(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "block-owner")
 	seedOwnedSession(t, "b", "block-owner")
 	reg := loadRegistry()
@@ -220,7 +220,7 @@ func TestMCPTerminalInputBlocked(t *testing.T) {
 // Resize after a restart: the generation bumped by recovery fences
 // the stale request, while the fresh generation resizes.
 func TestMCPTerminalResizeAfterRestart(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedLiveSelfPtyRow(t, "p")
 	openFifoReader(t, "p")
 
@@ -263,7 +263,7 @@ func mustTool(t *testing.T, res mcpToolResult, err error) mcpToolResult {
 // generation never signals the new owner's processes, while the
 // fresh generation stops the row it actually fenced.
 func TestMCPSessionStopReplacedSession(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedPtyRow(t, "p", t.TempDir()) // dead supervisor/worker, generation 0
 
 	stop := func(requestID string, extra map[string]any) (mcpToolResult, error) {
@@ -303,7 +303,7 @@ func TestMCPSessionStopReplacedSession(t *testing.T) {
 // recorded outcome with the same op id, while a reused key with
 // different text is a conflict — and the transport ran exactly once.
 func TestMCPTerminalInputReplay(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "replay-owner")
 	seedOwnedSession(t, "s", "replay-owner")
 
@@ -331,7 +331,7 @@ func TestMCPTerminalInputReplay(t *testing.T) {
 // closed on every lifecycle tool with no side effects; a wrong
 // credential fails at authentication.
 func TestMCPTerminalUnauthorizedRemote(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-terminal")
 	t.Setenv("METIS_MCP_INGRESS", "remote")
@@ -387,7 +387,7 @@ func TestMCPTerminalUnauthorizedRemote(t *testing.T) {
 // A scoped admin grant authorizes the remote principal across all
 // three lifecycle tools.
 func TestMCPTerminalAuthorizedRemote(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-terminal")
 	t.Setenv("METIS_MCP_INGRESS", "remote")
@@ -410,7 +410,7 @@ func TestMCPTerminalAuthorizedRemote(t *testing.T) {
 // tmux success paths run the real domain services: input addresses
 // the bound session ID, stop kills it and clears its leases.
 func TestMCPTerminalTmuxSuccess(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "ok-owner")
 	seedOwnedSession(t, "s", "ok-owner")
 
@@ -479,7 +479,7 @@ func TestMCPTerminalTmuxSuccess(t *testing.T) {
 // PTY input through a live supervisor queues under the caller's
 // lease and reports the queued disposition honestly.
 func TestMCPTerminalPtyInputQueued(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedLiveSelfPtyRow(t, "p")
 	openFifoReader(t, "p")
 

@@ -7,6 +7,7 @@ package main
 // session.go; behavior unchanged.
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -156,10 +157,14 @@ func tailSegment(path string, maxBytes int64) ([]byte, bool) {
 }
 
 func captureOutput(name string, lines int) []string {
+	return captureOutputContext(context.Background(), name, lines)
+}
+
+func captureOutputContext(ctx context.Context, name string, lines int) []string {
 	if ls, ok := streamTail(name, lines); ok {
 		return ls
 	}
-	out, err := tmux("capture-pane", "-p", "-t", tmuxName(name), "-S", fmt.Sprintf("-%d", lines))
+	out, err := tmuxContext(ctx, "capture-pane", "-p", "-t", sessionTmuxTarget(name, ""), "-S", fmt.Sprintf("-%d", lines))
 	if err != nil {
 		return []string{"(session not running)"}
 	}

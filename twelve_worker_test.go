@@ -17,7 +17,7 @@ func TestTwelveWorkerFleet(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 
 	host, err := os.Hostname()

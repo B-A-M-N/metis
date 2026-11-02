@@ -13,7 +13,7 @@ import (
 // No dispatched task: one open missing_approval escalation bound to
 // the session; resolution by approval id closes it.
 func TestAttentionSplitApprovalNoTask(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if err := raiseApprovalAttention("w-split", "ap-split-1"); err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestAttentionSplitApprovalNoTask(t *testing.T) {
 // Resolving an unknown approval id is a silent no-op, never an
 // error: the decision stands on its own row.
 func TestAttentionSplitResolveUnknownNoop(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	resolveApprovalAttention("ap-no-such", "op", "decided:allow")
 	open, err := listAttention("", true)
 	if err != nil {

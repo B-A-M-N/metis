@@ -1,6 +1,6 @@
 package main
 
-// cli_graph.go: `tui-dash graph <op> --run RUN` dispatch. Read-only
+// cli_graph.go: `metis graph <op> --run RUN` dispatch. Read-only
 // deterministic projections over a run's lineage: no TUI, no
 // daemon, no execution — pure SQLite reads. (The `graph`
 // subcommand entry point cliGraph lives with the other CLI entry
@@ -11,7 +11,7 @@ import (
 	"fmt"
 )
 
-// graphCmd implements `tui-dash graph <op> --run RUN`.
+// graphCmd implements `metis graph <op> --run RUN`.
 func graphCmd(op string, args []string) error {
 	var run string
 	for i := 0; i < len(args); i++ {

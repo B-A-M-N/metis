@@ -19,7 +19,7 @@ import (
 // Before consolidation these were two copied cycle loops; this test
 // fails if the paths ever diverge again.
 func TestDependPathsConvergeOnCycle(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTask("run-depconv", "agent", "a", "")
 	if err != nil {
 		t.Fatal(err)
@@ -53,7 +53,7 @@ func addTaskDepIdempotentTx(taskID, depID, key string, t *testing.T) error {
 // Idempotent key semantics: fresh key records, identical replay
 // converges, same key with a different edge conflicts.
 func TestDependIdempotentReplayAndConflict(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTask("run-depidem", "agent", "a", "")
 	if err != nil {
 		t.Fatal(err)
@@ -100,7 +100,7 @@ func TestDependIdempotentReplayAndConflict(t *testing.T) {
 // Capacity: validation, unbounded default, and limit enforcement
 // against live tasks. Capacity admission must not close the run.
 func TestCapacityLimitAdmission(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cap")
 	seedOwnedSession(t, "w", "cap")
 	if err := setRunLimit("", 1, testReq("orch")); err == nil {
@@ -148,7 +148,7 @@ func TestCapacityLimitAdmission(t *testing.T) {
 // Finalization is the only authority that closes a run: open tasks
 // block it by name, and once closed both dependency paths refuse.
 func TestFinalizeOnlyAuthorityClosesRun(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTask("run-fin", "agent", "a", "")
 	if err != nil {
 		t.Fatal(err)

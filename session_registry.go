@@ -18,12 +18,22 @@ import (
 )
 
 func stateDir() string {
+	if d := os.Getenv("METIS_STATE"); d != "" {
+		_ = os.MkdirAll(d, 0o700)
+		return d
+	}
+	// Keep accepting the pre-rebrand override for existing scripts.
 	if d := os.Getenv("TUI_DASH_STATE"); d != "" {
 		_ = os.MkdirAll(d, 0o700)
 		return d
 	}
 	home, _ := os.UserHomeDir()
-	d := filepath.Join(home, ".local", "share", "tui-dash")
+	legacy := filepath.Join(home, ".local", "share", "tui-dash")
+	d := filepath.Join(home, ".local", "share", "metis")
+	// Reuse existing state in place; fresh installs use the Metis path.
+	if _, err := os.Stat(legacy); err == nil || !os.IsNotExist(err) {
+		d = legacy
+	}
 	_ = os.MkdirAll(d, 0o700)
 	return d
 }

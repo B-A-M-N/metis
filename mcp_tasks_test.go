@@ -40,7 +40,7 @@ func mcpTaskText(t *testing.T, res mcpToolResult) map[string]any {
 }
 
 func TestMCPTasksList(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "mtasks")
 	seedOwnedSession(t, "w", "mtasks")
 	for _, obj := range []string{"alpha one", "alpha two"} {
@@ -104,7 +104,7 @@ func TestMCPTaskStatus(t *testing.T) {
 }
 
 func TestMCPProjects(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "mproj")
 	seedOwnedSession(t, "w", "mproj")
 	other := t.TempDir()
@@ -143,7 +143,7 @@ func TestMCPProjects(t *testing.T) {
 // TD-094 independence enforced — naming a reviewer never confers
 // approval by itself.
 func TestMCPVerifyGated(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-mcp-verify")
 	// Rejection is an authoritative transition: the remote-token
 	// principal needs the explicit "reject" grant (P0-C).
@@ -176,7 +176,7 @@ func TestMCPVerifyGated(t *testing.T) {
 }
 
 func TestMCPVerifyPassNeedsVerdicts(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	// Local operator path (no token): this test proves verdict
 	// logic, not transport auth. Remote pass verdicts are denied
 	// outright; see TestMCPRemotePrincipalDenied.

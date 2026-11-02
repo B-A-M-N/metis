@@ -28,6 +28,18 @@ import (
 	"sort"
 )
 
+// ResourceScope identifies which process the counters describe.
+// Current snapshots run inside the observer (CLI/dashboard) process;
+// worker-specific measurement requires independently verified PID
+// identity and is deliberately not inferred here.
+type ResourceProvenance string
+
+const (
+	ScopeObserverProcess ResourceProvenance = "observer_process"
+	ScopeWorkerProcess   ResourceProvenance = "worker_process"
+	ScopeUnavailable     ResourceProvenance = "unavailable"
+)
+
 // streamResourceUsage is one session's live-stream size against the
 // retention cap. Bytes is -1 when the stream file is missing or
 // unstatable (never proof of an empty stream, only that no size
@@ -42,6 +54,7 @@ type streamResourceUsage struct {
 // It is a plain value: safe to keep, compare, or log, with no
 // handles back into live state.
 type resourceUsageSnapshot struct {
+	Scope       ResourceProvenance
 	Goroutines  int
 	HeapAlloc   uint64
 	SenderLanes int
@@ -57,6 +70,7 @@ func snapshotResourceUsage() resourceUsageSnapshot {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	snap := resourceUsageSnapshot{
+		Scope:       ScopeObserverProcess,
 		Goroutines:  runtime.NumGoroutine(),
 		HeapAlloc:   mem.HeapAlloc,
 		SenderLanes: liveInputSenderCount(),

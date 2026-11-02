@@ -29,7 +29,7 @@ func listReceiptsOrFail(t *testing.T, taskID string) []Receipt {
 // state-changing operation carries an authorized request (TD-006) and
 // interventions must be attributable (TD-084).
 func TestFollowupRequiresRequest(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk, err := createTask("run-p2a", "agent", "obj", "acc")
 	if err != nil {
 		t.Fatal(err)
@@ -42,7 +42,7 @@ func TestFollowupRequiresRequest(t *testing.T) {
 // A corrective task must reference the exact preceding state (TD-082):
 // parent id, parent report digest snapshot, carried acceptance, depth.
 func TestFollowupBindsParentReport(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2b")
 	seedOwnedSession(t, "w", "op2b")
 	tk, err := createTask("run-p2b", "agent", "obj", "acc")
@@ -85,7 +85,7 @@ func TestFollowupBindsParentReport(t *testing.T) {
 // (TD-036): chaining beyond the budget is refused, and the refusal
 // names the budget.
 func TestCorrectionBudgetEnforced(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk, err := createTask("run-p2c", "agent", "obj", "acc")
 	if err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestCorrectionBudgetEnforced(t *testing.T) {
 // (TD-035): attempts are bounded, history is kept, and the refusal
 // names the budget instead of silently dropping the retry.
 func TestRetryBudgetEnforced(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2d")
 	seedOwnedSession(t, "w", "op2d")
 	tk, err := createTask("run-p2d", "agent", "obj", "")
@@ -155,7 +155,7 @@ func TestRetryBudgetEnforced(t *testing.T) {
 // A task with an unsatisfied mandatory dependency must not start
 // (TD-030): dispatch is refused and names the blocking dependency.
 func TestDependencyBlocksDispatch(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2e")
 	seedOwnedSession(t, "w", "op2e")
 	dep, err := createTask("run-p2e", "agent", "foundation", "")
@@ -182,7 +182,7 @@ func TestDependencyBlocksDispatch(t *testing.T) {
 // A dependency is satisfied only by verified completion (TD-031):
 // reported-but-unverified, failed, and cancelled deps all still block.
 func TestDependencyRequiresVerified(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2f")
 	seedOwnedSession(t, "w", "op2f")
 	dep, err := createTask("run-p2f", "agent", "foundation", "")
@@ -218,7 +218,7 @@ func TestDependencyRequiresVerified(t *testing.T) {
 
 // Failed and cancelled dependencies never unblock a dependent.
 func TestDependencyFailedBlocks(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2g")
 	seedOwnedSession(t, "w", "op2g")
 	dep, err := createTask("run-p2g", "agent", "foundation", "")
@@ -251,7 +251,7 @@ func TestDependencyFailedBlocks(t *testing.T) {
 
 // Dependency edges must be acyclic: A-on-B then B-on-A is refused.
 func TestDependencyCycleRejected(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTask("run-p2h", "agent", "a", "")
 	if err != nil {
 		t.Fatal(err)
@@ -277,7 +277,7 @@ func TestDependencyCycleRejected(t *testing.T) {
 // (TD-041): pending/dispatched/working/report_ready tasks block;
 // verified/failed/cancelled tasks do not.
 func TestFinalizeRunRefusesUnresolved(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTask("run-p2i", "agent", "a", "")
 	if err != nil {
 		t.Fatal(err)
@@ -316,7 +316,7 @@ func TestFinalizeRunRefusesUnresolved(t *testing.T) {
 // the whole chain cancels, unrelated run-mates are untouched (TD-040),
 // and the cancellation is attributable (TD-006/084).
 func TestCancelPropagatesToDescendants(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	root, err := createTask("run-p2j", "agent", "root", "")
 	if err != nil {
 		t.Fatal(err)
@@ -358,7 +358,7 @@ func TestCancelPropagatesToDescendants(t *testing.T) {
 // Dispatch immutably binds the task to the session's canonical
 // workspace (TD-050): the root is recorded and receipted.
 func TestDispatchBindsExecutionRoot(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2k")
 	seedOwnedSession(t, "w", "op2k")
 	tk, err := createTask("run-p2k", "agent", "obj", "")
@@ -381,7 +381,7 @@ func TestDispatchBindsExecutionRoot(t *testing.T) {
 // A pre-authorized root is enforced (TD-050): dispatch to a session
 // rooted elsewhere is refused naming both roots; nothing is claimed.
 func TestDispatchEnforcesAuthorizedRoot(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2l")
 	seedOwnedSession(t, "wa", "op2l")
 	seedOwnedSession(t, "wb", "op2l")
@@ -417,7 +417,7 @@ func TestDispatchEnforcesAuthorizedRoot(t *testing.T) {
 // the second live dispatch to an occupied root is refused until
 // shared use is explicitly authorized.
 func TestSharedWorkspaceRequiresAuthorization(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2m")
 	seedOwnedSession(t, "w", "op2m")
 	first, err := createTask("run-p2m", "agent", "one", "")
@@ -451,7 +451,7 @@ func TestSharedWorkspaceRequiresAuthorization(t *testing.T) {
 // Retries keep the bound root (TD-050): a replacement attempt in a
 // different workspace is refused; the same workspace proceeds.
 func TestRetryKeepsExecutionRoot(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2n")
 	seedOwnedSession(t, "w1", "op2n")
 	seedOwnedSession(t, "w2", "op2n")
@@ -498,7 +498,7 @@ func TestNoImplicitProviderFallback(t *testing.T) {
 // Accepted guidance is durable and auditable (TD-083/084): who, when,
 // mode, and final disposition are queryable by id and by session.
 func TestGuidanceDurableAndAudited(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2o")
 	seedOwnedSession(t, "w", "op2o")
 	req := testReq("orch")
@@ -529,7 +529,7 @@ func TestGuidanceDurableAndAudited(t *testing.T) {
 // is reported as outstanding until its disposition is established
 // (TD-083): accept and settle are separate durable steps.
 func TestGuidanceCrashRecovery(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2p")
 	seedOwnedSession(t, "w", "op2p")
 	req := testReq("orch")
@@ -565,7 +565,7 @@ func TestGuidanceCrashRecovery(t *testing.T) {
 // A refused direct send is recorded, not just returned (TD-084):
 // the error reaches the caller AND the audit trail names the reason.
 func TestGuidanceRefusalRecorded(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2q")
 	seedOwnedSession(t, "w", "op2q")
 	reg := loadRegistry()
@@ -600,7 +600,7 @@ func TestGuidanceRefusalRecorded(t *testing.T) {
 // (TD-038): the session ends, the registry records it, and the
 // receipt says so.
 func TestCancelStopsBoundWorker(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "op2r")
 	seedOwnedSession(t, "w", "op2r")
 	tk, err := createTask("run-p2r", "agent", "obj", "")
@@ -638,7 +638,7 @@ func TestCancelStopsBoundWorker(t *testing.T) {
 // the assignment is still cancelled, but nothing claims the worker
 // is dead and the session is not marked stopped.
 func TestCancelRecordsUnconfirmedStop(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2s")
 	t.Setenv("FAKE_TMUX_KILL_RC", "1")
 	seedOwnedSession(t, "w", "op2s")
@@ -679,7 +679,7 @@ func TestCancelRecordsUnconfirmedStop(t *testing.T) {
 // the session keeps running for the remaining live task and the
 // receipt says why.
 func TestCancelRetainsSharedWorker(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "op2t")
 	seedOwnedSession(t, "w", "op2t")
 	first, err := createTask("run-p2t", "agent", "one", "")
@@ -726,7 +726,7 @@ func TestCancelRetainsSharedWorker(t *testing.T) {
 // fails, so the session stays unstopped and the task row keeps its
 // exact pre-stop status — no failure is inferred.
 func TestStopFailureMarksNothing(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2u")
 	t.Setenv("FAKE_TMUX_KILL_RC", "1")
 	seedOwnedSession(t, "w", "op2u")
@@ -757,7 +757,7 @@ func TestStopFailureMarksNothing(t *testing.T) {
 // limit names the run and the live count; resolving a task frees
 // a slot. Unset limits mean unbounded.
 func TestRunConcurrencyLimitEnforced(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2v")
 	seedOwnedSession(t, "w1", "op2v")
 	seedOwnedSession(t, "w2", "op2v")
@@ -802,7 +802,7 @@ func TestRunConcurrencyLimitEnforced(t *testing.T) {
 // Without a limit, parallel delegation is unbounded (TD-032), and
 // invalid limits are refused rather than stored.
 func TestRunLimitUnsetUnbounded(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2w")
 	seedOwnedSession(t, "w1", "op2w")
 	seedOwnedSession(t, "w2", "op2w")
@@ -835,7 +835,7 @@ func TestRunLimitUnsetUnbounded(t *testing.T) {
 // execution (TD-116): the task stays pending with zero attempts,
 // and a later dispatch proceeds exactly once.
 func TestCrashBetweenDeliverAndClaim(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2x")
 	seedOwnedSession(t, "w", "op2x")
 	tk, err := createTask("run-p2x", "agent", "obj", "")
@@ -864,7 +864,7 @@ func TestCrashBetweenDeliverAndClaim(t *testing.T) {
 // Concurrent registry writers using the locked pattern never lose
 // updates or corrupt the file (TD-117 session side).
 func TestRegistryConcurrentSaves(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2y")
 	dirs := make([]string, 8)
 	for i := range dirs {
@@ -898,7 +898,7 @@ func TestRegistryConcurrentSaves(t *testing.T) {
 // the live dispatch wins while the dead-session dispatch fails
 // fast, with neither outcome affecting the other.
 func TestBlockedWorkerDoesNotSerialize(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2z")
 	seedOwnedSession(t, "w1", "op2z")
 	a, err := createTask("run-p2z", "agent", "a", "")
@@ -989,7 +989,7 @@ func TestSupportsContinuation(t *testing.T) {
 // controller restart (TD-115): every store is re-read from disk
 // through fresh handles, never from process memory.
 func TestRestartPreservesIdentities(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "op2aa")
 	seedOwnedSession(t, "w", "op2aa")
 	tk, err := createTask("run-p2aa", "agent", "obj", "acc")

@@ -24,12 +24,12 @@ package main
 //
 // Overhead: one small struct copy plus a mutex hold per observed
 // operation — trivial next to the DB transactions those operations
-// already perform. Stderr sampling is opt-in: when TUI_DASH_OPS_DIAG
+// already perform. Stderr sampling is opt-in: when METIS_OPS_DIAG
 // is set in the environment, error dispositions are also logged to
 // stderr (one line each). Successes never touch stderr.
 //
 // The same opt-in also enables a size-bounded JSONL sink at
-// $TUI_DASH_STATE/ops_diag.jsonl (opsSinkMaxLines lines,
+// $METIS_STATE/ops_diag.jsonl (opsSinkMaxLines lines,
 // opsSinkMaxBytes bytes, 0600 under the 0700 state dir). The sink
 // exists so an operator can read recent diagnostics with the `ops`
 // command: the ring is process-local, so a separate CLI process
@@ -130,7 +130,7 @@ func observeOps(phase opsPhase, requestID, taskID string, attempt int, session s
 		opsCount++
 	}
 	opsMu.Unlock()
-	if err != nil && os.Getenv("TUI_DASH_OPS_DIAG") != "" {
+	if err != nil && opsSinkEnabled() {
 		fmt.Fprintf(os.Stderr, "ops_diag phase=%s task=%s attempt=%d req=%s class=%s detail=%s\n",
 			phase, taskID, attempt, requestID, ev.ErrorClass, ev.Detail)
 	}
@@ -265,9 +265,11 @@ var opsSinkMu sync.Mutex
 var opsSinkLines = -1
 
 // opsSinkEnabled reports whether the opt-in sink (and stderr
-// sampling) is active. Same gate for both: TUI_DASH_OPS_DIAG set
-// to anything.
-func opsSinkEnabled() bool { return os.Getenv("TUI_DASH_OPS_DIAG") != "" }
+// sampling) is active. METIS_OPS_DIAG is preferred; the previous
+// TUI_DASH_OPS_DIAG name remains accepted for existing deployments.
+func opsSinkEnabled() bool {
+	return os.Getenv("METIS_OPS_DIAG") != "" || os.Getenv("TUI_DASH_OPS_DIAG") != ""
+}
 
 // opsSinkPath is the sink location. It lives under stateDir so it
 // inherits the owner-only posture (0700 dir, 0600 file): only the

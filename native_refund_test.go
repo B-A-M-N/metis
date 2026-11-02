@@ -70,7 +70,7 @@ func failNativeStep(err error) func(string) (museTurnOutcome, error) {
 // reservation in the same transaction, so the same attempt retries
 // cleanly instead of hitting the duplicate-launch guard.
 func TestNativePreSubmitRefundIsReusable(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk := seedNativeBoundTask(t, "w", "nru", "run-nru")
 	att := tk.Attempt
 	root := t.TempDir()
@@ -144,7 +144,7 @@ func TestNativePreSubmitRefundIsReusable(t *testing.T) {
 // a retry stays fenced behind the duplicate guard instead of
 // submitting a second turn.
 func TestNativeAmbiguousSubmitNeverRefunds(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk := seedNativeBoundTask(t, "w", "nar", "run-nar")
 	att := tk.Attempt
 	root := t.TempDir()
@@ -204,7 +204,7 @@ func TestNativeAmbiguousSubmitNeverRefunds(t *testing.T) {
 // the reservation retire fenced to the exact attempt: sibling
 // attempts' working rows and open receipts survive a refund.
 func TestNativeRefundDoesNotRewriteOtherAttempts(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk := seedNativeBoundTask(t, "w", "nro", "run-nro")
 	att := tk.Attempt
 	other := att - 1
@@ -265,7 +265,7 @@ func TestNativeRefundDoesNotRewriteOtherAttempts(t *testing.T) {
 // duplicate), and a committed cleanup replays safely (re-refund is a
 // clean refusal, the attempt reclaims exactly once).
 func TestNativePreSubmitCleanupCrashReplay(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk := seedNativeBoundTask(t, "w", "ncr", "run-ncr")
 	att := tk.Attempt
 	root := t.TempDir()

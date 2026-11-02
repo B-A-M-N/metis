@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 // Background refresh must not heal streams: a missing pipe is
 // observed, and re-attachment belongs to the attach path.
 func TestCollectLeavesMissingStreamAlone(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "projro")
 	seedOwnedSession(t, "w", "projro")
 	if _, err := os.Stat(streamPath("w")); !os.IsNotExist(err) {
@@ -34,7 +34,7 @@ func TestCollectLeavesMissingStreamAlone(t *testing.T) {
 // command carries the blocking heal off the update path; its typed
 // outcome confirms the attachment.
 func TestAttachHealsStream(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "projown")
 	seedOwnedSession(t, "w", "projown")
 	m := newModel("w")
@@ -69,7 +69,7 @@ func TestAttachHealsStream(t *testing.T) {
 // A failed feed read keeps last-known data; only a successful read
 // replaces it.
 func TestFeedFailureKeepsLastKnown(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	m := newModel("")
 	before := []OrchEvent{{Seq: 7, EventType: OrchMessageSent}}
 	m.feed = before
@@ -88,7 +88,7 @@ func TestFeedFailureKeepsLastKnown(t *testing.T) {
 // An old disconnect followed by live traffic is history, not
 // state. Only a recent, unrecovered disconnect reads as Error.
 func TestMuseActivityDisconnectHistory(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	// recordOrchEvent always stamps now: seed genuinely old
 	// history with a direct insert, then recent traffic on top.
 	db, err := openTasksDB()
@@ -114,7 +114,7 @@ func TestMuseActivityDisconnectHistory(t *testing.T) {
 }
 
 func TestMuseActivityRecentDisconnect(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if _, err := recordOrchEvent(OrchEvent{EventType: OrchTransportDisconnected, Created: nowUTC()}); err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestMuseActivityRecentDisconnect(t *testing.T) {
 // down now: older traffic must not mask it. (The scan must treat
 // newer events as superseding older ones.)
 func TestMuseActivityRecentDisconnectAfterTraffic(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)
@@ -154,7 +154,7 @@ func TestMuseActivityRecentDisconnectAfterTraffic(t *testing.T) {
 // resolved history, not live attention — especially when newer
 // traffic exists.
 func TestMuseActivityStaleApprovalIgnored(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)
@@ -180,7 +180,7 @@ func TestMuseActivityStaleApprovalIgnored(t *testing.T) {
 // Attention must derive from current pending state: an approval
 // that is still pending holds Attention.
 func TestMuseActivityPendingApprovalHoldsAttention(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)

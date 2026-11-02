@@ -1,6 +1,6 @@
 package main
 
-// muse_cmds.go: `tui-dash muse bind|turn|status` — the operator and
+// muse_cmds.go: `metis muse bind|turn|status` — the operator and
 // orchestrator surface for native Muse sessions.
 //
 // Every invocation spawns its own short-lived host and resumes the
@@ -62,7 +62,7 @@ func museDaemonEnv(c museCommander) []string {
 // binding row pretends they are durable.
 func museRequireDaemon() error {
 	if !museDaemonReady() {
-		return fmt.Errorf("no muse session daemon serves %s; start one first: muse serve --provider <name> --listen (or: tui-dash muse daemon --provider <name>)", museDaemonSocket())
+		return fmt.Errorf("no muse session daemon serves %s; start one first: muse serve --provider <name> --listen (or: metis muse daemon --provider <name>)", museDaemonSocket())
 	}
 	return nil
 }
@@ -246,6 +246,9 @@ func museCmdStatus(session, provider, profile string) error {
 		return err
 	}
 	if err := checkMuseBindingScope(b, provider, profile); err != nil {
+		return err
+	}
+	if err := checkMuseExecutionScope(session, b); err != nil {
 		return err
 	}
 	if err := museRequireDaemonFor(c); err != nil {

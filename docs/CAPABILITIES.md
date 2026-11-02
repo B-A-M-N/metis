@@ -11,6 +11,10 @@ evidence row states.
   tmux registry, `pty_sessions`, `logical_sessions`; UNKNOWN on
   unreadable stores. Evidence: `TestDoctorSessions*`,
   `TestMCPAgentsLists*` (P2-a).
+- Dashboard native-only projection: backend-qualified rail identity,
+  local activity details, feed navigation, and structured Muse
+  steering; terminal attach and byte input are refused. Evidence:
+  `TestTUI*Native*`, `TestFeedJumpResolvesNativeIdentity`.
 - Correlated ops (`ops --req/--task/--attempt/--session/--phase/
   --class/--errors-only/--since`), stable closed error codes
   (`opsKnownClass`), typed-code-before-substring classification.
@@ -19,8 +23,8 @@ evidence row states.
 - One-command bundle (`diagnose --session [--json]`): identity,
   task+waiting, transitions, leases, resources; redacted.
   Evidence: `TestDiagnose*` (P2-c).
-- Test gates + inventory: fast/domain/integration/full,
-  `test-inventory.json`, fresh-binary integration gate.
+- Test gates + inventory: quick/fast/domain/integration/full,
+  `test-inventory.json`, source drift check, fresh-binary integration gate.
   Evidence: full gate green + race subset (P1-gate).
 - Provision replay/crash-safety, intent precedence, atomic
   depend/correct, dispatch admission fencing, stop idempotency.
@@ -29,15 +33,19 @@ evidence row states.
 - Retention sweeper (`StartRetentionSweeper` in worker-loop),
   pickup/recovery/resource metrics (observe-only). (F-09, P3-a/b/c)
 
-## Live qualified (real backend, $0 echo/local only — no inference spend)
+## Live qualified
 
-- Single FI-backed turn + native profile serving an echo session
-  (P6-1, P6-2): echo provider, local daemon.
+- One FI-backed `meta`/`musefi` turn (P6-2): bind, turn, status,
+  receipts, and a `QUAL-OK` reply were observed. This is the only
+  recorded FI-backed turn.
+- Other native lifecycle, continuity, concurrency, and task-workflow
+  qualifications used the local zero-inference echo provider. They do
+  not qualify FI-backed behavior.
 - Multi-turn continuity (one native session, 3 turns) + daemon-crash
   resilience: client ops succeed via short-lived hosts against the
   durable store (commit `008ae9f` ledger note).
 - Concurrent two-session native workflow via production surfaces
-  (F-21 qual, $0 echo, isolated TUI_DASH_STATE + XDG_DATA_HOME):
+  (F-21 qual, $0 echo, isolated METIS_STATE + XDG_DATA_HOME):
   MCP `metis_provision` (muse-native) + `metis_bind` for qa/qb →
   distinct native IDs; concurrent CLI `muse turn` on both
   (completed, ~0.4s each); second turn on qa advanced the same

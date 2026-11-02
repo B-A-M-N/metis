@@ -91,7 +91,7 @@ func TestConcurrentIDGeneratorsUnique(t *testing.T) {
 // process restarts its counter at zero, so same-second processes
 // mint byte-identical IDs.
 func TestCrossProcessIDGeneratorsUnique(t *testing.T) {
-	if os.Getenv("TUI_DASH_IDGEN_PROBE") != "" {
+	if os.Getenv("METIS_IDGEN_PROBE") != "" {
 		t.Skip("probe child does not run the parent test")
 	}
 	self, err := os.Executable()
@@ -109,7 +109,7 @@ func TestCrossProcessIDGeneratorsUnique(t *testing.T) {
 			go func(proc int) {
 				defer wg.Done()
 				cmd := exec.Command(self)
-				cmd.Env = append(os.Environ(), "TUI_DASH_IDGEN_PROBE="+kind)
+				cmd.Env = append(os.Environ(), "METIS_IDGEN_PROBE="+kind)
 				out, err := cmd.Output()
 				if err != nil {
 					errs <- fmt.Sprintf("kind %s proc %d: %v", kind, proc, err)

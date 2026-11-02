@@ -31,7 +31,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"tui-dash/internal/musewire"
+	"metis/internal/musewire"
 )
 
 const (

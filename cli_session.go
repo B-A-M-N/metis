@@ -13,13 +13,17 @@ import (
 func cliUp(args []string) int {
 	fs := flag.NewFlagSet("up", flag.ExitOnError)
 	session := fs.String("session", "demo", "session name")
-	workdir := fs.String("workdir", "", "workdir (default ~/tui-dash-work)")
+	workdir := fs.String("workdir", "", "workdir (default ~/metis-work; reuses existing ~/tui-dash-work)")
 	cmd := fs.String("cmd", "", "worker command (default: this binary's demo worker)")
 	_ = fs.Parse(args)
 	wd := *workdir
 	if wd == "" {
 		home, _ := os.UserHomeDir()
-		wd = filepath.Join(home, "tui-dash-work")
+		legacy := filepath.Join(home, "tui-dash-work")
+		wd = filepath.Join(home, "metis-work")
+		if _, err := os.Stat(legacy); err == nil || !os.IsNotExist(err) {
+			wd = legacy
+		}
 	}
 	if err := os.MkdirAll(wd, 0o755); err != nil {
 		fmt.Fprintln(os.Stderr, "workdir:", err)

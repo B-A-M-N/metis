@@ -16,7 +16,7 @@ func TestCliWorkerLoopAcceptsNativeTurnHarness(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	t.Setenv("METIS_MUSE_TURN_TIMEOUT", "2m")
@@ -66,7 +66,7 @@ func TestCliWorkerLoopAcceptsNativeTurnHarness(t *testing.T) {
 // shell backing), taking the harness from the record. With nothing
 // dispatched it idles at exit 0 instead of refusing the name.
 func TestCliWorkerLoopAcceptsNativeOnlySession(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
 	ws, err := canonicalRoot(t.TempDir())
 	if err != nil {

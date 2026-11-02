@@ -13,7 +13,7 @@ import (
 )
 
 func TestWorkerReportedCarriesNativeSession(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "lin")
 	seedOwnedSession(t, "w", "lin")
 	tk, err := createTask("run-lin", "w", "do lineage", "done")

@@ -11,7 +11,7 @@ import (
 )
 
 func TestWorkerPhaseResolveIdle(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pPh1")
 	seedOwnedSession(t, "w", "pPh1")
 
@@ -28,7 +28,7 @@ func TestWorkerPhaseResolveIdle(t *testing.T) {
 }
 
 func TestWorkerPhaseResolveRefusals(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pPh2")
 	seedOwnedSession(t, "w", "pPh2")
 
@@ -58,7 +58,7 @@ func TestWorkerPhaseResolveRefusals(t *testing.T) {
 }
 
 func TestWorkerPhaseClaimBindsExactAttempt(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pPh3")
 	seedOwnedSession(t, "w", "pPh3")
 	tk := mustPhaseTask(t, "ph3")
@@ -89,7 +89,7 @@ func TestWorkerPhaseClaimBindsExactAttempt(t *testing.T) {
 // The persist phase records the waited outcome but files no report
 // once the task left working: cancellation is honored, facts kept.
 func TestWorkerPhasePersistSuperseded(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pPh4")
 	seedOwnedSession(t, "w", "pPh4")
 	tk := mustPhaseTask(t, "ph4")

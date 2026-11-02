@@ -30,7 +30,7 @@ func scriptAdapter(script string) Adapter {
 }
 
 func TestCorrectionCycleEndToEnd(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "e2e")
 	seedOwnedSession(t, "w", "e2e")
 	work := loadRegistry()["w"].Workdir

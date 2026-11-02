@@ -171,7 +171,7 @@ func TestGitPaneClearedOnSessionChange(t *testing.T) {
 // A high-output worker with no dashboard refreshing must still get
 // bounded retention: the owner caps the stream without any refresh.
 func TestRetentionBoundedWithoutRefresh(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p0c")
 	seedOwnedSession(t, "w", "p0c")
 	big := make([]byte, 2<<20)
@@ -217,7 +217,7 @@ func TestRetentionBoundedWithoutRefresh(t *testing.T) {
 // history: the persisted counter surfaces through the projection and
 // the model reports the gap instead of a silent discontinuity.
 func TestSweepReportsGenerationGap(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p0c2")
 	seedOwnedSession(t, "w", "p0c2")
 	big := make([]byte, 2<<20)

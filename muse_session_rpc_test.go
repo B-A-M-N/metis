@@ -16,7 +16,7 @@ import (
 // TestSessionStartDedupsOnCommandID (muse_bind_test.go), which
 // proves the retry sends exactly one session/start.
 func TestSessionRetryAfterAckLossNeverDuplicatesSession(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	starts := 0
 	client, server := net.Pipe()
 	stubMuseServer(t, server, func(id int64, method string, params json.RawMessage) (any, *museError) {
@@ -82,7 +82,7 @@ func TestSessionRetryAfterAckLossNeverDuplicatesSession(t *testing.T) {
 // Distinct caller keys must mint distinct sessions: the dedup above
 // must not collapse independent creations into one.
 func TestSessionDistinctCommandIDsMintDistinctSessions(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	starts := 0
 	client, server := net.Pipe()
 	stubMuseServer(t, server, func(id int64, method string, params json.RawMessage) (any, *museError) {
@@ -126,7 +126,7 @@ func TestSessionDistinctCommandIDsMintDistinctSessions(t *testing.T) {
 // key is refused instead of creating an unkeyed (unduplicatable)
 // session.
 func TestSessionStartRefusesEmptyCommandID(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	client, server := net.Pipe()
 	stubMuseServer(t, server, func(id int64, method string, params json.RawMessage) (any, *museError) {
 		if method == "initialize" {

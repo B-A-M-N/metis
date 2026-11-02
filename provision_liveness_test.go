@@ -90,7 +90,7 @@ func provisionRowState(t *testing.T, requestID string) string {
 // (garbage display-message) — must never be adopted as live, even
 // though the registry still names it.
 func TestProvisionReplayDeadSessionNeverAdopted(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "dead-owner")
 	markFakeTmuxDead(t)
 	t.Setenv("FAKE_TMUX_ID", "garbage-no-such-session")
@@ -118,7 +118,7 @@ func TestProvisionReplayDeadSessionNeverAdopted(t *testing.T) {
 // A replaced session — the live tmux name now carries another
 // owner's token — must never be adopted as live.
 func TestProvisionReplayReplacedSessionNeverAdopted(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "impostor")
 	work := t.TempDir()
 	mustRegisterRoot(t, work, true)
@@ -144,7 +144,7 @@ func TestProvisionReplayReplacedSessionNeverAdopted(t *testing.T) {
 // A foreign session — live, but with no ownership credential from
 // this tool — must never be adopted as live.
 func TestProvisionReplayForeignSessionNeverAdopted(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "someone-else")
 	work := t.TempDir()
 	mustRegisterRoot(t, work, true)
@@ -167,7 +167,7 @@ func TestProvisionReplayForeignSessionNeverAdopted(t *testing.T) {
 // A stopped entry is history, even when every other field matches:
 // the replay must fail explicitly instead of adopting it.
 func TestProvisionReplayStoppedSessionNeverAdopted(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "stop-owner")
 	markFakeTmuxDead(t)
 	work := t.TempDir()
@@ -194,7 +194,7 @@ func TestProvisionReplayStoppedSessionNeverAdopted(t *testing.T) {
 // A registry entry pointing at another root is a different session:
 // workspace identity is part of liveness.
 func TestProvisionReplayStaleWorkdirNeverAdopted(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "home-owner")
 	markFakeTmuxDead(t)
 	elsewhere := t.TempDir()
@@ -221,7 +221,7 @@ func TestProvisionReplayStaleWorkdirNeverAdopted(t *testing.T) {
 // liveness is proven aliveness plus the intent's workspace, not a
 // status string.
 func TestProvisionReplayPtyCorpseNeverAdopted(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pty-corpse")
 	work := t.TempDir()
 	mustRegisterRoot(t, work, true)
@@ -247,7 +247,7 @@ func TestProvisionReplayPtyCorpseNeverAdopted(t *testing.T) {
 // A stopped logical record is terminal: a native replay must fail
 // explicitly instead of adopting it, and the record stays stopped.
 func TestProvisionReplayStoppedNativeNeverAdopted(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	mustRegisterRoot(t, work, false)
 	wsRoot, err := canonicalRoot(work)
@@ -290,7 +290,7 @@ func TestProvisionReplayStoppedNativeNeverAdopted(t *testing.T) {
 // not an adoption: the replay fails naming the conflict and the
 // established record is untouched.
 func TestProvisionNativeConflictingLogicalIdentity(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	w1 := t.TempDir()
 	w2 := t.TempDir()
 	mustRegisterRoot(t, w1, false)
@@ -333,7 +333,7 @@ func TestProvisionNativeConflictingLogicalIdentity(t *testing.T) {
 // one. The new validation must not refuse the crash-recovery case
 // it exists to serve.
 func TestProvisionReplayHealthyAdoptsLive(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "healthy-owner")
 	// No dead marker: this pins the live-session adopt path (owned,
 	// unstopped, workspace-matched entry + live backend ->

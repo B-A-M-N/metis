@@ -14,7 +14,7 @@ import (
 
 func seedCoverageRun(t *testing.T) (run string, ids map[string]string, roots map[string]string) {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "covfix")
 	seedOwnedSession(t, "w1", "covfix")
 	seedOwnedSession(t, "w2", "covfix")

@@ -61,7 +61,7 @@ func fleetExecState(t *testing.T, taskID, attemptID string) (holder, state strin
 // preserving everything durable: the filed report and task status,
 // the claimed fleet row, and the capacity reservation.
 func TestFleetSettleFailurePreservesOutcome(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fs1")
 	seedOwnedSession(t, "w", "fs1")
 	_, node, attempt := mustSettleFixture(t, "fs1")
@@ -153,7 +153,7 @@ func TestFleetSettleFailurePreservesOutcome(t *testing.T) {
 // converges as a no-op. Reconciling a row that never existed is an
 // error, never a repair.
 func TestFleetSettleDuplicateRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	node, err := localFleetNodeID()
 	if err != nil {
 		t.Fatalf("local node: %v", err)
@@ -202,7 +202,7 @@ func TestFleetSettleDuplicateRefused(t *testing.T) {
 // confirm the filed evidence and settle it — exactly once, without
 // executing anything new — and a post-restart replay must converge.
 func TestFleetSettleCrashBeforeSettlement(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fs2")
 	seedOwnedSession(t, "w", "fs2")
 	_, node, attempt := mustSettleFixture(t, "fs2")
@@ -261,7 +261,7 @@ func TestFleetSettleCrashBeforeSettlement(t *testing.T) {
 // keeping the attempt's outcome: done stays true, the report stands,
 // and a later reconcile repairs the stranded binding.
 func TestFleetSettleRunSurfacesSettlementError(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fs3")
 	seedOwnedSession(t, "w", "fs3")
 	tk, node, attempt := mustSettleFixture(t, "fs3")

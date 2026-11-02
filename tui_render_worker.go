@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"tui-dash/internal/termview"
+	"metis/internal/termview"
 )
 
 // tui_render_worker.go: the right-stack worker panes — live terminal
@@ -20,8 +20,12 @@ func renderLivePane(m model, sel string, lay renderLayout) []string {
 	for i, l := range rawLive {
 		liveContent[i] = termview.SanitizeLine(l)
 	}
-	return boxLines(fmt.Sprintf("Live: %s (%s/%s, PgUp/PgDn scroll, r=tail)", sel,
-		orDash(entry.Harness), orDash(entry.Model)), liveContent, lay.rightW, lay.liveH)
+	title := fmt.Sprintf("Live: %s (%s/%s, PgUp/PgDn scroll, r=tail)", sel,
+		orDash(entry.Harness), orDash(entry.Model))
+	if m.isNativeSelection(sel) {
+		title = "Native activity: " + sel + " (i=structured steering)"
+	}
+	return boxLines(title, liveContent, lay.rightW, lay.liveH)
 }
 
 // renderGitPane renders the lower right box: either the MD path

@@ -104,6 +104,13 @@ func checkMuseExecutionScope(session string, b museBinding) error {
 	if b.Workspace != "" && current != b.Workspace {
 		return fmt.Errorf("session %s now resolves to workspace %s, bound to %s; refusing turn on a re-homed session (TD-050)", session, current, b.Workspace)
 	}
+	if ls, found, lerr := loadLogicalSession(session); lerr != nil {
+		return fmt.Errorf("session %s logical scope is unreadable: %w", session, lerr)
+	} else if found && ls.Backend == TargetMuseNative {
+		if err := checkNativeLogicalScope(ls, b); err != nil {
+			return err
+		}
+	}
 	var model string
 	if isPtySession(session) {
 		if m, merr := ptyGet(ptyBare(session)); merr == nil {

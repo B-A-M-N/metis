@@ -35,7 +35,7 @@ func terminalResult(t *testing.T, res mcpToolResult) map[string]any {
 }
 
 func TestMCPTerminalStatusUnified(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "term-owner")
 	seedOwnedSession(t, "tt", "term-owner")
 	seedPtyRow(t, "tp", t.TempDir())
@@ -65,7 +65,7 @@ func TestMCPTerminalStatusUnified(t *testing.T) {
 }
 
 func TestMCPTerminalOutputBounded(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "term-out")
 	seedOwnedSession(t, "to", "term-out")
 	writeStreamLines(t, "to", []string{"one", "two", "three", "four", "five"})

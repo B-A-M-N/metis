@@ -20,7 +20,7 @@ import (
 )
 
 func TestResolveWorkerCommandNativeRefuses(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	_, err := resolveWorkerCommand("muse-native", "", work, "do thing", "")
 	if err == nil {
@@ -40,7 +40,7 @@ func TestMCPBindKeepsStdoutClean(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	stopDaemon := startTestDaemon(t, home)
@@ -78,7 +78,7 @@ func TestMCPBindKeepsStdoutClean(t *testing.T) {
 }
 
 func TestMCPProvisionReplayConflict(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "prov-conflict")
 	markFakeTmuxDead(t)
 	work := t.TempDir()
@@ -124,7 +124,7 @@ func TestMCPProvisionReplayConflict(t *testing.T) {
 }
 
 func TestMCPProvisionResultStates(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "prov-states")
 	markFakeTmuxDead(t)
 	work := t.TempDir()
@@ -156,7 +156,7 @@ func TestMCPProvisionResultStates(t *testing.T) {
 }
 
 func TestMCPProvisionIntentPrecedesLaunch(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "prov-intent")
 	markFakeTmuxDead(t)
 	work := t.TempDir()
@@ -220,7 +220,7 @@ func TestBindRetryConvergesSameRequestID(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	stopDaemon := startTestDaemon(t, home)

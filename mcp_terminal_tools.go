@@ -570,7 +570,7 @@ func mcpTerminalOutput(session string, lines int) (mcpToolResult, error) {
 		// No stream file: fall back to a live capture-pane
 		// snapshot, labelled as such — never presented as a
 		// complete stream.
-		out, err := tmux("capture-pane", "-p", "-t", tmuxName(session), "-S", fmt.Sprintf("-%d", lines))
+		out, err := tmux("capture-pane", "-p", "-t", sessionTmuxTarget(session, ""), "-S", fmt.Sprintf("-%d", lines))
 		if err != nil {
 			return mcpToolError("terminal: capture failed for %q: %v", session, err)
 		}

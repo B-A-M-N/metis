@@ -5,14 +5,16 @@ package main
 // interface, the async attach command, and rune-aware input editing.
 
 import (
+	"context"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 // Backspace in guidance-input mode must remove one rune, not one
@@ -53,7 +55,7 @@ type fakeRefreshSource struct {
 	snaps refreshSnapshots
 }
 
-func (f fakeRefreshSource) snapshots(sel string, everyGit bool) refreshSnapshots {
+func (f fakeRefreshSource) snapshots(ctx context.Context, sel string, everyGit bool) refreshSnapshots {
 	return f.snaps
 }
 
@@ -88,7 +90,7 @@ type countingSource struct {
 	calls int
 }
 
-func (c *countingSource) snapshots(sel string, everyGit bool) refreshSnapshots {
+func (c *countingSource) snapshots(ctx context.Context, sel string, everyGit bool) refreshSnapshots {
 	c.calls++
 	return c.snaps
 }
@@ -166,6 +168,96 @@ func TestRefreshSkipsWhileOneIsInFlight(t *testing.T) {
 	}
 	if src.calls != 2 {
 		t.Fatalf("delivery must re-arm dispatch: calls=%d, want 2", src.calls)
+	}
+}
+
+type blockedRefreshSource struct {
+	started chan string
+	release chan struct{}
+	active  atomic.Int32
+	max     atomic.Int32
+}
+
+type deadlineRefreshSource struct{}
+
+func (deadlineRefreshSource) snapshots(ctx context.Context, sel string, everyGit bool) refreshSnapshots {
+	<-ctx.Done()
+	return refreshSnapshots{sessionsOk: false}
+}
+
+func TestRefreshDeadlineCancelsSupportedSourceWithoutEarlyPermitRelease(t *testing.T) {
+	m := newModelWithSource(deadlineRefreshSource{}, "")
+	var gen int
+	m.refreshCtl, gen = m.refreshCtl.Reselect()
+	msg := m.refreshCmdWithTimeout(10*time.Millisecond, gen, "", false)().(refreshMsg)
+	if msg.data.sessionsOk {
+		t.Fatal("deadline source should return its unavailable projection")
+	}
+	if !m.refreshCtl.Pending {
+		t.Fatal("deadline alone must not release the coordinator permit")
+	}
+	updated, _ := m.Update(msg)
+	if updated.(model).refreshCtl.Pending {
+		t.Fatal("the correlated completion should release the permit")
+	}
+}
+
+func (s *blockedRefreshSource) snapshots(ctx context.Context, sel string, everyGit bool) refreshSnapshots {
+	n := s.active.Add(1)
+	for old := s.max.Load(); n > old && !s.max.CompareAndSwap(old, n); old = s.max.Load() {
+	}
+	s.started <- sel
+	<-s.release
+	s.active.Add(-1)
+	return cannedSnapshots()
+}
+
+func TestRefreshReselectStormKeepsOneAcquisitionAndLatestSelection(t *testing.T) {
+	src := &blockedRefreshSource{started: make(chan string, 4), release: make(chan struct{}, 4)}
+	m := newModelWithSource(src, "")
+	m.names = []string{"a", "b", "c"}
+	m.running = map[string]bool{"a": true, "b": true, "c": true}
+	m.nav.Selected = 0
+	var out tuistate.TickOutcome
+	m.refreshCtl, out = m.refreshCtl.Tick()
+	first := m.refreshCmd(out.Gen, m.selName(), out.EveryGit)
+	firstDone := make(chan tea.Msg, 1)
+	go func() { firstDone <- first() }()
+	if got := <-src.started; got != "a" {
+		t.Fatalf("first request selection=%q, want a", got)
+	}
+	for i := 0; i < 100; i++ {
+		m.nav.Selected = i % len(m.names)
+		if cmd := m.navReselect(); cmd != nil {
+			t.Fatalf("reselection %d launched an overlapping collection", i)
+		}
+	}
+	m.nav.Selected = 2
+	if cmd := m.navReselect(); cmd != nil {
+		t.Fatal("latest reselection launched before the active source completed")
+	}
+	if got := src.max.Load(); got > tuistate.MaxAcquisitions {
+		t.Fatalf("active collectors=%d exceeds budget=%d", got, tuistate.MaxAcquisitions)
+	}
+	src.release <- struct{}{}
+	updated, latestCmd := m.Update(<-firstDone)
+	m = updated.(model)
+	if latestCmd == nil {
+		t.Fatal("completion of a superseded request must dispatch the latest selection")
+	}
+	secondDone := make(chan tea.Msg, 1)
+	go func() { secondDone <- latestCmd() }()
+	if got := <-src.started; got != "c" {
+		t.Fatalf("coalesced request selection=%q, want latest c", got)
+	}
+	src.release <- struct{}{}
+	updated, _ = m.Update(<-secondDone)
+	m = updated.(model)
+	if got := src.max.Load(); got != 1 {
+		t.Fatalf("observed peak collectors=%d, want 1", got)
+	}
+	if m.paneSel != "c" {
+		t.Fatalf("latest selection did not win: paneSel=%q", m.paneSel)
 	}
 }
 
@@ -255,7 +347,7 @@ func TestRefreshSourceIsInstanceScoped(t *testing.T) {
 // heals the stream off the update path: the returned command carries
 // the blocking work, and its typed outcome confirms the attachment.
 func TestAttachEnterUsesAsyncCommand(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "projattach")
 	seedOwnedSession(t, "w", "projattach")
 	m := newModel("w")
@@ -328,7 +420,7 @@ func TestAttachRefusalDetaches(t *testing.T) {
 // first attempt's refusal arrives after the second attempt's success.
 // Correlation by session name alone detaches the live attach.
 func TestAttachStaleRefusalCannotClobberNewerAttach(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "projattachfence")
 	seedOwnedSession(t, "w", "projattachfence")
 	m := newModel("w")

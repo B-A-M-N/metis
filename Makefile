@@ -1,7 +1,9 @@
 # Metis test gates.
 #
 # Gate ladder (cheapest first):
-#   test-fast        every code-edit iteration: -short mode (skips the
+#   test-quick       ordinary edit loop: internal packages + critical
+#                    boundaries and refresh/session invariants (~seconds).
+#   test-fast        broad smoke qualification: -short mode (skips the
 #                    measured integration set: daemon/host turns, fleet
 #                    scale, perf characterization, timing/race stress,
 #                    fresh-binary test) + all internal packages.
@@ -24,7 +26,7 @@
 #   slow tests stay in every gate (their cost is fixture overhead, a
 #   future optimization target, not an integration dependency).
 # Never add t.Parallel: many tests share env and daemon state.
-.PHONY: build test clean test-fast test-domain test-integration test-full
+.PHONY: build test clean test-quick test-fast test-domain test-integration test-full test-inventory-check test-inventory-refresh
 
 # -buildvcs=false is required on pop-os: plain `go build` fails there
 # with "error obtaining VCS status: exit status 128", because Go
@@ -32,16 +34,29 @@
 # repository (exit 128). Disabling stamping changes nothing else
 # about the binary; it just skips that stamp.
 build:
-	go build -buildvcs=false -o tui-dash .
+	GOCACHE=/tmp/td-gocache go build -buildvcs=false -o metis .
+	ln -sf metis tui-dash
 
 test:
 	$(MAKE) test-full
 
 clean:
-	rm -f tui-dash
+	rm -f metis tui-dash
+
+test-quick:
+	GOCACHE=/tmp/td-gocache go test -count=1 -buildvcs=false ./internal/tui ./internal/termview ./internal/musewire
+	GOCACHE=/tmp/td-gocache go test -count=1 -buildvcs=false -run '^(TestBoundary.*|TestRefresh.*|TestRenderSelectionChangeHidesPreviousSession|TestMCPAgentsListsUnifiedSessions)$$' .
 
 test-fast:
 	GOCACHE=/tmp/td-gocache go test -short -count=1 -buildvcs=false ./...
+
+# check is source-only and suitable for ordinary edits; refresh runs
+# the full uncached suite to update measured durations.
+test-inventory-check:
+	python3 scripts/test_inventory.py check
+
+test-inventory-refresh:
+	python3 scripts/test_inventory.py refresh
 
 # AREA selects one domain's -run pattern. Examples:
 #   make test-domain AREA=sessions | provision | dispatch | tui |
@@ -63,8 +78,9 @@ test-domain:
 	esac; \
 	GOCACHE=/tmp/td-gocache go test -count=1 -buildvcs=false -run "$$PAT" .
 
-# Fresh binary first: TestIntegrationTmux exercises ./tui-dash, and a
-# stale binary would silently qualify an older tree.
+# Fresh binary first: TestIntegrationTmux exercises ./metis, and a
+# stale binary would silently qualify an older tree. Build the legacy
+# command symlink too for existing scripts.
 test-integration: build
 	GOCACHE=/tmp/td-gocache go test -count=1 -buildvcs=false ./...
 

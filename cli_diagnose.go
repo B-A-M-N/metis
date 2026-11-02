@@ -2,7 +2,7 @@ package main
 
 // cli_diagnose.go: one-command bounded investigation bundle.
 //
-// `tui-dash diagnose --session NAME [--json]` combines the existing
+// `metis diagnose --session NAME [--json]` combines the existing
 // diagnostic sources into a single bounded report: session identity
 // and backend, latest task (status + waiting reasons), recent phase
 // transitions for the session, active input leases, and resource
@@ -16,7 +16,7 @@ package main
 // never dials a daemon — native aliveness is recorded state.
 // Redaction is mandatory: error text passes through redactOpsDetail,
 // and raw transcripts are never read. The ops-sink section needs
-// the TUI_DASH_OPS_DIAG=1 opt-in that produced it; without sink
+// the METIS_OPS_DIAG=1 opt-in that produced it; without sink
 // rows the section says so instead of inventing history.
 
 import (
@@ -24,6 +24,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -35,14 +36,16 @@ const diagnoseOpsLimit = 10
 const diagnoseWaitingCap = 5
 
 type diagnoseIdentity struct {
-	Name    string `json:"name"`
-	Backend string `json:"backend"`
-	Alive   bool   `json:"alive"`
-	Harness string `json:"harness,omitempty"`
-	Model   string `json:"model,omitempty"`
-	Owner   string `json:"owner,omitempty"`
-	Workdir string `json:"workdir,omitempty"`
-	Created string `json:"created,omitempty"`
+	Name        string `json:"name"`
+	Backend     string `json:"backend"`
+	Alive       bool   `json:"alive"`
+	Lifecycle   string `json:"lifecycle,omitempty"`
+	Observation string `json:"observation,omitempty"`
+	Harness     string `json:"harness,omitempty"`
+	Model       string `json:"model,omitempty"`
+	Owner       string `json:"owner,omitempty"`
+	Workdir     string `json:"workdir,omitempty"`
+	Created     string `json:"created,omitempty"`
 }
 
 type diagnoseTask struct {
@@ -60,21 +63,22 @@ type diagnoseLease struct {
 }
 
 type diagnoseResources struct {
-	Goroutines    int    `json:"goroutines"`
-	HeapAlloc     uint64 `json:"heap_alloc_bytes"`
-	SenderLanes   int    `json:"sender_lanes"`
-	StreamCap     int64  `json:"stream_cap_bytes"`
-	StreamBytes   int64  `json:"stream_bytes"`
-	StreamOverCap bool   `json:"stream_over_cap"`
+	Scope         ResourceProvenance `json:"scope"`
+	Goroutines    int                `json:"goroutines"`
+	HeapAlloc     uint64             `json:"heap_alloc_bytes"`
+	SenderLanes   int                `json:"sender_lanes"`
+	StreamCap     int64              `json:"stream_cap_bytes"`
+	StreamBytes   int64              `json:"stream_bytes"`
+	StreamOverCap bool               `json:"stream_over_cap"`
 }
 
 type diagnoseBundle struct {
-	Session     diagnoseIdentity `json:"session"`
-	Task        *diagnoseTask    `json:"task"`
-	Transitions []opsEventJSON   `json:"transitions"`
-	Leases      []diagnoseLease  `json:"leases"`
+	Session     diagnoseIdentity  `json:"session"`
+	Task        *diagnoseTask     `json:"task"`
+	Transitions []opsEventJSON    `json:"transitions"`
+	Leases      []diagnoseLease   `json:"leases"`
 	Resources   diagnoseResources `json:"resources"`
-	Notes       []string         `json:"notes,omitempty"`
+	Notes       []string          `json:"notes,omitempty"`
 }
 
 // resolveDiagnoseSession maps a display name (bare, pty:<n>,
@@ -154,6 +158,8 @@ func diagnoseIdentityFor(display, bare, backend string) diagnoseIdentity {
 					id.Workdir = ls.Workspace
 					id.Created = ls.Created
 					id.Alive = ls.State == "active"
+					id.Lifecycle = ls.State
+					id.Observation = "not_probed"
 				}
 			}
 		}
@@ -214,6 +220,7 @@ func diagnoseLeasesFor(bare string) ([]diagnoseLease, string) {
 func diagnoseResourcesFor(bare string) diagnoseResources {
 	snap := snapshotResourceUsage()
 	r := diagnoseResources{
+		Scope:      snap.Scope,
 		Goroutines: snap.Goroutines, HeapAlloc: snap.HeapAlloc,
 		SenderLanes: snap.SenderLanes, StreamCap: snap.StreamCap,
 		StreamBytes: -1,
@@ -226,18 +233,18 @@ func diagnoseResourcesFor(bare string) diagnoseResources {
 	return r
 }
 
-// cliDiagnose implements `tui-dash diagnose --session NAME [--json]`.
+// cliDiagnose implements `metis diagnose --session NAME [--json]`.
 func cliDiagnose(args []string) int {
 	fs := flag.NewFlagSet("diagnose", flag.ContinueOnError)
 	session := fs.String("session", "", "session display name (bare, pty:<n>, or native:<n>)")
 	asJSON := fs.Bool("json", false, "machine-readable output")
 	limit := fs.Int("limit", diagnoseOpsLimit, "max transition events to include")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: tui-dash diagnose --session NAME [--json] [--limit N]")
+		fmt.Fprintln(os.Stderr, "usage: metis diagnose --session NAME [--json] [--limit N]")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Bounded read-only bundle: identity, latest task, recent")
 		fmt.Fprintln(os.Stderr, "transitions, input leases, resource pressure. The")
-		fmt.Fprintln(os.Stderr, "transitions section needs the TUI_DASH_OPS_DIAG=1")
+		fmt.Fprintln(os.Stderr, "transitions section needs the METIS_OPS_DIAG=1 opt-in")
 		fmt.Fprintln(os.Stderr, "opt-in that produced the sink rows.")
 	}
 	if err := fs.Parse(args); err != nil {
@@ -246,6 +253,10 @@ func cliDiagnose(args []string) int {
 	if strings.TrimSpace(*session) == "" {
 		fmt.Fprintln(os.Stderr, "diagnose needs --session NAME")
 		fs.Usage()
+		return 2
+	}
+	if *limit < 1 || *limit > opsSinkMaxLines {
+		fmt.Fprintf(os.Stderr, "diagnose --limit must be between 1 and %d\n", opsSinkMaxLines)
 		return 2
 	}
 	display := strings.TrimSpace(*session)
@@ -257,20 +268,28 @@ func cliDiagnose(args []string) int {
 	bundle := diagnoseBundle{Session: diagnoseIdentityFor(display, bare, backend)}
 	bundle.Task = diagnoseTaskFor(bare, display)
 	bundle.Transitions = []opsEventJSON{}
-	if evs, err := readOpsSink(*limit); err == nil {
-		kept := filterOpsEvents(evs, opsFilter{session: bare, attempt: -1}, time.Now().UTC())
-		if display != bare {
-			kept = append(kept, filterOpsEvents(evs, opsFilter{session: display, attempt: -1}, time.Now().UTC())...)
+	if evs, err := readOpsSink(opsSinkMaxLines); err == nil {
+		aliases := map[string]bool{bare: true, display: true, bundle.Session.Name: true}
+		kept := make([]opsEvent, 0, len(evs))
+		for _, ev := range evs {
+			if aliases[ev.Session] {
+				kept = append(kept, ev)
+			}
 		}
+		kept = diagnoseNewestUnique(kept, *limit)
 		for _, ev := range kept {
 			ev.Detail = redactOpsDetail(ev.Detail)
 			bundle.Transitions = append(bundle.Transitions, opsEventToJSON(ev))
 		}
 		if len(bundle.Transitions) == 0 {
-			bundle.Notes = append(bundle.Notes, "no ops transitions recorded for this session (sink empty or TUI_DASH_OPS_DIAG=1 was off)")
+			if len(evs) == 0 {
+				bundle.Notes = append(bundle.Notes, "ops sink has no retained events (it may be empty or diagnostics may have been disabled)")
+			} else {
+				bundle.Notes = append(bundle.Notes, "no matching transitions in retained history; older rows may have been evicted by the bounded sink")
+			}
 		}
 	} else if os.IsNotExist(err) {
-		bundle.Notes = append(bundle.Notes, "no ops sink yet ("+opsSinkPath()+"; set TUI_DASH_OPS_DIAG=1 to opt in)")
+		bundle.Notes = append(bundle.Notes, "no ops sink yet ("+opsSinkPath()+"; set METIS_OPS_DIAG=1 to opt in)")
 	} else {
 		bundle.Notes = append(bundle.Notes, "transitions unreadable: "+err.Error())
 	}
@@ -332,4 +351,25 @@ func cliDiagnose(args []string) int {
 		fmt.Printf("note: %s\n", n)
 	}
 	return 0
+}
+
+// diagnoseNewestUnique preserves chronological order while returning
+// the newest matching rows. Identity includes the complete persisted
+// event tuple; duplicate appends from overlapping processes collapse.
+func diagnoseNewestUnique(evs []opsEvent, limit int) []opsEvent {
+	seen := make(map[string]bool, len(evs))
+	unique := make([]opsEvent, 0, len(evs))
+	for _, ev := range evs {
+		id := fmt.Sprintf("%s\x00%s\x00%s\x00%d\x00%s\x00%s\x00%s\x00%s\x00%s", ev.At.UTC().Format(time.RFC3339Nano), ev.Phase, ev.RequestID, ev.Attempt, ev.TaskID, ev.Session, ev.Disposition, ev.ErrorClass, ev.Detail)
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		unique = append(unique, ev)
+	}
+	sort.SliceStable(unique, func(i, j int) bool { return unique[i].At.Before(unique[j].At) })
+	if limit > 0 && len(unique) > limit {
+		unique = unique[len(unique)-limit:]
+	}
+	return unique
 }

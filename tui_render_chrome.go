@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 // tui_render_chrome.go: the frame around the panes — header status,
@@ -57,7 +57,7 @@ func boundLines(m model, sel string, lines []string) []string {
 // renderHeaderLine renders the top dashboard status line.
 func renderHeaderLine(m model, sel string, running bool, mode string, w int) string {
 	entry := boundEntry(m, sel)
-	top := fmt.Sprintf(" TUI-Dash  session=%s harness=%s model=%s running=%v mode=%s direct=%v ",
+	top := fmt.Sprintf(" Metis  session=%s harness=%s model=%s running=%v mode=%s direct=%v ",
 		sel, orDash(entry.Harness), orDash(entry.Model), running, mode, m.direct)
 	return pad(top, w)
 }

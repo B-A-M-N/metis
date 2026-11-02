@@ -17,7 +17,7 @@ import (
 
 func presenceFactsSetup(t *testing.T) {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 }
 
 func seedOpenTask(t *testing.T, status string) {

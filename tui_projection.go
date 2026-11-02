@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	tea "github.com/charmbracelet/bubbletea"
+	"time"
 )
 
 // tui_projection.go: immutable refresh snapshots and the async
@@ -32,12 +34,13 @@ type refreshData struct {
 	// can report discarded history instead of showing a silent gap.
 	logGen map[string]int
 	// tabInfo holds the current rail identity blocks by session name.
-	tabInfo map[string]tabDetail
-	entry   Session
-	live    []string
-	git     []string
-	hasGit  bool
-	events  []string
+	tabInfo    map[string]tabDetail
+	identities map[string]sessionIdentity
+	entry      Session
+	live       []string
+	git        []string
+	hasGit     bool
+	events     []string
 	// feed carries the global orchestration projection: latest
 	// events plus the Muse activity state and outstanding counts.
 	// Unlike the session panes it is not bound to sel.
@@ -66,17 +69,25 @@ type tabDetail struct {
 
 type refreshMsg struct{ data refreshData }
 
+const refreshAcquisitionTimeout = 10 * time.Second
+
 // refreshCmd is a model method so the command captures this
 // instance's source (finding D): concurrent dashboards never share
 // acquisition. A nil source (zero-value model literals in tests)
 // reads live, matching newModel.
 func (m model) refreshCmd(gen int, sel string, everyGit bool) tea.Cmd {
+	return m.refreshCmdWithTimeout(refreshAcquisitionTimeout, gen, sel, everyGit)
+}
+
+func (m model) refreshCmdWithTimeout(timeout time.Duration, gen int, sel string, everyGit bool) tea.Cmd {
 	src := m.source
 	if src == nil {
 		src = liveRefreshSource{}
 	}
 	return func() tea.Msg {
-		return refreshMsg{data: collectRefreshData(src, gen, sel, everyGit)}
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		return refreshMsg{data: collectRefreshDataContext(ctx, src, gen, sel, everyGit)}
 	}
 }
 
@@ -89,8 +100,12 @@ func (m model) refreshCmd(gen int, sel string, everyGit bool) tea.Cmd {
 // stream read path, so headless execution stays bounded with no
 // dashboard refreshing.
 func collectRefreshData(src refreshSource, gen int, sel string, everyGit bool) refreshData {
+	return collectRefreshDataContext(context.Background(), src, gen, sel, everyGit)
+}
+
+func collectRefreshDataContext(ctx context.Context, src refreshSource, gen int, sel string, everyGit bool) refreshData {
 	if src == nil {
 		src = liveRefreshSource{}
 	}
-	return assembleRefresh(src.snapshots(sel, everyGit), gen, sel)
+	return assembleRefresh(src.snapshots(ctx, sel, everyGit), gen, sel)
 }

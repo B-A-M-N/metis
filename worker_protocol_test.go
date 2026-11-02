@@ -83,7 +83,7 @@ func TestReportFilingValidation(t *testing.T) {
 // owns (TD-092), but the reporter must name the actual submitter so
 // no outside text acquires worker attribution.
 func TestSubmitReportProvenance(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pW")
 	seedOwnedSession(t, "w", "pW")
 	tk, err := createTask("run-pW", "w", "obj", "acc")
@@ -126,7 +126,7 @@ func TestSubmitReportProvenance(t *testing.T) {
 // Concurrent filings converge on one history row: the losing
 // submitter is refused, never partially applied.
 func TestSubmitReportSingleHistoryRow(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pW2")
 	seedOwnedSession(t, "w", "pW2")
 	tk, err := createTask("run-pW2", "w", "obj", "acc")

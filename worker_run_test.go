@@ -28,7 +28,7 @@ func fakeWorkerAdapter(argv ...string) Adapter {
 // once: claimed, executed as a child process, result filed under
 // the attempt with an execution receipt.
 func TestWorkerConsumesDispatchedTask(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pW3")
 	seedOwnedSession(t, "w", "pW3")
 	tk, err := createTask("run-pW3", "w", "print hello", "output says hello")
@@ -74,7 +74,7 @@ func TestWorkerConsumesDispatchedTask(t *testing.T) {
 // Two loops racing one task: exactly one executes. The loser is
 // refused — no duplicate launch, no second execution receipt.
 func TestWorkerClaimExactlyOnce(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pW4")
 	seedOwnedSession(t, "w", "pW4")
 	tk, err := createTask("run-pW4", "w", "obj", "acc")
@@ -115,7 +115,7 @@ func TestWorkerClaimExactlyOnce(t *testing.T) {
 // A claim for a superseded attempt is stale and refused: the task
 // moved on, the old claim must not touch it.
 func TestWorkerStaleAttemptRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pW5")
 	seedOwnedSession(t, "w", "pW5")
 	tk, err := createTask("run-pW5", "w", "obj", "acc")
@@ -141,7 +141,7 @@ func TestWorkerStaleAttemptRefused(t *testing.T) {
 // Two tasks dispatched to one session is orchestrator ambiguity:
 // the loop executes neither and names both.
 func TestWorkerAmbiguousQueueRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pW6")
 	seedOwnedSession(t, "w", "pW6")
 	var ids []string
@@ -183,7 +183,7 @@ func TestWorkerAmbiguousQueueRefused(t *testing.T) {
 // No committed task: the loop stays idle, launches nothing, and
 // records nothing.
 func TestWorkerIdleWhenNothingDispatched(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pW7")
 	seedOwnedSession(t, "w", "pW7")
 	ran, err := runWorkerOnce("w", fakeWorkerAdapter("sh", "-c", "echo hi"), testReq("op"))
@@ -228,7 +228,7 @@ func TestManagedArgvNoShell(t *testing.T) {
 // their own committed task. Provider name never substitutes for
 // session identity — receipts separate by session and attempt.
 func TestFleetSameHarnessIndependentSessions(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pW8")
 	seedOwnedSession(t, "w-a", "pW8")
 	seedOwnedSession(t, "w-b", "pW8")

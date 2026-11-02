@@ -27,7 +27,7 @@ import (
 // row (dispatched), its task_attempts row, AND its task_deliveries rows
 // (queued+submitted) must ALL exist — no torn dispatch.
 func TestAdvDispatchAtomicity(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "adv-atom")
 	seedOwnedSession(t, "w", "adv-atom")
 	tk, err := createTask("adv-atom-run", "agent", "obj", "")
@@ -77,7 +77,7 @@ func TestAdvDispatchAtomicity(t *testing.T) {
 // success, task ends dispatched with exactly one attempt row for that
 // attempt number (no duplicates).
 func TestAdvDispatchConcurrentOneWinner(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "adv-race")
 	seedOwnedSession(t, "w", "adv-race")
 	tk, err := createTask("adv-race-run", "agent", "obj", "")
@@ -122,7 +122,7 @@ func TestAdvDispatchConcurrentOneWinner(t *testing.T) {
 // and sidecar prepares fail) must leave the task pending with NO
 // attempt/delivery rows.
 func TestAdvDispatchRefusalSideEffectFree(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "adv-crash")
 	seedOwnedSession(t, "w", "adv-crash")
 	// Point the session workdir at a regular file: WriteFile into it
@@ -175,7 +175,7 @@ func TestAdvFifoReassemblyBounded(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	// Drain worker: succeeds on pty write regardless of echo, so the
 	// receipt purely reflects supervisor acceptance.
@@ -281,7 +281,7 @@ func TestAdvProcessGroupKillsDescendants(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	if err := ptyStart("advpg", work, "trap '' HUP; sleep 60 & wait", "", ""); err != nil {
 		t.Fatalf("ptyStart: %v", err)

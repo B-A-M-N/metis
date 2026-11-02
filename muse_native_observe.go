@@ -61,7 +61,9 @@ func requireNativeBinding(session string) (museBinding, error) {
 // a shell-backed session against its live store. A re-homed or
 // re-modelled session is refused, never silently followed.
 func requireNativeUseScope(session string, b museBinding) error {
-	if ls, found, lerr := loadLogicalSession(session); lerr == nil && found && ls.Backend == TargetMuseNative {
+	if ls, found, lerr := loadLogicalSession(session); lerr != nil {
+		return fmt.Errorf("native session %s logical scope is unreadable: %w", session, lerr)
+	} else if found {
 		return checkNativeLogicalScope(ls, b)
 	}
 	return checkMuseExecutionScope(session, b)

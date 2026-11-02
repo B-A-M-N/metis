@@ -31,12 +31,12 @@ func startSession(name, workdir, command, harness, model string) error {
 	if fi, err := os.Stat(abs); err != nil || !fi.IsDir() {
 		return fmt.Errorf("workdir does not exist: %s", abs)
 	}
-	if sessionRunning(name) {
+	if sessionNameInUse(name) {
 		return fmt.Errorf("session already running: %s", name)
 	}
 	guidance := filepath.Join(abs, "guidance.md")
 	if _, err := os.Stat(guidance); err != nil {
-		_ = os.WriteFile(guidance, []byte("# Guidance\n\nGuidance sent from TUI-Dash / orchestrator.\nThe worker reads this file; direct tmux typing is off by default.\n\n"), 0o600)
+		_ = os.WriteFile(guidance, []byte("# Guidance\n\nGuidance sent from Metis / orchestrator.\nThe worker reads this file; direct tmux typing is off by default.\n\n"), 0o600)
 	}
 	appendEvent(abs, "session_started", name+": "+command)
 	// Start: tmux new-session with a shell string: use sh -c so the command
@@ -46,7 +46,7 @@ func startSession(name, workdir, command, harness, model string) error {
 		return fmt.Errorf("tmux start failed: %w", err)
 	}
 	owner := fmt.Sprintf("%d-%d", time.Now().UnixNano(), os.Getpid())
-	if _, err := tmux("set-environment", "-t", tmuxName(name), "TUI_DASH_OWNER", owner); err != nil {
+	if err := stampSessionOwner(tmuxName(name), owner); err != nil {
 		_, _ = tmux("kill-session", "-t", tmuxName(name))
 		return fmt.Errorf("failed to stamp session ownership: %w", err)
 	}
@@ -95,7 +95,7 @@ func adoptSession(name string) (Session, error) {
 			return fmt.Errorf("session %q is not running; nothing to adopt", name)
 		}
 		entry.Owner = fmt.Sprintf("%d-%d", time.Now().UnixNano(), os.Getpid())
-		if _, err := tmux("set-environment", "-t", tmuxName(name), "TUI_DASH_OWNER", entry.Owner); err != nil {
+		if err := stampSessionOwner(sessionTmuxTarget(name, entry.Tmux), entry.Owner); err != nil {
 			return fmt.Errorf("cannot stamp session ownership: %w", err)
 		}
 		locked[name] = entry
@@ -109,6 +109,17 @@ func adoptSession(name string) (Session, error) {
 	}
 	appendEvent(adopted.Workdir, "session_adopted", name)
 	return adopted, nil
+}
+
+// stampSessionOwner writes the current and legacy tmux environment keys.
+// The legacy key lets an older tui-dash process still recognize sessions
+// created while both command names are in circulation.
+func stampSessionOwner(target, owner string) error {
+	if _, err := tmux("set-environment", "-t", target, "METIS_OWNER", owner); err != nil {
+		return err
+	}
+	_, err := tmux("set-environment", "-t", target, "TUI_DASH_OWNER", owner)
+	return err
 }
 
 func stopSession(name string) error {

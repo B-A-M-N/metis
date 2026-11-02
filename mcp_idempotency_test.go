@@ -13,7 +13,7 @@ import (
 )
 
 func TestMCPDependReplayConflict(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTask("run-di", "w", "a thing", "done")
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +51,7 @@ func TestMCPDependReplayConflict(t *testing.T) {
 }
 
 func TestMCPCorrectReplayConflict(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	src, err := createTask("run-ci", "w", "source thing", "done")
 	if err != nil {
 		t.Fatal(err)

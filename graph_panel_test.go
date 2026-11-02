@@ -37,7 +37,7 @@ func TestGraphPanelLines(t *testing.T) {
 }
 
 func TestGraphPanelSanitizesObjectives(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "graphxss")
 	seedOwnedSession(t, "w", "graphxss")
 	if _, err := createTask("run-xss", "w", "do evil \x1b[2J\x1b[H and \x1b]0;pwned\x07 stuff", "x"); err != nil {
@@ -117,7 +117,7 @@ func TestGraphPanelToggle(t *testing.T) {
 // the live TUI (livePanelSnapshot). The render must hoist a single
 // handle and share it: exactly one open per graphMDLines call.
 func TestGraphRenderHoistsOneOpen(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	const n = 40
 	run := "run-hoist"
 	prev := ""

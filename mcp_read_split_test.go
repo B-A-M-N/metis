@@ -34,7 +34,7 @@ func TestMCPReadSplitTaskRowShape(t *testing.T) {
 // Tasks listing: totals, truncation flag, positional cursor, unknown
 // cursor yields an empty page.
 func TestMCPReadSplitTasksListShape(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "rsplit")
 	seedOwnedSession(t, "w", "rsplit")
 	for _, obj := range []string{"one", "two", "three"} {
@@ -63,7 +63,7 @@ func TestMCPReadSplitTasksListShape(t *testing.T) {
 
 // Single-task status: full objective, gate, verdicts, counts.
 func TestMCPReadSplitTaskStatusShape(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "rsplit2")
 	seedOwnedSession(t, "w", "rsplit2")
 	tk, err := createTask("run-rs2", "w", "full objective\nline two", "acc text")
@@ -105,7 +105,7 @@ func TestMCPReadSplitGraphParamShape(t *testing.T) {
 
 // Events: page carries events plus trailing cursor.
 func TestMCPReadSplitEventsShape(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "rsplit3")
 	seedOwnedSession(t, "w", "rsplit3")
 	out := mcpTaskText(t, mcpTaskCall(t, "metis_events", map[string]any{"run": "run-none"}))
@@ -122,7 +122,7 @@ func TestMCPReadSplitEventsShape(t *testing.T) {
 
 // Sessions/status surface: keys and server identity.
 func TestMCPReadSplitStatusShape(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	out := mcpTaskText(t, mcpTaskCall(t, "metis_status", map[string]any{}))
 	for _, k := range []string{"muse_state", "open", "blocked", "latest_event_seq", "server"} {
 		if _, ok := out[k]; !ok {
@@ -136,7 +136,7 @@ func TestMCPReadSplitStatusShape(t *testing.T) {
 
 // Agents: empty fleet reads empty, never an error.
 func TestMCPReadSplitAgentsEmptyShape(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	out := mcpTaskText(t, mcpTaskCall(t, "metis_agents", map[string]any{}))
 	if out["total"] != float64(0) || out["truncated"] != false {
 		t.Fatalf("empty fleet must read total=0 truncated=false: %v", out)
@@ -154,7 +154,7 @@ func TestMCPReadSplitAgentsEmptyShape(t *testing.T) {
 
 // Projects: empty state reads zero projects, never an error.
 func TestMCPReadSplitProjectsEmptyShape(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	out := mcpTaskText(t, mcpTaskCall(t, "metis_projects", map[string]any{}))
 	if out["total"] != float64(0) {
 		t.Fatalf("empty state must read total=0: %v", out)

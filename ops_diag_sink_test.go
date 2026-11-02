@@ -14,8 +14,8 @@ import (
 
 func sinkTestEnv(t *testing.T) {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
-	t.Setenv("TUI_DASH_OPS_DIAG", "1")
+	t.Setenv("METIS_STATE", t.TempDir())
+	t.Setenv("METIS_OPS_DIAG", "1")
 	opsReset()
 	opsSinkMu.Lock()
 	opsSinkLines = -1
@@ -23,8 +23,8 @@ func sinkTestEnv(t *testing.T) {
 }
 
 func TestOpsDiagSinkOptIn(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
-	t.Setenv("TUI_DASH_OPS_DIAG", "")
+	t.Setenv("METIS_STATE", t.TempDir())
+	t.Setenv("METIS_OPS_DIAG", "")
 	opsReset()
 	opsSinkMu.Lock()
 	opsSinkLines = -1
@@ -167,8 +167,8 @@ func TestOpsDiagSinkStateDirIsolation(t *testing.T) {
 // observed, move best-effort persistence behind a bounded,
 // non-blocking queue with observable drop counts.
 func BenchmarkOpsSinkAppend(b *testing.B) {
-	b.Setenv("TUI_DASH_STATE", b.TempDir())
-	b.Setenv("TUI_DASH_OPS_DIAG", "1")
+	b.Setenv("METIS_STATE", b.TempDir())
+	b.Setenv("METIS_OPS_DIAG", "1")
 	opsReset()
 	opsSinkMu.Lock()
 	opsSinkLines = -1
@@ -181,8 +181,8 @@ func BenchmarkOpsSinkAppend(b *testing.B) {
 }
 
 func BenchmarkOpsSinkAppendParallel(b *testing.B) {
-	b.Setenv("TUI_DASH_STATE", b.TempDir())
-	b.Setenv("TUI_DASH_OPS_DIAG", "1")
+	b.Setenv("METIS_STATE", b.TempDir())
+	b.Setenv("METIS_OPS_DIAG", "1")
 	opsReset()
 	opsSinkMu.Lock()
 	opsSinkLines = -1

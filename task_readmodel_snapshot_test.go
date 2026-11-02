@@ -43,7 +43,7 @@ func seedSnapshotRows(t *testing.T, taskID string, attempt int) {
 // byte-identical: with no race in flight, the snapshot projection
 // must equal the legacy separate-ops tuple field for field.
 func TestSnapshotParityWithSeparateReads(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	task, err := createTask("run-snap", "agent-1", "objective", "accept!")
 	if err != nil {
 		t.Fatalf("createTask: %v", err)
@@ -97,7 +97,7 @@ func TestSnapshotParityWithSeparateReads(t *testing.T) {
 // phase and requires the returned bundle to match ONE revision —
 // the pre-transition one.
 func TestSnapshotPinnedAcrossConcurrentTransition(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	task, err := createTask("run-snap", "agent-1", "objective", "accept!")
 	if err != nil {
 		t.Fatalf("createTask: %v", err)

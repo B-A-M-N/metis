@@ -43,7 +43,7 @@ func TestMCPRemotePrincipalDenied(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-remote")
 	installFakeTmux(t, "o1")
 	seedOwnedSession(t, "s", "o1")

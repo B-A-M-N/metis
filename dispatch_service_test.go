@@ -24,7 +24,7 @@ import (
 // files: the loser's prepared files live in a root the committed
 // task never executes in, so reconciliation must remove them.
 func TestDispatchConcurrentCrossSessionOneWinnerNoOrphan(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "dsr1")
 	seedOwnedSession(t, "w1", "dsr1")
 	seedOwnedSession(t, "w2", "dsr1")
@@ -103,7 +103,7 @@ func TestDispatchConcurrentCrossSessionOneWinnerNoOrphan(t *testing.T) {
 // ledger will never bind, and the same-root keep rule preserves
 // the divergence.
 func TestDispatchLateAdmissionRefusedBeforePrepare(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "dsr-late")
 	seedOwnedSession(t, "w", "dsr-late")
 	tk, err := createTask("run-dsr-late", "agent", "obj", "")
@@ -133,7 +133,7 @@ func TestDispatchLateAdmissionRefusedBeforePrepare(t *testing.T) {
 // must be re-enforced by the claim: the commit is the authority,
 // not the pre-claim snapshot.
 func TestDispatchCommitRevalidatesDependencies(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "dsr2")
 	seedOwnedSession(t, "w", "dsr2")
 	tk, err := createTask("run-dsr2", "agent", "obj", "")
@@ -176,7 +176,7 @@ func TestDispatchCommitRevalidatesDependencies(t *testing.T) {
 // backing. Stopped records and unknown names are refused, never
 // treated as ambient shell sessions.
 func TestDispatchNativeScope(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	ws, err := canonicalRoot(t.TempDir())
 	if err != nil {
 		t.Fatal(err)

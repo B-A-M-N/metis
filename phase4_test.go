@@ -16,7 +16,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 func swapControllerID(t *testing.T, id string) {
@@ -30,7 +30,7 @@ func swapControllerID(t *testing.T, id string) {
 // keystrokes and direct guidance MUST be refused — never interleaved
 // (TD-061). The holder re-acquiring keeps working.
 func TestTmuxInputSingleWriter(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p4a")
 	seedOwnedSession(t, "w", "p4a")
 	swapControllerID(t, "ctl-A")
@@ -57,7 +57,7 @@ func TestTmuxInputSingleWriter(t *testing.T) {
 // the UI goroutine. Nothing is written synchronously — the status
 // only reports the outcome when the result message arrives.
 func TestGuidanceSubmitOffUpdatePath(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p4c")
 	seedOwnedSession(t, "w", "p4c")
 	m := newModel("")
@@ -91,7 +91,7 @@ func TestGuidanceSubmitOffUpdatePath(t *testing.T) {
 // submission is in flight the second enter is held, preserving
 // per-session delivery order without blocking the event loop.
 func TestGuidanceDoubleEnterSerializes(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p4d")
 	seedOwnedSession(t, "w", "p4d")
 	m := newModel("")
@@ -132,7 +132,7 @@ func TestGuidanceDoubleEnterSerializes(t *testing.T) {
 // refresh, so one animated worker cannot exhaust disk or starve the
 // fleet's observation.
 func TestStreamCapEnforced(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p4e")
 	seedOwnedSession(t, "w", "p4e")
 	big := make([]byte, 2<<20)
@@ -163,7 +163,7 @@ func TestStreamCapEnforced(t *testing.T) {
 // The tail reader returns the last lines in order, even across many
 // lines of output.
 func TestStreamTailLastLines(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p4f")
 	seedOwnedSession(t, "w", "p4f")
 	var b strings.Builder
@@ -189,7 +189,7 @@ func TestStreamTailLastLines(t *testing.T) {
 // CB-11) MUST NOT permanently lock input for another authorized
 // controller.
 func TestTmuxLeaseExpiryFreesChannel(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p4b")
 	seedOwnedSession(t, "w", "p4b")
 	swapControllerID(t, "ctl-A")

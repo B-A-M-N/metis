@@ -24,7 +24,7 @@ func mustRegisterRoot(t *testing.T, dir string, custom bool) string {
 }
 
 func TestMCPProvisionRefusesUnregisteredRoot(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "noroot")
 	markFakeTmuxDead(t)
 	work := t.TempDir()
@@ -48,7 +48,7 @@ func TestMCPProvisionRefusesUnregisteredRoot(t *testing.T) {
 }
 
 func TestMCPProvisionCustomCommandNeedsCapability(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cap")
 	markFakeTmuxDead(t)
 	plain := t.TempDir()
@@ -73,7 +73,7 @@ func TestMCPProvisionCustomCommandNeedsCapability(t *testing.T) {
 }
 
 func TestMCPProvisionCustomCommandAllowedOnCapableRoot(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "capok")
 	markFakeTmuxDead(t)
 	work := t.TempDir()
@@ -89,7 +89,7 @@ func TestMCPProvisionCustomCommandAllowedOnCapableRoot(t *testing.T) {
 }
 
 func TestMCPProvisionHarnessCommandAllowedOnPlainRoot(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "hroot")
 	markFakeTmuxDead(t)
 	work := t.TempDir()

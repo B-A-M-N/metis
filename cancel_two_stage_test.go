@@ -12,7 +12,7 @@ import (
 )
 
 func TestCancelUncertainKeepsWorkspaceBlocked(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cxu")
 	seedOwnedSession(t, "w", "cxu")
 	tk, err := createTask("run-cxu", "w", "obj", "acc")
@@ -80,7 +80,7 @@ func TestCancelUncertainKeepsWorkspaceBlocked(t *testing.T) {
 }
 
 func TestCancelConfirmedReleasesWorkspace(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cxc")
 	seedOwnedSession(t, "w", "cxc")
 	tk, err := createTask("run-cxc", "w", "obj", "acc")
@@ -115,7 +115,7 @@ func TestCancelConfirmedReleasesWorkspace(t *testing.T) {
 }
 
 func TestCancelPendingNeedsNoStop(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cxp")
 	seedOwnedSession(t, "w", "cxp")
 	tk, err := createTask("run-cxp", "w", "obj", "")
@@ -140,7 +140,7 @@ func TestCancelPendingNeedsNoStop(t *testing.T) {
 // through turn/cancel and, unconfirmed, land termination_unknown
 // — never cancelled with work possibly still running.
 func TestCancelLiveNativeTurnStaysUnconfirmed(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cxn")
 	seedOwnedSession(t, "w", "cxn")
 	tk, err := createTask("run-cxn", "w", "obj", "acc")
@@ -195,7 +195,7 @@ func TestCancelLiveNativeTurnStaysUnconfirmed(t *testing.T) {
 // row proves an MSP execution was bound, and without the binding
 // Metis cannot address its turn.
 func TestCancelNativeReceiptWithoutBinding(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "cxn2")
 	seedOwnedSession(t, "w", "cxn2")
 	tk, err := createTask("run-cxn2", "w", "obj", "acc")

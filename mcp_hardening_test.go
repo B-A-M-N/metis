@@ -41,7 +41,7 @@ func TestMCPNumericZeroID(t *testing.T) {
 // cursor pagination. Ocliv forwards one bounded reply; silent map
 // order or silent truncation would show different fleets per call.
 func TestMCPAgentsSortedAndPaged(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pagertest")
 	seedOwnedSession(t, "zeta", "pagertest")
 	seedOwnedSession(t, "alpha", "pagertest")
@@ -128,7 +128,7 @@ func TestMCPResultTooLargeIsExplicit(t *testing.T) {
 // Mutations bind to an operator-set write token when configured.
 // Reads stay open. Unset token preserves local-stdio trust.
 func TestMCPWriteTokenGatesMutations(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "s3cret")
 	installFakeTmux(t, "toktest")
 	seedOwnedSession(t, "w", "toktest")

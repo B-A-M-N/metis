@@ -13,7 +13,7 @@ import (
 // revision assignment. The current read-then-insert assigns the same
 // next revision to racers; losers die on the primary key.
 func TestSetTeamPolicyConcurrentPublish(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	project := uniqueTaskKey("proj-pub")
 	pol := `{"workers":[{"id":"w-a","harness":"demo","profile":"","role":"implementation"}],
 		"limits":{"max_active_workers":8},
@@ -67,7 +67,7 @@ func seedHarnessSession(t *testing.T, name, owner, harness string) {
 // concurrently from separate workspaces (so the workspace fence
 // cannot decide it), must yield exactly one owner.
 func TestDispatchTeamCapacityRace(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "tcap")
 	seedHarnessSession(t, "w1", "tcap", "demo")
 	seedHarnessSession(t, "w2", "tcap", "demo")
@@ -123,7 +123,7 @@ func TestDispatchTeamCapacityRace(t *testing.T) {
 // refused before any delivery bookkeeping, and the task must stay
 // pending with no attempt or instruction file behind it.
 func TestDispatchTeamEligibilityRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "telig")
 	seedHarnessSession(t, "w", "telig", "codex")
 

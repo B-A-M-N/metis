@@ -1,4 +1,4 @@
-module tui-dash
+module metis
 
 go 1.25.0
 

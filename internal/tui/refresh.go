@@ -1,14 +1,9 @@
 package tui
 
-// stallAfterTicks bounds how long one outstanding collection can
-// suppress dispatch. At the 500ms tick cadence this is ~5s: past
-// the deadline the next tick abandons the wedged round and
-// dispatches the current generation instead of stalling forever.
-// Abandonment cannot stop a stuck command, but the abandoned
-// round's late delivery is refused by both gen gates (accounting
-// here, install in main's applyRefresh), so outstanding work stays
-// bounded at the wedged round plus its replacement.
-const stallAfterTicks = 10
+// MaxAcquisitions is the hard acquisition budget. The coordinator
+// never abandons a still-running command to start a replacement:
+// a timeout cannot return a permit while its source is executing.
+const MaxAcquisitions = 1
 
 // Refresh is the refresh coordinator's private state: tick count,
 // projection generation, and in-flight accounting. Only the
@@ -24,15 +19,9 @@ type Refresh struct {
 	Pending bool
 	// outstanding is the generation of the latest dispatched round
 	// still awaiting delivery; valid only while Pending. Only a
-	// delivery carrying exactly this generation clears accounting:
-	// stale, superseded, duplicate, and foreign deliveries leave it
-	// untouched, so they can neither resurrect an abandoned round
-	// nor starve the current one.
+	// delivery carrying exactly this generation clears accounting;
+	// duplicate and foreign deliveries cannot release another request.
 	outstanding int
-	// dispatchedAt is the tick count when the outstanding round was
-	// dispatched; valid only while Pending. It drives the stall
-	// deadline.
-	dispatchedAt int
 }
 
 // TickOutcome is what one tick decides: whether to dispatch a
@@ -45,16 +34,13 @@ type TickOutcome struct {
 }
 
 // Tick advances one 500ms tick. Odd ticks dispatch when no
-// collection is outstanding (single-flight: ticks coalesce onto an
-// in-flight round instead of stacking concurrent ones); an
-// outstanding round older than the stall deadline is abandoned and
-// re-dispatched instead of stalling refresh forever. The
-// generation bumps with the dispatch so a delivery is always fenced
-// to the round that produced it. Every fourth tick carries the git
-// probe. Pure: no I/O, no commands.
+// collection is outstanding. A running acquisition is never
+// abandoned merely to release capacity; ticks coalesce until its
+// correlated completion. Every fourth tick carries the git probe.
+// Pure: no I/O, no commands.
 func (r Refresh) Tick() (Refresh, TickOutcome) {
 	r.Ticks++
-	if r.Ticks%2 == 1 && (!r.Pending || r.Ticks-r.dispatchedAt >= stallAfterTicks) {
+	if r.Ticks%2 == 1 && !r.Pending {
 		return r.dispatch()
 	}
 	return r, TickOutcome{Gen: r.Gen}
@@ -67,23 +53,30 @@ func (r Refresh) dispatch() (Refresh, TickOutcome) {
 	r.Gen++
 	r.Pending = true
 	r.outstanding = r.Gen
-	r.dispatchedAt = r.Ticks
 	return r, TickOutcome{Dispatch: true, Gen: r.Gen, EveryGit: r.Ticks%4 == 1}
 }
 
-// Reselect bumps the generation for a selection-driven repaint.
-// It always dispatches (the caller builds the command): a selection
-// change prioritizes fresh data over an in-flight round, which the
-// new outstanding generation supersedes — the older round's
-// delivery is refused downstream by the gen gates, not here. The
-// dispatched round is recorded as outstanding so ticks coalesce
-// onto it instead of stacking a second concurrent collection.
+// Reselect invalidates any projection collected for the old
+// selection. If a command is already active, collection of the
+// latest selection waits until that exact command completes.
 func (r Refresh) Reselect() (Refresh, int) {
 	r.Gen++
+	if !r.Pending {
+		r.Pending = true
+		r.outstanding = r.Gen
+	}
+	return r, r.Gen
+}
+
+// DispatchLatest starts the current generation after a previous
+// command released the acquisition permit.
+func (r Refresh) DispatchLatest() (Refresh, TickOutcome) {
+	if r.Pending {
+		return r, TickOutcome{Gen: r.Gen}
+	}
 	r.Pending = true
 	r.outstanding = r.Gen
-	r.dispatchedAt = r.Ticks
-	return r, r.Gen
+	return r, TickOutcome{Dispatch: true, Gen: r.Gen, EveryGit: true}
 }
 
 // Startup bumps the generation for the synchronous initial paint,

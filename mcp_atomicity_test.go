@@ -15,7 +15,7 @@ import (
 )
 
 func TestMCPDependConcurrentConflictAtomic(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTask("run-atomic-dep", "w", "a thing", "done")
 	if err != nil {
 		t.Fatal(err)
@@ -119,7 +119,7 @@ func TestMCPDependConcurrentConflictAtomic(t *testing.T) {
 }
 
 func TestMCPCorrectConcurrentConflictAtomic(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	src, err := createTask("run-atomic-cor", "w", "source thing", "done")
 	if err != nil {
 		t.Fatal(err)
@@ -214,7 +214,7 @@ func TestMCPCorrectConcurrentConflictAtomic(t *testing.T) {
 }
 
 func TestMCPDependAtomicRollbackOnInjectedFailure(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTask("run-atomic-fdep", "w", "a thing", "done")
 	if err != nil {
 		t.Fatal(err)
@@ -267,7 +267,7 @@ func TestMCPDependAtomicRollbackOnInjectedFailure(t *testing.T) {
 }
 
 func TestMCPCorrectAtomicRollbackOnInjectedFailure(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	src, err := createTask("run-atomic-fcor", "w", "source thing", "done")
 	if err != nil {
 		t.Fatal(err)

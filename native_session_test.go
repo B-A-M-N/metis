@@ -49,6 +49,7 @@ type nativeStub struct {
 	sessions     map[string]*nativeStubSession
 	turns        int
 	starts       atomic.Int32
+	submits      atomic.Int32
 	autoComplete atomic.Bool
 }
 
@@ -170,6 +171,7 @@ func serveNativeStub(t *testing.T, conn net.Conn, st *nativeStub) {
 				st.mu.Unlock()
 				reply(map[string]any{"sessions": ids, "nextCursor": ""})
 			case "turn/start":
+				st.submits.Add(1)
 				var p struct {
 					SessionID string `json:"sessionId"`
 					Input     []struct {
@@ -274,7 +276,7 @@ func assertNoShellBacking(t *testing.T, what string) {
 // host restart -> resume -> turn again. One session/start
 // transmission total: nothing ever duplicates the native session.
 func TestNativeOnlySessionLifecycle(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
 	work := t.TempDir()
 	mustRegisterRoot(t, work, true)
@@ -470,7 +472,7 @@ func TestNativeOnlySessionLifecycle(t *testing.T) {
 // provision with no workdir parks under the run-scoped default like
 // shell provisions do.
 func TestNativeProvisionAuthorizesRoot(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	outside := t.TempDir()
 	res, err := mcpCallTool("metis_provision", mustJSON(t, map[string]any{
 		"run": "rn", "session": "nx", "objective": "do",
@@ -527,7 +529,7 @@ func TestNativeProvisionAuthorizesRoot(t *testing.T) {
 // A stopped logical session never dispatches: the canonical
 // resolver refuses it as stopped without needing any shell state.
 func TestResolveStoppedNativeRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	ws, err := canonicalRoot(t.TempDir())
 	if err != nil {
 		t.Fatal(err)

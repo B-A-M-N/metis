@@ -16,7 +16,7 @@ import (
 // failing-first test: it fails until resource_metrics.go owns a
 // single observe-only snapshot function.
 func TestResourceSnapshotReflectsLaneAndOverCapStream(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Cleanup(func() { retireAllInputSenders() })
 	stubExecConfirm(t)
 

@@ -17,7 +17,7 @@ import (
 // different provider must be refused: the provider selects the
 // native store, and a silent switch lands execution elsewhere.
 func TestBindRejectsProviderChange(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "w", "prov")
 	if err := bindMuseSession("w", "native-1", "c0", "echo", "", testReq("op")); err != nil {
 		t.Fatal(err)
@@ -37,7 +37,7 @@ func TestBindRejectsProviderChange(t *testing.T) {
 // The chained turn observer records approvals (with receipts) and
 // still extracts terminal text: neither side may swallow the other.
 func TestChainedTurnObserver(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	client, server := net.Pipe()
 	stubMuseServer(t, server, func(id int64, method string, params json.RawMessage) (any, *museError) {
 		return map[string]any{}, nil
@@ -72,7 +72,7 @@ func TestChainedTurnObserver(t *testing.T) {
 // The cursor moves only through the event-ingestion path, or a
 // point-in-time read would skip unprocessed events.
 func TestCmdStatusLeavesCursor(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	h, err := startMuseHost(ctx, "muse", "echo", nil, "--join")

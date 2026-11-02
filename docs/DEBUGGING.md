@@ -4,16 +4,16 @@ One-command investigation first; manual log search last.
 
 ## Start here
 
-- `tui-dash diagnose --session NAME [--json]` — bounded bundle:
+- `metis diagnose --session NAME [--json]` — bounded bundle:
   identity/backend/alive, latest task + waiting reasons, recent
   transitions, input leases, resource pressure. Missing sections
   are noted, never invented. Transcripts are never read;
   credentials are redacted at the sink.
-- `tui-dash doctor` — fleet/process health (registry, DB, schema,
+- `metis doctor` — fleet/process health (registry, DB, schema,
   leases, adapters, MCP ingress). Read-only; never migrates.
-- `tui-dash ops [--req ID] [--task ID] [--attempt N] [--session S]
+- `metis ops [--req ID] [--task ID] [--attempt N] [--session S]
   [--phase P] [--class C] [--errors-only] [--since 30m] [--json]`
-  — correlated operation events. Needs `TUI_DASH_OPS_DIAG=1` at
+  — correlated operation events. Needs `METIS_OPS_DIAG=1` at
   the producing end; unknown phase/class is refused (exit 2) so
   typos can't silently select nothing.
 
@@ -30,7 +30,7 @@ One-command investigation first; manual log search last.
 | Lease held / stuck | `diagnose` leases section | input lease owner (`pty_lease.go`); leases expire, holders are named |
 | Stopped session still live (or reverse) | `doctor` sessions, `diagnose` alive | sessions lifecycle (`session_lifecycle.go`); dead path never kills |
 | Doctor reports UNKNOWN | `doctor` source column | named source is down (DB/table/registry); UNKNOWN is the finding, not a gap |
-| No ops history at all | `ops` honest-empty message | opt-in was off when the op ran (`TUI_DASH_OPS_DIAG=1`); history is not backfilled |
+| No ops history at all | `ops` honest-empty message | opt-in was off when the op ran (`METIS_OPS_DIAG=1`; legacy `TUI_DASH_OPS_DIAG` also works); history is not backfilled |
 
 ## Evidence rules
 

@@ -74,7 +74,7 @@ func setupReportedTask(t *testing.T, session, objective, acceptance string) (tas
 // hashes prove the bytes are unchanged, not that the requirement
 // is satisfied (TD-100).
 func TestVerifyRefusedWithoutCriterionVerdicts(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pv1")
 	seedOwnedSession(t, "w", "pv1")
 	id, _ := setupReportedTask(t, "w", "build widget", "widget exists\nwidget passes checks")
@@ -93,7 +93,7 @@ func TestVerifyRefusedWithoutCriterionVerdicts(t *testing.T) {
 // INCONCLUSIVE is an honest non-result, not success: verify stays
 // refused until every criterion has a PASS.
 func TestVerifyRefusedOnInconclusive(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pv2")
 	seedOwnedSession(t, "w", "pv2")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists\nwidget passes checks")
@@ -117,7 +117,7 @@ func TestVerifyRefusedOnInconclusive(t *testing.T) {
 // A FAIL verdict blocks --pass: the reviewer found the requirement
 // unmet, and the ledger must not overrule that judgment.
 func TestVerifyRefusedOnFailVerdict(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pv3")
 	seedOwnedSession(t, "w", "pv3")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")
@@ -135,7 +135,7 @@ func TestVerifyRefusedOnFailVerdict(t *testing.T) {
 // Full path: PASS verdicts on every criterion, bound to the
 // attempt with cited evidence, verify the task.
 func TestVerifyPassesWithAllCriteriaSatisfied(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pv4")
 	seedOwnedSession(t, "w", "pv4")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists\nwidget passes checks")
@@ -152,7 +152,7 @@ func TestVerifyPassesWithAllCriteriaSatisfied(t *testing.T) {
 // criterion, empty reason, self-review, and double-filing are all
 // refused.
 func TestCriterionVerdictBindings(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pv5")
 	seedOwnedSession(t, "w", "pv5")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")
@@ -214,7 +214,7 @@ func TestCriterionVerdictBindings(t *testing.T) {
 // first-time FAIL files nothing: one failure is a verdict, not a
 // pattern.
 func TestRepeatedFailureAttention(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pv4")
 	seedOwnedSession(t, "w", "pv4")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists\nwidget passes checks")
@@ -261,7 +261,7 @@ func TestRepeatedFailureAttention(t *testing.T) {
 // PASS then FAIL on the same criterion is a genuine conflict
 // across attempts, not a repeat.
 func TestRegressedCriterionAttention(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pv5")
 	seedOwnedSession(t, "w", "pv5")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")

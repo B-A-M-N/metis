@@ -23,7 +23,7 @@ const coverageTestPolicy = `{"workers":[{"id":"w-a","harness":"demo","profile":"
 // artifacts and returns the run and session workdir.
 func coverageSetup(t *testing.T, tag string) (string, string) {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, tag)
 	seedHarnessSession(t, "w", tag, "demo")
 	project := uniqueTaskKey("proj-cov-" + tag)
@@ -248,7 +248,7 @@ func TestCoverageSupersededOnNewEvidence(t *testing.T) {
 // Policy validation: unknown kinds and bad globs are refused at
 // publish time, never smuggled into enforcement.
 func TestCoveragePolicyValidation(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	badKind := `{"workers":[{"id":"w","harness":"demo","profile":"","role":"implementation"}],
 		"limits":{"max_active_workers":1},"policy":{"require_evidence":true,"require_independent_review":false,"shared_write_workspace":false},
 		"coverage":[{"kind":"vibes_check","paths":[]}]}`

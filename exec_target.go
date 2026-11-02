@@ -54,7 +54,11 @@ type execTarget struct {
 // a daemon is an error, never a silent fallback to another
 // backend.
 func resolveExecTarget(session string) (execTarget, error) {
-	if ls, found, lerr := loadLogicalSession(session); lerr == nil && found {
+	ls, found, lerr := loadLogicalSession(session)
+	if lerr != nil {
+		return execTarget{}, fmt.Errorf("dispatch: logical session store is unreadable; refusing backend fallback: %w", lerr)
+	}
+	if found {
 		if tgt, ok, err := resolveLogicalTarget(ls, session); err != nil || ok {
 			return tgt, err
 		}
@@ -145,14 +149,26 @@ func resolveLogicalTarget(ls logicalSession, session string) (execTarget, bool, 
 // checkMuseExecutionScope for names with no shell backing, where
 // that check has no store to consult.
 func checkNativeLogicalScope(ls logicalSession, b museBinding) error {
-	if ls.NativeID != "" && b.NativeID != ls.NativeID {
+	if ls.Backend != TargetMuseNative {
+		return fmt.Errorf("native session %s has logical backend %q; refusing execution", ls.Name, ls.Backend)
+	}
+	if ls.State != logicalActive {
+		return fmt.Errorf("native session %s is %s; refusing execution", ls.Name, ls.State)
+	}
+	if ls.NativeID == "" || b.NativeID == "" || b.NativeID != ls.NativeID {
 		return fmt.Errorf("dispatch: session %s bound to native session %s, logical record names %s; refusing identity swap", ls.Name, b.NativeID, ls.NativeID)
 	}
-	if b.Workspace != "" && ls.Workspace != "" && b.Workspace != ls.Workspace {
+	if ls.Workspace == "" || b.Workspace == "" || b.Workspace != ls.Workspace {
 		return fmt.Errorf("dispatch: session %s now resolves to workspace %s, bound to %s; refusing turn on a re-homed session", ls.Name, ls.Workspace, b.Workspace)
 	}
-	if b.Model != "" && ls.Model != "" && b.Model != ls.Model {
+	if b.Model != ls.Model {
 		return fmt.Errorf("dispatch: session %s now declares model %q, bound to %q; refusing turn on a re-modelled session", ls.Name, ls.Model, b.Model)
+	}
+	if ls.Provider == "" || b.Provider != ls.Provider {
+		return fmt.Errorf("native session %s provider changed from %q to %q; refusing execution", ls.Name, ls.Provider, b.Provider)
+	}
+	if ls.Profile != b.Profile {
+		return fmt.Errorf("native session %s profile changed from %q to %q; refusing execution", ls.Name, ls.Profile, b.Profile)
 	}
 	return nil
 }

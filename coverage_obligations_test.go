@@ -13,7 +13,7 @@ import (
 )
 
 func TestObligationLifecycle(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk, err := createTask("run-ob", "agent", "ship feature", "feature works")
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +50,7 @@ func TestObligationLifecycle(t *testing.T) {
 // A satisfied obligation is terminal: it is never silently
 // reopened, even back into running.
 func TestObligationIllegalTransition(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk, err := createTask("run-ob", "agent", "ship feature", "feature works")
 	if err != nil {
 		t.Fatal(err)
@@ -77,7 +77,7 @@ func TestObligationIllegalTransition(t *testing.T) {
 // re-delegation: the same (task, kind, targetRev) returns the
 // original row, never a duplicate.
 func TestObligationRequireIdempotent(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk, err := createTask("run-ob", "agent", "ship feature", "feature works")
 	if err != nil {
 		t.Fatal(err)
@@ -110,7 +110,7 @@ func TestObligationRequireIdempotent(t *testing.T) {
 // the verdict judges the task's claim, not the outstanding review
 // duty bound to it.
 func TestCoverageVerifiedDoesNotSatisfyObligation(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pv-ob")
 	seedOwnedSession(t, "w", "pv-ob")
 	id, p := setupReportedTask(t, "w", "build widget", "widget exists")
@@ -141,7 +141,7 @@ func TestCoverageVerifiedDoesNotSatisfyObligation(t *testing.T) {
 // The blocking set is the work still owed: required, running,
 // and stale rows block; satisfied and excepted rows do not.
 func TestObligationBlockingSet(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	tk, err := createTask("run-ob", "agent", "ship feature", "feature works")
 	if err != nil {
 		t.Fatal(err)

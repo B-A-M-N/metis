@@ -2,7 +2,7 @@ package main
 
 // schema_epoch_test.go: failing-first tests for explicit schema
 // epoch/version admission (F-15). Each test isolates state with
-// TUI_DASH_STATE so the process-global migration cache cannot leak
+// METIS_STATE so the process-global migration cache cannot leak
 // between tests.
 
 import (
@@ -53,7 +53,7 @@ func requireEpoch(t *testing.T, db *sql.DB, wantVersion int) {
 // Old fixture: a legacy database with only an early tasks table and
 // no epoch row must migrate forward, preserve its rows, and stamp.
 func TestSchemaEpochOldFixtureOpen(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	raw := openRawDB(t)
 	if _, err := raw.Exec(`CREATE TABLE tasks (
 		id TEXT PRIMARY KEY,
@@ -94,7 +94,7 @@ func TestSchemaEpochOldFixtureOpen(t *testing.T) {
 // Missing data is not incompatible data: a zero-byte file migrates
 // forward without a compatibility error.
 func TestSchemaEpochEmptyFileMigrates(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if err := os.WriteFile(tasksDBPath(), nil, 0o600); err != nil {
 		t.Fatalf("write empty db: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestSchemaEpochEmptyFileMigrates(t *testing.T) {
 // the last DDL and the stamp), plus a dropped table, must re-run
 // migration on the next open instead of trusting the cache.
 func TestSchemaEpochInterruptedMigration(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	first, err := openTasksDB()
 	if err != nil {
 		t.Fatalf("first open: %v", err)
@@ -141,7 +141,7 @@ func TestSchemaEpochInterruptedMigration(t *testing.T) {
 // Concurrent first-open: many goroutines on a fresh path all succeed
 // with exactly one epoch row and a complete schema.
 func TestSchemaEpochConcurrentFirstOpen(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	const n = 16
 	errs := make([]error, n)
 	dbs := make([]*sql.DB, n)
@@ -179,7 +179,7 @@ func TestSchemaEpochConcurrentFirstOpen(t *testing.T) {
 // and re-migrated. A path-only cache would skip DDL and leave
 // task_attempts missing.
 func TestSchemaEpochFileReplacementSamePath(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	first, err := openTasksDB()
 	if err != nil {
 		t.Fatalf("first open: %v", err)
@@ -226,7 +226,7 @@ func TestSchemaEpochFileReplacementSamePath(t *testing.T) {
 // be refused with the specific compatibility error, not migrated or
 // silently accepted.
 func TestSchemaEpochUnsupportedNewer(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seed, err := openTasksDB()
 	if err != nil {
 		t.Fatalf("seed open: %v", err)
@@ -261,7 +261,7 @@ func TestSchemaEpochUnsupportedNewer(t *testing.T) {
 // Newer reader required: durable data at a readable version that
 // demands a newer minimum reader is refused without migration.
 func TestSchemaEpochNewerReaderRequired(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seed, err := openTasksDB()
 	if err != nil {
 		t.Fatalf("seed open: %v", err)
@@ -290,7 +290,7 @@ func TestSchemaEpochNewerReaderRequired(t *testing.T) {
 // ahead) is refused, and stamping backward over a newer durable
 // version is refused without touching the row.
 func TestSchemaEpochDowngradeRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seed, err := openTasksDB()
 	if err != nil {
 		t.Fatalf("seed open: %v", err)
@@ -345,7 +345,7 @@ func errorAsSchema(err error, target **SchemaVersionError) bool {
 // stamp write changes size/mtime, so the next open misses the cache
 // and re-migrates, self-perpetuating on every write workload.
 func TestReopenAfterWriteSkipsMigrationDDL(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatalf("migrate: %v", err)

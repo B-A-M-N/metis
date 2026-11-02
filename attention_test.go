@@ -11,7 +11,7 @@ import (
 )
 
 func TestAttentionLifecycle(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	req := testReq("lead-01")
 
 	// Open: returns a stable id.
@@ -97,7 +97,7 @@ func TestAttentionLifecycle(t *testing.T) {
 // Approvals are must-answer tool requests — without this producer
 // they sit silently in the approval rows.
 func TestApprovalAttentionLifecycle(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	fold := []byte(`{"approvalId":"ap-att","itemId":"it-1",
 		"availableChoices":[{"choiceId":"allow","label":"Allow"}]}`)
 	if err := recordMuseApprovalRequested("w", "native-1", fold); err != nil {
@@ -146,7 +146,7 @@ func TestApprovalAttentionLifecycle(t *testing.T) {
 // The escalation binds to the dispatched task when the session has
 // one, so the operator sees which work the approval blocks.
 func TestApprovalAttentionBindsTask(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)

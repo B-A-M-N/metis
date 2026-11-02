@@ -14,7 +14,7 @@ import (
 
 // Unknown names resolve to nothing, never to a default backend.
 func TestResolveExecTargetUnknown(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if _, err := resolveExecTarget("ghost"); err == nil ||
 		!strings.Contains(err.Error(), "no such session") {
 		t.Fatalf("unknown session must be refused, got %v", err)
@@ -26,16 +26,39 @@ func TestResolveExecTargetUnknown(t *testing.T) {
 
 // A pty:-prefixed name with no PTY behind it is unknown, not tmux.
 func TestResolveExecTargetPtyMissing(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if _, err := resolveExecTarget("pty:ghost"); err == nil ||
 		!strings.Contains(err.Error(), "no such session") {
 		t.Fatalf("missing PTY must be refused, got %v", err)
 	}
 }
 
+func TestResolveExecTargetDoesNotFallbackOnLogicalStoreFailure(t *testing.T) {
+	t.Setenv("METIS_STATE", t.TempDir())
+	installFakeTmux(t, "exec-target")
+	seedOwnedSession(t, "collision", "exec-target")
+	ws, err := canonicalRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claimed, err := claimLogicalSession(logicalSession{Name: "collision", Backend: TargetMuseNative,
+		Workspace: ws, Provider: "echo", NativeID: "native-collision"}); err != nil || !claimed {
+		t.Fatalf("seed native logical identity: claimed=%v err=%v", claimed, err)
+	}
+	if err := os.Remove(tasksDBPath()); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(tasksDBPath(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resolveExecTarget("collision"); err == nil || !strings.Contains(err.Error(), "logical session store is unreadable") {
+		t.Fatalf("unreadable logical authority must not fall back to tmux: %v", err)
+	}
+}
+
 // A plain registered session resolves to tmux when its terminal lives.
 func TestResolveExecTargetTMUX(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "tok-1")
 	seedOwnedSession(t, "t3", "tok-1")
 	tgt, err := resolveExecTarget("t3")
@@ -50,7 +73,7 @@ func TestResolveExecTargetTMUX(t *testing.T) {
 // A muse-native session with a binding but no daemon must NOT fall
 // back to tmux liveness: the daemon gate is the readiness proof.
 func TestResolveExecTargetMuseNativeNeedsDaemon(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("MUSEFI_DATA_HOME", t.TempDir()) // no socket inside: daemon down
 	reg := loadRegistry()
 	reg["mx"] = Session{Name: "mx", Tmux: tmuxName("mx"), Workdir: t.TempDir(),
@@ -75,7 +98,7 @@ func TestResolveExecTargetMuseNativeNeedsDaemon(t *testing.T) {
 // The socket is a real unix socket in an isolated store, so the
 // test proves the daemon gate passes without a running daemon.
 func TestResolveExecTargetMuseNative(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	store := t.TempDir()
 	t.Setenv("MUSEFI_DATA_HOME", store)
 	sockDir := filepath.Join(store, "muse", "session-server")
@@ -112,7 +135,7 @@ func TestResolveExecTargetMuseNative(t *testing.T) {
 // A native harness session with NO binding must be refused, even
 // when its tmux terminal is alive: tmux liveness is not a binding.
 func TestResolveExecTargetNativeNeedsBinding(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "tok-1")
 	reg := loadRegistry()
 	reg["nb"] = Session{Name: "nb", Tmux: tmuxName("nb"), Workdir: t.TempDir(),

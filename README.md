@@ -1,17 +1,21 @@
-# tui-dash
+# Metis
 
-Go Bubble Tea dashboard for a visible coding agent. This is the Go
-rewrite of the Python `live-tui-dashboard` from the same day, with
-the same tmux session model, so the two tools can see each other's
-sessions (`tui-<name>`).
+Metis is a local control plane and Bubble Tea dashboard for coding
+agents. It coordinates work, records evidence, and gives operators a
+shared view across tmux, PTY, and native Muse sessions. The command is
+`metis`; `tui-dash` remains available as a compatibility name.
+The `tui-dash` command and existing state/work directories remain
+compatible. New sessions use the `metis-` tmux prefix; registered
+sessions with the old `tui-` prefix remain usable. `METIS_STATE` is
+preferred; `TUI_DASH_STATE` remains accepted.
 
 ## What this is, and is not
 
-- **It is:** a TUI that shows a worker agent running in a tmux session,
-  plus a CLI to start, stop, snapshot, and inject guidance into it.
+- **It is:** an operator dashboard and CLI for tmux, PTY, and native
+  Muse workers, with task dispatch, evidence, and session guidance.
 - **It is not:** a view into Muse's own chat work. Muse in chat has
-  no attachable TUI. The split is deliberate: Muse orchestrates, the
-  worker in tmux is what you watch.
+  no attachable TUI. Metis shows workers and durable orchestration
+  records; it does not mirror the chat conversation.
 
 ## Build and run
 
@@ -19,7 +23,7 @@ sessions (`tui-<name>`).
 cd tui-dash
 ./build.sh
 # or: make build
-# Both run: go build -buildvcs=false -o tui-dash .
+# Builds ./metis and the ./tui-dash compatibility command.
 # -buildvcs=false is required on pop-os: plain `go build` fails
 # there with "error obtaining VCS status: exit status 128",
 # because Go tries to stamp VCS info and git reports this
@@ -27,29 +31,37 @@ cd tui-dash
 # stamp changes nothing else about the binary.
 
 # The main entry point: start a demo worker if needed, then open the TUI.
-./tui-dash up
+./metis up
 
 # With your own session / workdir / worker:
-./tui-dash up --session mywork --workdir ~/mywork --cmd "hermes chat"
+./metis up --session mywork --workdir ~/mywork --cmd "hermes chat"
 
 # TUI only, no auto-start:
-./tui-dash watch --session mywork
+./metis watch --session mywork
 
 # Attach directly to the raw agent pane (no dashboard):
-tmux attach -t tui-mywork
+tmux attach -t metis-mywork
+
+# Existing sessions created before the rename still use tui-<name>.
+# Their registered target is retained so attach and control still work.
 
 # From another terminal, or from Muse, message the worker:
-./tui-dash send --name mywork --text "pause new steps and check step-003"
+./metis send --name mywork --text "pause new steps and check step-003"
 
 # Headless check (what Muse uses to verify without a terminal):
-./tui-dash agent snapshot --name mywork
-./tui-dash sessions
-./tui-dash agent stop --name mywork
+./metis agent snapshot --name mywork
+./metis sessions
+./metis agent stop --name mywork
 ```
 
-Defaults for `up`: session `demo`, workdir `~/tui-dash-work`
-(created if missing), worker is this binary's built-in demo
-(`tui-dash demo`), 120 steps, 1 second per step.
+Defaults for `up`: session `demo`, workdir `~/metis-work`
+(reuses `~/tui-dash-work` if it already exists),
+worker is this binary's built-in demo (`metis demo`), 120 steps, 1
+second per step.
+
+`METIS_STATE` selects the state root. Without it, Metis reuses
+`~/.local/share/tui-dash` when present and uses
+`~/.local/share/metis` for a fresh install.
 
 Requirements: Go 1.23+, `tmux`, `git` (for the git pane; without a
 repo the pane lists files instead), a terminal at least 80x24.
@@ -88,17 +100,18 @@ nav, `Enter` send, `g` path-traversal panel, `d` direct toggle,
 
 ```bash
 go vet ./...
-go build -o tui-dash .
+make build
 go test ./...
 ```
 
 `go test` includes unit tests (validation, inject/snapshot,
 demo guidance ack) and a tmux integration test that is skipped
-unless `./tui-dash` is built in this folder. The integration test
-starts the demo in tmux, checks snapshot live output, injects
-guidance, waits for `GUIDANCE RECEIVED`, and checks git status.
+unless `./metis` is built in this folder.
+The integration test starts the demo in tmux, checks snapshot live
+output, injects guidance, waits for `GUIDANCE RECEIVED`, and checks git
+status.
 
-TUI rendering was also checked by running `tui-dash up` inside a
+TUI rendering was also checked by running `metis up` inside a
 tmux session and capturing its pane, and by typing guidance in
 the TUI and watching the demo acknowledge it.
 
@@ -121,38 +134,38 @@ the TUI and watching the demo acknowledge it.
 
 ## Closed-loop orchestration (external orchestrator pattern)
 
-Muse (or another orchestrator) delegates; TUI-Dash executes,
+Muse (or another orchestrator) delegates; Metis executes,
 records, and reports. The loop never reasons — it only runs what
 is committed and files what it observes.
 
 ```bash
 # 1. Hold the session open (model starts only after dispatch).
-./tui-dash agent start --name muse-01 --workdir /work/a \
+./metis agent start --name muse-01 --workdir /work/a \
   --cmd "sleep 900" --harness muse
 
 # 2. Orchestrator creates and dispatches.
-./tui-dash task create --run rel-1 --agent muse-01 \
+./metis task create --run rel-1 --agent muse-01 \
   --objective "Write DONE into required.txt" \
   --acceptance "required.txt exists containing DONE"
-./tui-dash task dispatch --task <id> --session muse-01
+./metis task dispatch --task <id> --session muse-01
 
 # 3. Managed worker consumes the committed attempt exactly once,
 #    runs `muse exec` as a child, files output + exit receipt.
-./tui-dash agent work --session muse-01 --once
+./metis agent work --session muse-01 --once
 
 # 4. Where things stand (read-only; never launches or judges).
-./tui-dash task reconcile --task <id>
+./metis task reconcile --task <id>
 
 # 5. Independent reviewer judges each criterion against evidence.
-./tui-dash report attach --task <id> --path /work/a/required.txt
-./tui-dash task verdict --task <id> --criterion C1 --verdict PASS \
+./metis report attach --task <id> --path /work/a/required.txt
+./metis task verdict --task <id> --criterion C1 --verdict PASS \
   --reason "reproduced from the filed artifact" \
   --evidence /work/a/required.txt --reviewer reviewer-01
 
 # 6. Verify (needs evidence integrity AND unanimous PASS),
 #    or reject and issue linked correction work.
-./tui-dash task verify --task <id> --pass --verifier reviewer-01
-./tui-dash task followup --task <id> --objective "fix ..."
+./metis task verify --task <id> --pass --verifier reviewer-01
+./metis task followup --task <id> --objective "fix ..."
 ```
 
 Provenance and identity rules:

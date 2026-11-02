@@ -132,7 +132,7 @@ func disableStreamPipe(name string) {
 	if !sessionRunning(name) {
 		return
 	}
-	_, _ = tmux("pipe-pane", "-t", tmuxName(name))
+	_, _ = tmux("pipe-pane", "-t", sessionTmuxTarget(name, ""))
 }
 
 // disableStreamPipeTarget detaches the stream pipe from the already-resolved

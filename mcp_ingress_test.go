@@ -47,7 +47,7 @@ func mcpIngressEnv(t *testing.T) {
 // NOT yield local-operator authority. A delegated task must not be
 // created; the refusal must name the ingress trust problem.
 func TestMCPIngressHostedUndeclaredFailsClosed(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_HOSTED", "1")
 	installFakeTmux(t, "o1")
@@ -71,7 +71,7 @@ func TestMCPIngressHostedUndeclaredFailsClosed(t *testing.T) {
 
 // Explicit remote mode without a credential fails closed too.
 func TestMCPIngressExplicitRemoteRequiresToken(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_INGRESS", "remote")
 	installFakeTmux(t, "o1")
@@ -92,7 +92,7 @@ func TestMCPIngressExplicitRemoteRequiresToken(t *testing.T) {
 // A hosted launch that declares remote ingress but ships no
 // credential still fails closed: declaration alone is not trust.
 func TestMCPIngressHostedDeclaredModeStillNeedsCredential(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_HOSTED", "1")
 	t.Setenv("METIS_MCP_INGRESS", "remote")
@@ -110,7 +110,7 @@ func TestMCPIngressHostedDeclaredModeStillNeedsCredential(t *testing.T) {
 
 // Wrong token is refused before anything is touched.
 func TestMCPIngressWrongTokenRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-ingress")
 	installFakeTmux(t, "o1")
@@ -130,7 +130,7 @@ func TestMCPIngressWrongTokenRefused(t *testing.T) {
 
 // Reads stay open: no token, no auth, status and agents answer.
 func TestMCPIngressReadsStayOpen(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-ingress")
 	installFakeTmux(t, "o1")
@@ -149,7 +149,7 @@ func TestMCPIngressReadsStayOpen(t *testing.T) {
 // actor. Both the legacy opt-in and the scoped capability grant
 // the task-management capability.
 func TestMCPIngressAuthorizedWriter(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-ingress")
 	t.Setenv("METIS_MCP_ALLOW_REMOTE_WRITE", "1")
@@ -171,7 +171,7 @@ func TestMCPIngressAuthorizedWriter(t *testing.T) {
 // The scoped capability grant alone (no legacy blanket opt-in)
 // authorizes task management for the remote principal.
 func TestMCPIngressScopedTaskCapability(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-ingress")
 	t.Setenv("METIS_MCP_REMOTE_CAPABILITIES", "tasks")
@@ -190,7 +190,7 @@ func TestMCPIngressScopedTaskCapability(t *testing.T) {
 // A task capability is not an approval capability: even fully
 // opted-in, a remote caller cannot decide a native approval.
 func TestMCPIngressRemoteApproveDeniedDespiteCaps(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-ingress")
 	t.Setenv("METIS_MCP_ALLOW_REMOTE_WRITE", "1")
@@ -228,7 +228,7 @@ func TestMCPIngressRemoteApproveDeniedDespiteCaps(t *testing.T) {
 // requires the explicit "reject" grant (P0-C): the blanket write
 // opt-in does not confer rejection authority.
 func TestMCPIngressUnauthorizedVerifier(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-ingress")
 	t.Setenv("METIS_MCP_ALLOW_REMOTE_WRITE", "1")
@@ -264,7 +264,7 @@ func TestMCPIngressUnauthorizedVerifier(t *testing.T) {
 // Backward compatibility pin: unspecified mode on a non-hosted
 // transport with no token keeps local-stdio trust.
 func TestMCPIngressImplicitLocalTrustPreserved(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	installFakeTmux(t, "o1")
 	seedOwnedSession(t, "s", "o1")
@@ -283,7 +283,7 @@ func TestMCPIngressImplicitLocalTrustPreserved(t *testing.T) {
 // posture is OK and names the resolved mode. Doctor output is the
 // operator-only surface for the resolved ingress mode.
 func TestDoctorMCPIngressFailClosed(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_HOSTED", "1")
 
@@ -312,7 +312,7 @@ func TestDoctorMCPIngressFailClosed(t *testing.T) {
 }
 
 func TestDoctorMCPIngressRemoteOK(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	mcpIngressEnv(t)
 	t.Setenv("METIS_MCP_INGRESS", "remote")
 	t.Setenv("METIS_MCP_HOSTED", "1")

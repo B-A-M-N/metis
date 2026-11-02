@@ -67,7 +67,7 @@ func waitStreamGeneration(t *testing.T, name string, want int, timeout time.Dura
 // between must each be rotated with a visible gap marker and a
 // bumped generation.
 func TestRetentionAutonomousWithoutReader(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "f09a")
 	seedOwnedSession(t, "w", "f09a")
 
@@ -103,7 +103,7 @@ func TestRetentionAutonomousWithoutReader(t *testing.T) {
 // so a fresh sweeper after a stop keeps the bound and continues the
 // generation instead of resetting history.
 func TestRetentionSurvivesRestart(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "f09b")
 	seedOwnedSession(t, "w", "f09b")
 
@@ -142,7 +142,7 @@ func TestRetentionSurvivesRestart(t *testing.T) {
 // proof of no loss. The sweeper must heal it with a fresh epoch and
 // a visible gap marker, not claim continuity.
 func TestRetentionUnknownGenerationHealsWithGap(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "f09c")
 	seedOwnedSession(t, "w", "f09c")
 
@@ -190,7 +190,7 @@ func TestRetentionFailureObservable(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("permission-based failure injection needs a non-root user")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "f09d")
 	seedOwnedSession(t, "w", "f09d")
 	writeOverCapBurst(t, "w", 'x')
@@ -229,7 +229,7 @@ func TestRetentionFailureObservable(t *testing.T) {
 // observed rotations across goroutines must bump the counter exactly
 // N times (no lost read-modify-write bumps) and leave the file bound.
 func TestRetentionConcurrentRotationsSerialized(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "f09e")
 	seedOwnedSession(t, "w", "f09e")
 

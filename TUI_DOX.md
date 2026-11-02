@@ -110,23 +110,18 @@ as typed messages, never direct writes.
    superseded attempt's late refusal cannot detach a newer confirmed
    attach. Failing-first `TestAttachStaleRefusalCannotClobberNewerAttach`
    (Enter, Esc, Enter, success, late refusal).
-5. **Refresh single-flight** done (Phase 5 leg), now a component:
-   odd ticks dispatch only when no collection is outstanding
-   (`Refresh.Pending` in `internal/tui`); every dispatch records
-   the outstanding gen and every delivery reports its gen, so only
-   the outstanding round's delivery re-arms dispatch (stale,
-   superseded, duplicate, foreign deliveries are accounting
-   no-ops); reselect always marks its round outstanding; a round
-   older than `stallAfterTicks` (10 ticks, ~5s) is abandoned and
-   re-dispatched so hung acquisitions cannot stall refresh. Gen
-   bumps only with a dispatch or an explicit reselect/startup
-   transition. Failing-first `TestRefreshSkipsWhileOneIsInFlight`
-   (3 ticks, no delivery → exactly 1 collection; delivery re-arms)
-   plus pure `internal/tui` reducer tests
-   (`TestRefreshDeliveryCorrelatesExactly`,
-   `TestRefreshReselectStormKeepsPendingUntilLatest`,
-   `TestRefreshHungRoundAbandonsAfterDeadline`,
-   `TestRefreshIdleReselectMarksOutstanding`).
+5. **Refresh acquisition budget**: `internal/tui.Refresh` holds one
+   permit until the exact originating command completes. Reselects
+   increment the projection generation but do not launch overlapping
+   acquisitions; completion schedules one collection for the latest
+   selected identity. The source command has a 10-second context
+   deadline; tmux subprocesses and cooperative sources can cancel, but
+   an uncooperative source keeps its permit until it actually returns.
+   Verified by
+   `TestRefreshReselectStormKeepsOneAcquisitionAndLatestSelection`,
+   `TestRefreshDeadlineCancelsSupportedSourceWithoutEarlyPermitRelease`,
+   `TestRefreshNeverAbandonsExecutingAcquisition`, and exact delivery
+   correlation tests.
 6. **Attach lifecycle component** done (finding G leg): `internal/tui`
    `Attach` owns attempt generation + target session
    (`Request`/`Classify`, pure, no tmux/registry/DB); `main` keeps

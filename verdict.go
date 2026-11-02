@@ -34,7 +34,7 @@ package main
 // until independent resolution (a reviewer superseding their own
 // judgment, or a fresh evidence revision re-judged unanimously).
 //
-// TUI-Dash validates verdict schema, reviewer independence,
+// Metis validates verdict schema, reviewer independence,
 // attempt binding, evidence-revision binding, and evidence
 // references. It never generates a judgment by inference: a
 // report with only valid hashes never transitions to verified,

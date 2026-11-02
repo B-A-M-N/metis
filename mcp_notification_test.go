@@ -15,7 +15,7 @@ import (
 // must execute (control arm), proving the test distinguishes
 // refused-notification from broken-tool.
 func TestMCPNotificationToolsCallPerformsNoMutation(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	args := `{"run":"r-notif","session":"w","objective":"x","actor":"a","request_id":"n1","key":"nk1"}`
 	notif := `{"jsonrpc":"2.0","method":"tools/call","params":{"name":"metis_delegate","arguments":` + args + `}}`
 	if reply := mcpHandle([]byte(notif)); reply != nil {
@@ -39,7 +39,7 @@ func TestMCPNotificationToolsCallPerformsNoMutation(t *testing.T) {
 // already-correct behavior: unknown methods without an id stay
 // silent (no fabricated reply).
 func TestMCPNotificationUnknownMethodStaysSilent(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if reply := mcpHandle([]byte(`{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}`)); reply != nil {
 		t.Fatalf("unknown-method notification must yield no reply, got %s", reply)
 	}

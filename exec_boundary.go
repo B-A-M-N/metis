@@ -48,7 +48,7 @@ var secretEnvName = regexp.MustCompile(`(?i)^(.+_)?(api[_-]?key|secrets?|tokens?
 
 // workerEnv builds the child's environment: closed allowlist, secret
 // names dropped, explicit METIS_* task bindings, then caller extras
-// (e.g. TUI_DASH_STATE for a re-exec'd supervisor). Extras are the
+// (e.g. METIS_STATE for a re-exec'd supervisor). Extras are the
 // caller's responsibility; ambient values never leak in implicitly.
 func workerEnv(taskID string, attempt int, session, root string, extra map[string]string) []string {
 	var env []string
@@ -107,8 +107,8 @@ func marshalRedactedArgv(argv []string) (string, error) {
 		return "", err
 	}
 	red, err := json.Marshal(map[string]any{
-		"argv":      redactArgv(argv),
-		"redacted":  true,
+		"argv":        redactArgv(argv),
+		"redacted":    true,
 		"full_sha256": fmt.Sprintf("%x", sha256.Sum256(full)),
 	})
 	if err != nil {

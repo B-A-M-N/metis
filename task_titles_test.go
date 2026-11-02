@@ -29,7 +29,7 @@ func seedTitledTask(t *testing.T, agent, objective, created string) {
 // The projection reports each agent's own latest objective even
 // when agents interleave and creation stamps arrive out of order.
 func TestLatestObjectiveByAgentReportsOwnLatest(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedTitledTask(t, "a", "a-first", "2026-01-01T00:00:01Z")
 	seedTitledTask(t, "b", "b-first", "2026-01-01T00:00:02Z")
 	seedTitledTask(t, "a", "a-second", "2026-01-01T00:00:03Z")
@@ -48,7 +48,7 @@ func TestLatestObjectiveByAgentReportsOwnLatest(t *testing.T) {
 // scanning the task history: EXPLAIN QUERY PLAN must show index
 // use and no full table scan.
 func TestLatestObjectiveByAgentUsesIndex(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)
@@ -83,7 +83,7 @@ func TestLatestObjectiveByAgentUsesIndex(t *testing.T) {
 // the indexed path. One transaction keeps the fixture fast; the
 // projection itself is what the other two tests pin.
 func TestLatestObjectiveByAgentAtScale(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)

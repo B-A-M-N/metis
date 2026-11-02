@@ -201,6 +201,9 @@ func isNativeHarness(harness string) bool {
 // native: only a positive native declaration routes cancellation
 // down the MSP path.
 func sessionIsNative(session string) bool {
+	if ls, found, err := loadLogicalSession(session); err == nil && found && ls.Backend == TargetMuseNative {
+		return true
+	}
 	h, err := sessionHarness(session)
 	if err != nil || h == "" {
 		return false

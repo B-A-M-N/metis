@@ -17,7 +17,7 @@ import (
 // consumes: without a binding there is nowhere to steer, so the
 // send is refused and recorded — never silently filed.
 func TestNativeSteerWithoutBindingRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "nsr")
 	seedOwnedSession(t, "w", "nsr")
 	reg := loadRegistry()
@@ -43,7 +43,7 @@ func TestNativeSteerWithoutBindingRefused(t *testing.T) {
 // A bound native session with no live daemon fails closed: the
 // turn is never submitted, and the row records the failure.
 func TestNativeSteerWithoutDaemonFails(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("MUSEFI_DATA_HOME", t.TempDir())
 	installFakeTmux(t, "nsd")
 	seedOwnedSession(t, "w", "nsd")
@@ -77,7 +77,7 @@ func TestNativeSteerDeliversQueuedTurn(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	stopDaemon := startTestDaemon(t, home)

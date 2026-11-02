@@ -25,7 +25,7 @@ func reconcileOrFail(t *testing.T, taskID string) TaskReconciliation {
 // recommendation is to wait for (or investigate) the worker loop,
 // never to assume work happened.
 func TestReconcileDispatchedWaitsForPickup(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "rc1")
 	seedOwnedSession(t, "w", "rc1")
 	tk, err := createTask("run-rc", "w", "obj", "acc")
@@ -50,7 +50,7 @@ func TestReconcileDispatchedWaitsForPickup(t *testing.T) {
 // An open execution receipt (started, no result) means the outcome
 // is unknown — not success, not failure. The task stays working.
 func TestReconcileOpenExecutionIsUncertain(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "rc2")
 	seedOwnedSession(t, "w", "rc2")
 	tk, err := createTask("run-rc", "w", "obj", "acc")
@@ -85,7 +85,7 @@ func TestReconcileOpenExecutionIsUncertain(t *testing.T) {
 // A failed exit with no report stays unresolved with its failure
 // detail preserved — never auto-retried, never failed by fiat.
 func TestReconcileFailedExitPreservesEvidence(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "rc3")
 	seedOwnedSession(t, "w", "rc3")
 	tk, err := createTask("run-rc", "w", "obj", "acc")
@@ -124,7 +124,7 @@ func TestReconcileFailedExitPreservesEvidence(t *testing.T) {
 // Result plus report but no verdicts: the task is ready for review,
 // and reconcile says exactly that instead of implying verification.
 func TestReconcileReportReadyAwaitsVerdicts(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "rc4")
 	seedOwnedSession(t, "w", "rc4")
 	tk, err := createTask("run-rc", "w", "obj", "widget exists")
@@ -161,7 +161,7 @@ func TestReconcileReportReadyAwaitsVerdicts(t *testing.T) {
 
 // Terminal tasks reconcile as done; reconcile itself is read-only.
 func TestReconcileTerminalIsDoneAndReadOnly(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "rc5")
 	seedOwnedSession(t, "w", "rc5")
 	tk, err := createTask("run-rc", "w", "obj", "acc")

@@ -317,22 +317,32 @@ func nativeIdentityMatches(cur logicalSession, want mcpProvisionRecord) bool {
 // tmux session or PTY supervisor behind it. A name with neither is
 // an error, never an empty root a caller could mistake for "here".
 func resolveSessionWorkspace(session string) (string, error) {
-	if wd, err := sessionWorkdir(session); err == nil {
-		return wd, nil
-	} else {
-		serr := err
-		ls, found, lerr := loadLogicalSession(session)
-		if lerr != nil {
-			return "", serr
-		}
-		if !found {
-			return "", serr
-		}
-		if strings.TrimSpace(ls.Workspace) == "" {
-			return "", fmt.Errorf("logical session %q names no workspace", session)
-		}
-		return ls.Workspace, nil
+	if isPtySession(session) {
+		// A failed PTY lookup can mean an unreadable store. Do not
+		// reinterpret it as absence and fall through to another backend.
+		return sessionWorkdir(session)
 	}
+	reg, readable := loadRegistryKnown()
+	if !readable {
+		return "", fmt.Errorf("session registry is unreadable; refusing workspace fallback")
+	}
+	if entry, found := reg[session]; found {
+		return entry.Workdir, nil
+	}
+	ls, found, err := loadLogicalSession(session)
+	if err != nil {
+		return "", fmt.Errorf("logical session store is unreadable; refusing workspace fallback: %w", err)
+	}
+	if !found {
+		return "", fmt.Errorf("no such session: %s", session)
+	}
+	if ls.Backend != TargetMuseNative || ls.State != logicalActive {
+		return "", fmt.Errorf("logical session %q is not an active muse-native session", session)
+	}
+	if strings.TrimSpace(ls.Workspace) == "" {
+		return "", fmt.Errorf("logical session %q names no workspace", session)
+	}
+	return ls.Workspace, nil
 }
 
 // resolveLogicalModelFallback serves the model-decoupling edit in

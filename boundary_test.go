@@ -225,7 +225,7 @@ func TestBoundaryInternalTUIImportClosure(t *testing.T) {
 			if !strings.Contains(p, ".") {
 				continue // standard library
 			}
-			if p == "tui-dash/internal/termview" {
+			if p == "metis/internal/termview" {
 				continue // pure terminal math, explicitly allowed
 			}
 			t.Errorf("%s: internal/tui must not import %s: keep domain dependencies behind main-side adapters", path, p)

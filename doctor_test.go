@@ -12,7 +12,7 @@ import (
 // An uncertain execution (working task, open receipt) must show up
 // as DEGRADED with the task named — not OK, not silent.
 func TestDoctorFlagsUncertainExecution(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "doc1")
 	seedOwnedSession(t, "w", "doc1")
 	tk, err := createTask("run-doc1", "w", "obj", "acc")
@@ -52,7 +52,7 @@ func TestDoctorFlagsUncertainExecution(t *testing.T) {
 // directory must report BLOCKED/UNKNOWN, never create a database.
 func TestDoctorNeverMigrates(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("TUI_DASH_STATE", dir)
+	t.Setenv("METIS_STATE", dir)
 	entriesBefore, _ := os.ReadDir(dir)
 	rep, err := doctorReport()
 	if err != nil {
@@ -74,7 +74,7 @@ func TestDoctorNeverMigrates(t *testing.T) {
 // in doctor output even when the tmux registry is empty. The old
 // early return hid the entire PTY scan behind a nonempty registry.
 func TestDoctorSessionsPtyOnlyFleetListed(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedPtyRow(t, "pp", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
@@ -99,7 +99,7 @@ func TestDoctorSessionsPtyOnlyFleetListed(t *testing.T) {
 // A native-only fleet (logical_sessions row, empty registry, no PTY
 // rows) must appear as native:<name>, not vanish.
 func TestDoctorSessionsNativeOnlyListed(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedLogicalRow(t, "nw")
 	db, err := openTasksDB()
 	if err != nil {
@@ -120,7 +120,7 @@ func TestDoctorSessionsNativeOnlyListed(t *testing.T) {
 
 // Mixed fleets report every backend independently.
 func TestDoctorSessionsMixedBackends(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "doc-mix")
 	seedOwnedSession(t, "tm", "doc-mix")
 	seedPtyRow(t, "pp", t.TempDir())
@@ -145,7 +145,7 @@ func TestDoctorSessionsMixedBackends(t *testing.T) {
 // not a silent OK and not a panic. The file-backed tmux section
 // still reports from the registry.
 func TestDoctorSessionsMissingDBUnknown(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	var unknowns []string
 	doctorSessions(func(name, status, detail, source string) {
 		if status == ConditionUnknown {
@@ -160,7 +160,7 @@ func TestDoctorSessionsMissingDBUnknown(t *testing.T) {
 // A broken database (failed queries) must also surface UNKNOWN,
 // never silently drop the section.
 func TestDoctorSessionsFailedQueryUnknown(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedPtyRow(t, "pp", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {

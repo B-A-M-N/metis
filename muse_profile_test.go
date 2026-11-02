@@ -7,9 +7,12 @@ package main
 // fencing TD-052 demands for providers, extended to stores.
 
 import (
+	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestMuseProfileResolve(t *testing.T) {
@@ -49,7 +52,7 @@ func TestMuseProfileResolve(t *testing.T) {
 // A legacy binding row (bound before profiles existed) reads back
 // with an empty profile: ambient, never a fabricated one.
 func TestMuseBindingProfileFencing(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "w", "fence")
 	req := testReq("orch")
 	if err := bindMuseSession("w", "native-1", "c1", "echo", "muse-fi", req); err != nil {
@@ -81,7 +84,7 @@ func TestMuseBindingProfileFencing(t *testing.T) {
 }
 
 func TestMuseProfileMigration(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)
@@ -122,20 +125,20 @@ func TestMuseProfileMigration(t *testing.T) {
 // precisely so native sessions bind, turn, and resume with no shell
 // backing. A re-homed binding must still be refused.
 func TestCheckMuseExecutionScopeNativeOnly(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	ws, err := canonicalRoot(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	claimed, err := claimLogicalSession(logicalSession{
 		Name: "nl", Backend: TargetMuseNative, Workspace: ws,
-		Provider: "echo",
+		Provider: "echo", NativeID: "native-nl",
 	})
 	if err != nil || !claimed {
 		t.Fatalf("seed logical session: claimed=%v err=%v", claimed, err)
 	}
 	assertNoShellBacking(t, "native scope")
-	b := museBinding{Workspace: ws}
+	b := museBinding{NativeID: "native-nl", Workspace: ws, Provider: "echo"}
 	if err := checkMuseExecutionScope("nl", b); err != nil {
 		t.Fatalf("native-only session must pass scope on its own workspace: %v", err)
 	}
@@ -143,7 +146,73 @@ func TestCheckMuseExecutionScopeNativeOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := checkMuseExecutionScope("nl", museBinding{Workspace: other}); err == nil {
+	if err := checkMuseExecutionScope("nl", museBinding{NativeID: "native-nl", Workspace: other, Provider: "echo"}); err == nil {
 		t.Fatal("turn on a re-homed native session must be refused")
+	}
+}
+
+func TestMuseTurnRefusesStoppedNativeBeforeSubmit(t *testing.T) {
+	t.Setenv("METIS_STATE", t.TempDir())
+	ws, err := canonicalRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claimed, err := claimLogicalSession(logicalSession{Name: "stopped-native", Backend: TargetMuseNative,
+		Workspace: ws, Provider: "echo"}); err != nil || !claimed {
+		t.Fatalf("seed logical session: claimed=%v err=%v", claimed, err)
+	}
+	if err := bindMuseSession("stopped-native", "native-stopped", "cursor", "echo", "", testReq("operator")); err != nil {
+		t.Fatal(err)
+	}
+	if err := stopLogicalSession("stopped-native"); err != nil {
+		t.Fatal(err)
+	}
+	st := newNativeStub()
+	h := newNativeStubHost(t, st)
+	_, err = runNativeObservedTurn(context.Background(), h, "stopped-native", "must not submit", time.Second)
+	if err == nil || !strings.Contains(err.Error(), "stopped") {
+		t.Fatalf("stopped native turn must be refused: %v", err)
+	}
+	if got := st.submits.Load(); got != 0 {
+		t.Fatalf("refusal must precede external turn submission, got %d submits", got)
+	}
+}
+
+func TestNativeUseRejectsLogicalBindingDrift(t *testing.T) {
+	t.Setenv("METIS_STATE", t.TempDir())
+	ws, err := canonicalRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claimed, err := claimLogicalSession(logicalSession{Name: "drift", Backend: TargetMuseNative,
+		Workspace: ws, Provider: "echo", Profile: "muse-fi", NativeID: "native-right"}); err != nil || !claimed {
+		t.Fatalf("seed logical session: claimed=%v err=%v", claimed, err)
+	}
+	for name, binding := range map[string]museBinding{
+		"native id": {NativeID: "native-wrong", Workspace: ws, Provider: "echo", Profile: "muse-fi"},
+		"provider":  {NativeID: "native-right", Workspace: ws, Provider: "meta", Profile: "muse-fi"},
+		"profile":   {NativeID: "native-right", Workspace: ws, Provider: "echo", Profile: "ambient"},
+	} {
+		if err := requireNativeUseScope("drift", binding); err == nil {
+			t.Errorf("%s drift must be refused", name)
+		}
+	}
+}
+
+func TestWorkspaceResolverDoesNotFallbackOnStoreFailure(t *testing.T) {
+	t.Setenv("METIS_STATE", t.TempDir())
+	ws, err := canonicalRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claimed, err := claimLogicalSession(logicalSession{Name: "fallback", Backend: TargetMuseNative,
+		Workspace: ws, Provider: "echo"}); err != nil || !claimed {
+		t.Fatalf("seed logical session: claimed=%v err=%v", claimed, err)
+	}
+	if err := os.WriteFile(registryPath(), []byte("{"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := resolveSessionWorkspace("fallback"); err == nil || !strings.Contains(err.Error(), "registry is unreadable") {
+		t.Fatalf("unreadable shell store must not fall back to logical session: %v", err)
 	}
 }

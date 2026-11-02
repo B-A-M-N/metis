@@ -24,7 +24,7 @@ func mcpApproveCall(t *testing.T, args map[string]any) (mcpToolResult, error) {
 }
 
 func TestMCPApproveGated(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-mcp-approve")
 	base := map[string]any{
 		"session": "w", "provider": "echo", "approval_id": "ap-x",

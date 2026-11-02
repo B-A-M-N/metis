@@ -73,7 +73,7 @@ case "$1" in
     echo "$1 $@" >> "$FAKE_TMUX_LOG"
     # Track ownership stamps per target so a session created and
     # stamped by startSession verifies, mirroring real tmux.
-    if [ "$4" = "TUI_DASH_OWNER" ] && [ -n "$5" ]; then
+    if { [ "$4" = "METIS_OWNER" ] || [ "$4" = "TUI_DASH_OWNER" ]; } && [ -n "$5" ]; then
       printf '%s' "$5" > "$FAKE_TMUX_DIR/owner-$3"
     fi
     exit 0 ;;
@@ -111,7 +111,7 @@ func seedOwnedSession(t *testing.T, name, owner string) {
 // sessionsRound's trust flag lets the installer keep last-known
 // sessions rather than wiping the panes (P1).
 func TestSessionsRoundCorruptRegistryReportsFailure(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if err := os.WriteFile(registryPath(), []byte("{corrupt"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestSessionsRoundCorruptRegistryReportsFailure(t *testing.T) {
 }
 
 func TestResolveOwnedTargetBindsID(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "tok-1")
 	seedOwnedSession(t, "s", "tok-1")
 	_, target, err := resolveOwnedTarget(loadRegistry(), "s")
@@ -135,7 +135,7 @@ func TestResolveOwnedTargetBindsID(t *testing.T) {
 }
 
 func TestSendInputAndStopUseSessionID(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "tok-2")
 	seedOwnedSession(t, "s", "tok-2")
 	if err := sendTerminalInput("s", "hello", "Enter"); err != nil {
@@ -145,8 +145,10 @@ func TestSendInputAndStopUseSessionID(t *testing.T) {
 	if !strings.Contains(string(data), "send-keys -t $99") {
 		t.Fatalf("send-keys did not address the session id:\n%s", data)
 	}
-	if strings.Contains(string(data), "tui-s") {
-		t.Fatalf("destructive call used the replaceable name:\n%s", data)
+	for _, replaceable := range []string{"metis-s", "tui-s"} {
+		if strings.Contains(string(data), replaceable) {
+			t.Fatalf("destructive call used the replaceable name %q:\n%s", replaceable, data)
+		}
 	}
 	if err := stopSession("s"); err != nil {
 		t.Fatalf("stop: %v", err)
@@ -162,7 +164,7 @@ func TestSendInputAndStopUseSessionID(t *testing.T) {
 
 // A failed kill must never leave a live session recorded as stopped.
 func TestStopKillFailureDoesNotMarkStopped(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "tok-3")
 	t.Setenv("FAKE_TMUX_KILL_RC", "1")
 	seedOwnedSession(t, "s", "tok-3")
@@ -179,7 +181,7 @@ func TestStopKillFailureDoesNotMarkStopped(t *testing.T) {
 // cleanup this observes a startSession error with no kill-session
 // call in the tmux log.
 func TestStartSessionRegistryFailureCleansUpTmux(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "tok-cleanup")
 	markFakeTmuxDead(t) // has-session fails so the name reads as free
 	seedOwnedSession(t, "s", "tok-existing")
@@ -198,7 +200,7 @@ func TestStartSessionRegistryFailureCleansUpTmux(t *testing.T) {
 }
 
 func TestRegistryLockConcurrentWrites(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	var wg sync.WaitGroup
 	for i := 0; i < 16; i++ {
 		wg.Add(1)
@@ -228,7 +230,7 @@ func TestRegistryLockConcurrentWrites(t *testing.T) {
 // reported "cannot resolve session id" and left Stopped=false, so
 // a finished worker lingered as live in the registry).
 func TestStopDeadSessionMarksStopped(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "tok-9")
 	seedOwnedSession(t, "s", "tok-9")
 	deadDir := t.TempDir()
@@ -254,7 +256,7 @@ func TestStopDeadSessionMarksStopped(t *testing.T) {
 // immutable session ID retires the resolved name so the post-kill
 // confirm loop observes the death.
 func TestFakeTmuxPerSessionLiveness(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "tok-i")
 	markFakeTmuxDead(t)
 	if err := startSession("a", t.TempDir(), "sleep 60", "custom", ""); err != nil {

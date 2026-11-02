@@ -20,7 +20,7 @@ import (
 
 func phase3Setup(t *testing.T, owner, sess string) string {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, owner)
 	seedOwnedSession(t, sess, owner)
 	return loadRegistry()[sess].Workdir

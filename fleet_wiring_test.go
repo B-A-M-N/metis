@@ -13,7 +13,7 @@ import (
 // An offered attempt runs to completion under its claim: the fleet
 // row settles completed, the slot frees, and the report still files.
 func TestFleetOfferExecutesUnderClaim(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fw1")
 	seedOwnedSession(t, "w", "fw1")
 	tk, err := createTask("run-fw1", "w", "print hello", "output says hello")
@@ -69,7 +69,7 @@ func TestFleetOfferExecutesUnderClaim(t *testing.T) {
 // settled. Capacity exhaustion — not a rival claim on the same
 // attempt — is the contention that one node can actually observe.
 func TestFleetClaimContentionRefusesWorker(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fw2")
 	seedOwnedSession(t, "w", "fw2")
 	seedOwnedSession(t, "wx", "fw2")
@@ -122,7 +122,7 @@ func TestFleetClaimContentionRefusesWorker(t *testing.T) {
 // between claim and ack, reconnect replay); a settled execution
 // is never re-claimed — retries need new attempts.
 func TestFleetSameNodeClaimConverges(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fw4")
 	seedHarnessSession(t, "w", "fw4", "demo")
 	tk, err := createTask("run-fw4", "w", "obj", "acc")
@@ -157,7 +157,7 @@ func TestFleetSameNodeClaimConverges(t *testing.T) {
 // Without an offer the loop runs exactly as before: no fleet row,
 // no slot consumed, report filed on the legacy path.
 func TestFleetNoOfferLegacyPath(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "fw3")
 	seedOwnedSession(t, "w", "fw3")
 	tk, err := createTask("run-fw3", "w", "print hello", "output says hello")
@@ -187,7 +187,7 @@ func TestFleetNoOfferLegacyPath(t *testing.T) {
 // The local node identity is stable across calls and heartbeats
 // stay fresh: one machine, one node row, always live.
 func TestLocalFleetNodeStable(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := localFleetNodeID()
 	if err != nil {
 		t.Fatalf("first resolve: %v", err)

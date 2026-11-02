@@ -1,17 +1,15 @@
 package main
 
-// Session management for tui-dash: tmux sessions, registry, git info,
+// Session management for Metis: tmux sessions, registry, git info,
 // guidance injection, and headless snapshots.
 //
-// Same model as the Python live-tui-dashboard, deliberately:
-//   - tmux session names are tui-<name>, so the two tools can see
-//     each other's sessions.
+// New tmux sessions use the Metis prefix. Registered sessions retain
+// their concrete target so legacy tui-<name> sessions stay addressable.
 //   - guidance defaults to file mode: appended to <workdir>/guidance.md
 //     and to events.jsonl. Direct mode also sends the text to the
 //     tmux pane and can collide with agent input, so it is off by default.
-//   - this file shows Muse's orchestrator view, not Muse's own chat
-//     work. There is no TUI for that; the worker in tmux is what
-//     the dashboard watches.
+//   - the dashboard shows workers and durable orchestration records,
+//     not Muse's own chat conversation.
 //
 // This file holds only the Session identity/data record. Behavior
 // lives in the cohesive components: session_registry.go (persistence),
@@ -31,7 +29,7 @@ type Session struct {
 	Command string `json:"command"`
 	Created string `json:"created"`
 	Stopped bool   `json:"stopped,omitempty"`
-	// Owner is a per-session token proving TUI-dash started this
+	// Owner is a per-session token proving Metis started this
 	// session. Destructive operations (stop, direct input) verify it
 	// against the live tmux session environment before acting, so a
 	// name collision with another tool's session can never cause us

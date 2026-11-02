@@ -4,8 +4,8 @@ package main
 //
 // The in-memory ops ring is process-local: a separate `ops`
 // invocation can never read it. The `ops` command therefore reads
-// the opt-in JSONL sink ($TUI_DASH_STATE/ops_diag.jsonl, enabled
-// with TUI_DASH_OPS_DIAG=1) that the owning process appends while
+// the opt-in JSONL sink ($METIS_STATE/ops_diag.jsonl, enabled
+// with METIS_OPS_DIAG=1) that the owning process appends while
 // it runs. Same gate, same redacted content, same caps.
 //
 // This command is observe-only by construction: its only state
@@ -44,9 +44,9 @@ const opsHumanCap = 300
 // still bounds the sink rows scanned.
 type opsFilter struct {
 	req, task, session, phase, class string
-	attempt                         int
-	errorsOnly                      bool
-	since                           time.Duration
+	attempt                          int
+	errorsOnly                       bool
+	since                            time.Duration
 }
 
 // filterOpsEvents keeps the events matching f, oldest-first in,
@@ -118,12 +118,12 @@ func cliOps(args []string) int {
 	errorsOnly := fs.Bool("errors-only", false, "only error dispositions")
 	since := fs.Duration("since", 0, "only events from the last duration (e.g. 30m, 2h)")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: tui-dash ops [--limit N] [--json] [--req ID] [--task ID] [--attempt N] [--session S] [--phase P] [--class C] [--errors-only] [--since D]")
+		fmt.Fprintln(os.Stderr, "usage: metis ops [--limit N] [--json] [--req ID] [--task ID] [--attempt N] [--session S] [--phase P] [--class C] [--errors-only] [--since D]")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Read recent operation diagnostics (best-effort sample;")
 		fmt.Fprintln(os.Stderr, "the ledger stays authoritative). Filters select within")
 		fmt.Fprintln(os.Stderr, "the bounded read; --limit still bounds rows scanned.")
-		fmt.Fprintln(os.Stderr, "Opt in with TUI_DASH_OPS_DIAG=1; reads $TUI_DASH_STATE/ops_diag.jsonl.")
+		fmt.Fprintln(os.Stderr, "Opt in with METIS_OPS_DIAG=1; sink path: "+opsSinkPath()+" (legacy TUI_DASH_OPS_DIAG is accepted).")
 	}
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -146,7 +146,7 @@ func cliOps(args []string) int {
 	evs, err := readOpsSink(n)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Fprintln(os.Stderr, "no ops diagnostics recorded yet ("+opsSinkPath()+"; set TUI_DASH_OPS_DIAG=1 to opt in)")
+			fmt.Fprintln(os.Stderr, "no ops diagnostics recorded yet ("+opsSinkPath()+"; set METIS_OPS_DIAG=1 to opt in)")
 			return 0
 		}
 		fmt.Fprintln(os.Stderr, err)

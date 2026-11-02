@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"path/filepath"
+	"sort"
+	"strings"
 )
 
 // tui_source.go: the read-model behind one dashboard refresh.
@@ -21,15 +24,27 @@ import (
 
 // sessionSnapshot is one row of the session list read-model.
 type sessionSnapshot struct {
-	name    string
-	running bool
-	entry   Session
+	name     string
+	running  bool
+	entry    Session
+	identity sessionIdentity
 	// logGen is the session's output generation; hasGen is false
 	// when the store reports none (tmux sessions report theirs
 	// through the content snapshot instead).
 	logGen int
 	hasGen bool
 	detail tabDetail
+}
+
+// sessionIdentity keeps the display key used by navigation separate
+// from the canonical backend session name used by execution paths.
+type sessionIdentity struct {
+	Canonical   string
+	Backend     string
+	Lifecycle   string
+	Observation string
+	Provider    string
+	Profile     string
 }
 
 // contentSnapshot is the selected session's terminal content.
@@ -72,6 +87,7 @@ type refreshSnapshots struct {
 	// keeps last-known sessions instead of wiping the panes.
 	sessionsOk bool
 	content    contentSnapshot
+	identities map[string]sessionIdentity
 	feed       feedSnapshot
 	panel      panelSnapshot
 }
@@ -80,7 +96,7 @@ type refreshSnapshots struct {
 // production implementation queries the controllers; refresh
 // assembly and rendering consume only this interface.
 type refreshSource interface {
-	snapshots(sel string, everyGit bool) refreshSnapshots
+	snapshots(ctx context.Context, sel string, everyGit bool) refreshSnapshots
 }
 
 // liveRefreshSource is the production refreshSource: it queries the
@@ -89,18 +105,50 @@ type refreshSource interface {
 // refreshCmd), never inside Update or View.
 type liveRefreshSource struct{}
 
-func (liveRefreshSource) snapshots(sel string, everyGit bool) refreshSnapshots {
+func (liveRefreshSource) snapshots(ctx context.Context, sel string, everyGit bool) refreshSnapshots {
 	var out refreshSnapshots
-	reg, metas, metaByDisplay, batchLive, listOK := sessionsRound()
+	if ctx.Err() != nil {
+		return out
+	}
+	reg, metas, metaByDisplay, batchLive, listOK := sessionsRoundContext(ctx)
 	out.sessionsOk = listOK
-	out.sessions = liveSessionsSnapshot(reg, metas, metaByDisplay, batchLive)
-	out.content = liveContentSnapshot(reg, metaByDisplay, sel, everyGit)
+	out.sessions = liveSessionsSnapshotContext(ctx, reg, metas, metaByDisplay, batchLive)
+	nativeRows, nativeErr := listNativeSessions()
+	if nativeErr != nil {
+		out.sessionsOk = false
+	} else {
+		for _, ls := range nativeRows {
+			key := nativePrefix + ls.Name
+			out.sessions = append(out.sessions, sessionSnapshot{
+				name: key, running: ls.State == logicalActive,
+				entry: Session{Name: ls.Name, Workdir: ls.Workspace, Harness: ls.Harness, Model: ls.Model},
+				identity: sessionIdentity{Canonical: ls.Name, Backend: TargetMuseNative,
+					Lifecycle: ls.State, Observation: "durable_local", Provider: ls.Provider, Profile: ls.Profile},
+				detail: tabDetail{Harness: ls.Harness, Model: ls.Model, Title: ls.Objective},
+			})
+		}
+	}
+	if ctx.Err() != nil {
+		return refreshSnapshots{sessionsOk: false}
+	}
+	sort.Slice(out.sessions, func(i, j int) bool { return out.sessions[i].name < out.sessions[j].name })
+	out.content = liveContentSnapshotContext(ctx, reg, metaByDisplay, sel, everyGit)
+	if strings.HasPrefix(sel, nativePrefix) {
+		out.content = liveNativeContentSnapshot(nativeRows, strings.TrimPrefix(sel, nativePrefix))
+	}
 	out.feed = liveFeedSnapshot()
 	// The banner renders only in worker view, where the muse-tab
 	// fallback never applies: pass false so the selected worker's
 	// own run wins and only an empty/unknown selection falls back
 	// to the newest run.
-	out.panel = livePanelSnapshot(false, sel)
+	panelSel := sel
+	if strings.HasPrefix(sel, nativePrefix) {
+		panelSel = strings.TrimPrefix(sel, nativePrefix)
+	}
+	out.panel = livePanelSnapshot(false, panelSel)
+	if ctx.Err() != nil {
+		return refreshSnapshots{sessionsOk: false}
+	}
 	return out
 }
 
@@ -109,6 +157,10 @@ func (liveRefreshSource) snapshots(sel string, everyGit bool) refreshSnapshots {
 // liveness classification. Pane builders below share these maps
 // instead of reopening stores per session.
 func sessionsRound() (reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool, listOK bool) {
+	return sessionsRoundContext(context.Background())
+}
+
+func sessionsRoundContext(ctx context.Context) (reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool, listOK bool) {
 	var regOK bool
 	reg, regOK = loadRegistryKnown()
 	var ptyErr error
@@ -121,7 +173,7 @@ func sessionsRound() (reg map[string]Session, metas []ptyMeta, metaByDisplay map
 	// One list-sessions call classifies the whole tmux fleet; a nil
 	// map means the batch failed and rows fall back to per-session
 	// checks.
-	if lv, err := tmuxLiveSessions(); err == nil {
+	if lv, err := tmuxLiveSessionsContext(ctx); err == nil {
 		batchLive = lv
 	}
 	return reg, metas, metaByDisplay, batchLive, listOK
@@ -133,11 +185,17 @@ func sessionsRound() (reg map[string]Session, metas []ptyMeta, metaByDisplay map
 // query names every tab; task.Agent is the session name for tmux
 // sessions and either display or bare name for PTY ones.
 func liveSessionsSnapshot(reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool) []sessionSnapshot {
+	return liveSessionsSnapshotContext(context.Background(), reg, metas, metaByDisplay, batchLive)
+}
+
+func liveSessionsSnapshotContext(ctx context.Context, reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool) []sessionSnapshot {
 	var out []sessionSnapshot
 	titles := latestTitleByAgent()
 	for _, n := range combinedNames(reg, metas) {
 		row := sessionSnapshot{name: n}
+		row.identity = sessionIdentity{Canonical: n, Backend: TargetTMUX, Observation: "terminal_stream"}
 		if mt, ok := metaByDisplay[n]; ok {
+			row.identity = sessionIdentity{Canonical: mt.Name, Backend: TargetPTY, Observation: "pty_log"}
 			// ptyListAll fetched every record in one query;
 			// classify in memory instead of reopening the
 			// database per session.
@@ -152,9 +210,13 @@ func liveSessionsSnapshot(reg map[string]Session, metas []ptyMeta, metaByDisplay
 			row.detail = tabDetail{Harness: mt.Harness, Model: mt.Model, Title: title}
 		} else if e, ok := reg[n]; ok {
 			if batchLive != nil {
-				row.running = batchLive[tmuxName(n)]
+				target := e.Tmux
+				if target == "" {
+					target = sessionTmuxTarget(n, "")
+				}
+				row.running = batchLive[target]
 			} else {
-				row.running = sessionRunning(n)
+				row.running = sessionRunningContext(ctx, n)
 			}
 			row.entry = e
 			row.detail = tabDetail{Harness: e.Harness, Model: e.Model, Title: titles[n]}
@@ -162,6 +224,64 @@ func liveSessionsSnapshot(reg map[string]Session, metas []ptyMeta, metaByDisplay
 		out = append(out, row)
 	}
 	return out
+}
+
+// liveNativeContentSnapshot projects durable local facts only. It
+// never starts an MSP host during the periodic refresh loop.
+func liveNativeContentSnapshot(rows []logicalSession, name string) contentSnapshot {
+	for _, ls := range rows {
+		if ls.Name != name {
+			continue
+		}
+		lines := []string{
+			"Backend: muse-native",
+			"Lifecycle: " + ls.State + " (recorded)",
+			"Binding: " + map[bool]string{true: "bound", false: "not bound"}[ls.NativeID != ""],
+			"Native session: " + orDash(ls.NativeID),
+			"Provider: " + orDash(ls.Provider),
+			"Profile: " + orDash(ls.Profile),
+			"Workspace: " + orDash(ls.Workspace),
+			"Updated: " + orDash(ls.Updated),
+			"Current task: " + nativeTaskSummary(ls.Name, ls.Workspace),
+			"Turn record: " + nativeTurnSummary(ls.Name),
+		}
+		return contentSnapshot{found: true, entry: Session{Name: ls.Name, Workdir: ls.Workspace,
+			Harness: ls.Harness, Model: ls.Model}, live: lines}
+	}
+	return contentSnapshot{}
+}
+
+func nativeTaskSummary(name, workspace string) string {
+	id, err := queryLatestRun(`SELECT id FROM tasks WHERE agent = ? AND execution_root = ?
+		ORDER BY created DESC LIMIT 1`, name, workspace)
+	if err != nil || id == "" {
+		return "none recorded"
+	}
+	tk, _, _, _, err := taskStatusDetail(id)
+	if err != nil {
+		return id + " (status unavailable)"
+	}
+	return id + " (" + tk.Status + ")"
+}
+
+// nativeTurnSummary reads an already persisted admission record only;
+// it does not contact Muse and does not claim terminal completion.
+func nativeTurnSummary(name string) string {
+	db, err := openReadOnlyDB()
+	if err != nil {
+		return "unavailable"
+	}
+	defer db.Close()
+	var state, turn string
+	err = db.QueryRow(`SELECT state, turn_id FROM muse_turn_intents
+		WHERE session = ? ORDER BY updated DESC LIMIT 1`, name).Scan(&state, &turn)
+	if err != nil {
+		return "no durable terminal observation"
+	}
+	if turn == "" {
+		return "submission " + state + "; terminal outcome not recorded here"
+	}
+	return "turn " + turn + " submission " + state + "; terminal outcome not recorded here"
 }
 
 // liveContentSnapshot reads the selected session's terminal content.
@@ -177,6 +297,10 @@ func liveSessionsSnapshot(reg map[string]Session, metas []ptyMeta, metaByDisplay
 // existing live/git/events slices through refreshData, so a capped
 // pane never presents as complete.
 func liveContentSnapshot(reg map[string]Session, metaByDisplay map[string]ptyMeta, sel string, everyGit bool) contentSnapshot {
+	return liveContentSnapshotContext(context.Background(), reg, metaByDisplay, sel, everyGit)
+}
+
+func liveContentSnapshotContext(ctx context.Context, reg map[string]Session, metaByDisplay map[string]ptyMeta, sel string, everyGit bool) contentSnapshot {
 	if sel == "" {
 		return contentSnapshot{}
 	}
@@ -202,7 +326,7 @@ func liveContentSnapshot(reg map[string]Session, metaByDisplay map[string]ptyMet
 	}
 	if e, ok := reg[sel]; ok {
 		out := contentSnapshot{found: true, entry: e}
-		out.live = captureOutput(sel, 500)
+		out.live = captureOutputContext(ctx, sel, 500)
 		if everyGit {
 			out.git = gitInfo(e.Workdir)
 			out.hasGit = true
@@ -264,7 +388,7 @@ func latestTitleByAgent() map[string]string {
 // assembleRefresh builds the immutable refreshData projection from
 // read-model snapshots. Pure: no controllers, no formatting, no I/O.
 func assembleRefresh(s refreshSnapshots, gen int, sel string) refreshData {
-	out := refreshData{gen: gen, sel: sel, logGen: map[string]int{}, tabInfo: map[string]tabDetail{}}
+	out := refreshData{gen: gen, sel: sel, logGen: map[string]int{}, tabInfo: map[string]tabDetail{}, identities: map[string]sessionIdentity{}}
 	out.sessionsOk = s.sessionsOk
 	out.names = make([]string, 0, len(s.sessions))
 	out.running = make(map[string]bool, len(s.sessions))
@@ -275,6 +399,7 @@ func assembleRefresh(s refreshSnapshots, gen int, sel string) refreshData {
 			out.logGen[r.name] = r.logGen
 		}
 		out.tabInfo[r.name] = r.detail
+		out.identities[r.name] = r.identity
 	}
 	// The feed is global and gen-gated like everything else in the
 	// projection: a refused generation never paints a stale feed as

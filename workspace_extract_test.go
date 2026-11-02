@@ -13,7 +13,7 @@ import (
 // The driver carries the allocation git timeout and resolves HEAD
 // exactly like the package shims used before extraction.
 func TestWorkspaceSplitDriverMatchesShims(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	d := defaultGitDriver()
 	if d.Timeout <= 0 {
@@ -50,7 +50,7 @@ func TestWorkspaceSplitDriverMatchesShims(t *testing.T) {
 // Conditional transitions refuse through the repository type: a
 // missing binding affects zero rows and is an error.
 func TestWorkspaceSplitRepositoryGuardsTransition(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatalf("openTasksDB: %v", err)
@@ -70,7 +70,7 @@ func TestWorkspaceSplitRepositoryGuardsTransition(t *testing.T) {
 // a full alloc/release cycle through the new types preserves the
 // release-keeps-directory invariant.
 func TestWorkspaceSplitAllocatorCycleKeepsDirectory(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	a := defaultWorkspaceAllocator()
 	wantPath := filepath.Join(repo, ".metis-worktrees", "task-split-1")

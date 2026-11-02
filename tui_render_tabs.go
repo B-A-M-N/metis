@@ -65,7 +65,7 @@ func buildWorkerTabs(m model, innerW int) []string {
 		tabs = append(tabs, tabLabel(prefix, mark, n, m.tabInfo[n], innerW))
 	}
 	if len(tabs) == 0 {
-		tabs = []string{"(none: use tui-dash up)"}
+		tabs = []string{"(none: use metis up)"}
 	}
 	return tabs
 }

@@ -278,7 +278,7 @@ func museManagedTurn(ctx context.Context, session, prompt string, timeout time.D
 	var out museTurnOutcome
 	b, err := getMuseBinding(session)
 	if err != nil {
-		return out, musePreSubmit(fmt.Errorf("no muse binding for session %s: bind it first (tui-dash muse bind); refusing silent fallback", session))
+		return out, musePreSubmit(fmt.Errorf("no muse binding for session %s: bind it first (metis muse bind); refusing silent fallback", session))
 	}
 	if err := checkMuseExecutionScope(session, b); err != nil {
 		return out, musePreSubmit(err)

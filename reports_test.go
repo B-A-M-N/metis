@@ -8,7 +8,7 @@ import (
 )
 
 func TestArtifactEvidence(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "oa")
 	seedOwnedSession(t, "agent9", "oa")
 	work := loadRegistry()["agent9"].Workdir
@@ -75,7 +75,7 @@ func TestArtifactEvidence(t *testing.T) {
 }
 
 func TestDispatchDeliversInstruction(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "od")
 	seedOwnedSession(t, "worker1", "od")
 	work := loadRegistry()["worker1"].Workdir
@@ -111,7 +111,7 @@ func TestDispatchDeliversInstruction(t *testing.T) {
 }
 
 func TestVerifyRequiresEvidence(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "ov")
 	seedOwnedSession(t, "worker2", "ov")
 	work := loadRegistry()["worker2"].Workdir
@@ -201,7 +201,7 @@ func TestVerifyRequiresEvidence(t *testing.T) {
 }
 
 func TestCompareReports(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "or")
 	seedOwnedSession(t, "sess-a", "or")
 	seedOwnedSession(t, "sess-b", "or")

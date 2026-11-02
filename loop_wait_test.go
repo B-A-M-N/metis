@@ -13,7 +13,7 @@ import (
 // No committed work: the wait ends at the deadline and reports
 // nothing to do. Bounded by construction.
 func TestWaitForWorkTimesOut(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "lw1")
 	seedOwnedSession(t, "w", "lw1")
 	start := time.Now()
@@ -29,7 +29,7 @@ func TestWaitForWorkTimesOut(t *testing.T) {
 // dispatch, dispatch later, and the loop must notice without
 // another manual invocation.
 func TestWaitForWorkWakesOnDispatch(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "lw2")
 	seedOwnedSession(t, "w", "lw2")
 	tk, err := createTask("run-lw2", "w", "obj", "acc")
@@ -47,7 +47,7 @@ func TestWaitForWorkWakesOnDispatch(t *testing.T) {
 
 // A closed stop channel interrupts the wait immediately.
 func TestWaitForWorkStopsOnSignal(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "lw3")
 	seedOwnedSession(t, "w", "lw3")
 	stop := make(chan struct{})
@@ -66,7 +66,7 @@ func TestWaitForWorkStopsOnSignal(t *testing.T) {
 // replacement attempt must reconcile first, never silently
 // overwrite.
 func TestLoopRestartNamesOpenExecutions(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "lw4")
 	seedOwnedSession(t, "w", "lw4")
 	tk, err := createTask("run-lw4", "w", "obj", "acc")

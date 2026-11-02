@@ -3,7 +3,7 @@ package main
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 // tui_attach.go: terminal attachment as an async command.
@@ -62,6 +62,10 @@ func attachCmd(sel string, gen int) tea.Cmd {
 func (m *model) requestAttach() tea.Cmd {
 	if m.nav.OnMuse {
 		m.jumpToFeedTarget()
+		return nil
+	}
+	if sel := m.selName(); sel != "" && m.isNativeSelection(sel) {
+		m.status = "native worker: use i for structured Muse steering (terminal attach unavailable)"
 		return nil
 	}
 	sel, ok := m.attachTarget()

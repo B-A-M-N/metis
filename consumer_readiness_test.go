@@ -58,7 +58,7 @@ func hasKind(kinds []string, kind string) bool {
 // deadline — and the later pickup must execute exactly once: a
 // second pickup and a second execution binding are both refused.
 func TestDispatchParkedSessionBlockedLaterPickupExactlyOnce(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	parkSession(t, "parked", "f07-park")
 	tk, err := createTask("run-f07-park", "agent", "parked objective", "done")
 	if err != nil {
@@ -154,7 +154,7 @@ func TestDispatchParkedSessionBlockedLaterPickupExactlyOnce(t *testing.T) {
 // bumps the generation and re-attaches, and the pickup that follows
 // still wins exactly once — the duplicate stays refused.
 func TestConsumerKillRestartDuplicatePickupRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	parkSession(t, "flaky", "f07-flaky")
 	a, err := lookupAdapter("demo")
 	if err != nil {
@@ -244,7 +244,7 @@ func mustReceipts(t *testing.T, taskID string) []Receipt {
 // the handoff: dispatchable, pickup_pending, consumer_attached,
 // execution_claimed.
 func TestDispatchReadinessProjectionDistinct(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	parkSession(t, "w-states", "f07-states")
 	a, err := lookupAdapter("demo")
 	if err != nil {
@@ -283,7 +283,7 @@ func TestDispatchReadinessProjectionDistinct(t *testing.T) {
 // An overdue assignment — dispatched, never picked up, deadline
 // passed — must say so in the projection.
 func TestDispatchAssignmentOverdue(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	parkSession(t, "w-late", "f07-late")
 	oldDeadline := dispatchPickupDeadline
 	dispatchPickupDeadline = -time.Second
@@ -307,7 +307,7 @@ func TestDispatchAssignmentOverdue(t *testing.T) {
 // The supervisor path starts the loop identity for a managed
 // session and maintains it across restarts as new generations.
 func TestEnsureManagedWorkerLoopStartsAndRestarts(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "f07-sup")
 	seedHarnessSession(t, "managed", "f07-sup", "demo")
 	sup, gen1, err := ensureManagedWorkerLoop("managed", testReq("sup"))

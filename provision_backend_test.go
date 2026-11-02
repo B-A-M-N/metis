@@ -45,7 +45,7 @@ func provisionState(t *testing.T, requestID string) string {
 }
 
 func TestMCPProvisionPtyBackend(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pty-prov")
 	work := t.TempDir()
 	mustRegisterRoot(t, work, true)
@@ -100,7 +100,7 @@ func TestMCPProvisionPtyBackend(t *testing.T) {
 }
 
 func TestMCPProvisionBackendConflict(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "pty-conflict")
 	markFakeTmuxDead(t)
 	work := t.TempDir()
@@ -133,7 +133,7 @@ func TestMCPProvisionBackendConflict(t *testing.T) {
 }
 
 func TestMCPProvisionNativeRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	for _, args := range []map[string]any{
 		{"run": "rn", "session": "n1", "objective": "do", "actor": "orch",

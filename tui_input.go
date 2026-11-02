@@ -3,7 +3,7 @@ package main
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 // tui_input.go: keyboard and guidance interactions. Extracted from tui.go; behavior unchanged.
@@ -35,6 +35,11 @@ func (m *model) attachKey(msg tea.KeyMsg) (model, tea.Cmd) {
 	if msg.String() == "esc" {
 		m.nav = m.nav.ToNav()
 		m.status = "detached (session keeps running)"
+		return *m, nil
+	}
+	if sel := m.selName(); sel != "" && m.isNativeSelection(sel) {
+		m.nav = m.nav.ToNav()
+		m.status = "native workers have no terminal input surface"
 		return *m, nil
 	}
 	sel, ok := m.attachTarget()

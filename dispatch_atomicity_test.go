@@ -22,7 +22,7 @@ import (
 // name the new ledger attempt, or runWorkerOnce refuses the pickup
 // as a file/ledger divergence and the retry is dead on arrival.
 func TestRetryRefreshesAttemptSidecar(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "atom1")
 	seedOwnedSession(t, "w", "atom1")
 	tk, err := createTask("run-atom1", "agent", "obj", "")
@@ -60,7 +60,7 @@ func TestRetryRefreshesAttemptSidecar(t *testing.T) {
 // exactly one replacement: one winner, one attempt bump, one fresh
 // claimed row. Anything else is a duplicate execution lineage.
 func TestConcurrentReconcileSingleWinner(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "atom2")
 	seedOwnedSession(t, "w", "atom2")
 	tk, err := createTask("run-atom2", "agent", "obj", "")
@@ -110,7 +110,7 @@ func TestConcurrentReconcileSingleWinner(t *testing.T) {
 // itself, not by a pre-check that both racers can pass together.
 // Two sessions (distinct roots) isolate this from workspace occupancy.
 func TestConcurrentDispatchRespectsRunLimit(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "atom3")
 	seedOwnedSession(t, "w1", "atom3")
 	seedOwnedSession(t, "w2", "atom3")

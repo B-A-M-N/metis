@@ -39,7 +39,7 @@ func agentsHas(t *testing.T, res mcpToolResult, name string) {
 }
 
 func TestMCPProvisionRoundTrip(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "prov-owner")
 	markFakeTmuxDead(t)
 	work := t.TempDir()
@@ -117,7 +117,7 @@ func TestMCPProvisionRoundTrip(t *testing.T) {
 }
 
 func TestMCPProvisionDefaults(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "prov-def")
 	markFakeTmuxDead(t)
 	// No workdir/command: the tool parks the session under a
@@ -144,7 +144,7 @@ func TestMCPProvisionDefaults(t *testing.T) {
 }
 
 func TestMCPBindRefusesWithoutDaemon(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "bind-owner")
 	seedOwnedSession(t, "wb", "bind-owner")
 	// Scrubbed PATH per LEDGER: the muse binary lives outside
@@ -180,7 +180,7 @@ func TestMCPBindRefusesWithoutDaemon(t *testing.T) {
 }
 
 func TestMCPProvisionBindAuth(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-provision")
 	installFakeTmux(t, "prov-auth")
 	markFakeTmuxDead(t)

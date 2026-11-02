@@ -15,14 +15,16 @@ these components.
 - `nav_test.go` — pure reducer tests; no tmux, registry, DB, or
   event loop.
 - `refresh.go` — refresh coordinator state (`Refresh`): tick count,
-  projection generation, in-flight accounting with exact-request
-  correlation (outstanding gen + dispatch tick; `stallAfterTicks`
-  abandonment so hung rounds cannot stall refresh). Only its
-  transitions mutate a `Refresh`; the shell builds commands from
-  the returned decisions and reports each delivery with its gen.
+  projection generation, fixed one-acquisition budget, exact-request
+  completion correlation, and latest-selection coalescing. An active
+  source is never abandoned to free capacity; late completions cannot
+  release a newer request's permit. The source adapter applies a
+  deadline and cancellation where supported; timeout alone does not
+  release the coordinator permit. Only its transitions mutate a
+  `Refresh`; the shell builds commands and reports each delivery gen.
 - `refresh_test.go` — pure coordinator tests (single-flight, exact
-  delivery correlation, reselect storms, hung-round abandonment,
-  gen fencing, git cadence); no tmux, registry, DB, or event loop.
+  delivery correlation, reselect storms, non-abandonment, gen
+  fencing, git cadence); no tmux, registry, DB, or event loop.
 
 ## Local Contracts
 

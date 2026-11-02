@@ -8,7 +8,7 @@ import (
 // reservation, and the second waiter is refused, not queued
 // silently.
 func TestFleetResourcesCapacityGates(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	id, err := enrollFleetNode("host-cap", `{}`)
 	if err != nil {
 		t.Fatalf("enrollFleetNode: %v", err)
@@ -30,7 +30,7 @@ func TestFleetResourcesCapacityGates(t *testing.T) {
 // and the released identity cannot be double-released into a
 // negative load.
 func TestFleetResourcesReleaseFrees(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	id, err := enrollFleetNode("host-rel", `{}`)
 	if err != nil {
 		t.Fatalf("enrollFleetNode: %v", err)
@@ -57,7 +57,7 @@ func TestFleetResourcesReleaseFrees(t *testing.T) {
 // Reserving on an unknown node is refused: capacity is a property
 // of enrolled nodes, never of bare hostnames.
 func TestFleetResourcesUnknownNodeRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	req := OperationRequest{Actor: "test", RequestID: newRequestID()}
 	if err := reserveFleetSlot("node-missing", "t", "a", req); err == nil {
 		t.Fatal("reserved on unknown node, want refusal")

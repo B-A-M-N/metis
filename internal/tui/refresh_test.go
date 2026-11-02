@@ -45,15 +45,14 @@ func TestRefreshTickSingleFlight(t *testing.T) {
 	}
 }
 
-func TestRefreshReselectBypassesPending(t *testing.T) {
+func TestRefreshReselectCoalescesBehindPending(t *testing.T) {
 	var r Refresh
 	r, out := r.Tick()
 	if !out.Dispatch {
 		t.Fatal("tick 1 must dispatch")
 	}
-	// A selection change prioritizes fresh data even while a round
-	// is outstanding; the older generation is refused downstream by
-	// the gen gate, not here.
+	// A selection change invalidates the old projection without
+	// launching a second acquisition.
 	r, gen := r.Reselect()
 	if gen != 2 {
 		t.Fatalf("reselect must bump to gen 2, got %d", gen)
@@ -61,24 +60,14 @@ func TestRefreshReselectBypassesPending(t *testing.T) {
 	if !r.Pending {
 		t.Fatal("reselect must not clear in-flight accounting")
 	}
-	// The stale round's delivery does NOT re-arm dispatch: only the
-	// current (reselect) round's delivery clears accounting; the
-	// next odd tick then collects the current generation.
+	// The original command still owns the permit until it completes.
 	r = r.OnDelivered(1)
-	if !r.Pending {
-		t.Fatal("stale delivery must leave in-flight accounting intact")
-	}
-	r = r.OnDelivered(gen)
 	if r.Pending {
-		t.Fatal("current delivery must clear in-flight accounting")
+		t.Fatal("originating delivery must release its exact permit")
 	}
-	r, out = r.Tick() // tick 2: even
-	if out.Dispatch {
-		t.Fatalf("tick 2 must not dispatch, got %+v", out)
-	}
-	r, out = r.Tick() // tick 3: odd, idle
-	if !out.Dispatch || out.Gen != 3 {
-		t.Fatalf("tick 3 must dispatch gen 3, got %+v", out)
+	r, out = r.DispatchLatest()
+	if !out.Dispatch || out.Gen != gen {
+		t.Fatalf("latest requested generation must acquire after completion: %+v", out)
 	}
 }
 
@@ -126,6 +115,24 @@ func TestRefreshDeliveryCorrelatesExactly(t *testing.T) {
 	}
 }
 
+func TestRefreshStaleCompletionCannotReleaseNewPermit(t *testing.T) {
+	var r Refresh
+	r, first := r.Tick()
+	r, latestGen := r.Reselect()
+	if !first.Dispatch || latestGen == first.Gen {
+		t.Fatal("reselection must invalidate the active projection")
+	}
+	r = r.OnDelivered(first.Gen)
+	r, next := r.DispatchLatest()
+	if !next.Dispatch || next.Gen != latestGen {
+		t.Fatalf("latest request was not dispatched after the first completed: %+v", next)
+	}
+	r = r.OnDelivered(first.Gen) // duplicate late completion
+	if !r.Pending || r.outstanding != latestGen {
+		t.Fatalf("stale completion released the newer permit: %+v", r)
+	}
+}
+
 // Rapid navigation fires a storm of superseding rounds while an
 // older collection is still running. Only the latest round's
 // delivery may re-arm dispatch; stale and superseded deliveries
@@ -147,17 +154,13 @@ func TestRefreshReselectStormKeepsPendingUntilLatest(t *testing.T) {
 	if out.Dispatch {
 		t.Fatalf("tick during reselect storm must coalesce, got %+v", out)
 	}
-	r = r.OnDelivered(1) // stale round lands first
-	if !r.Pending {
-		t.Fatal("stale delivery must not re-arm dispatch")
-	}
-	r = r.OnDelivered(2) // superseded round lands
-	if !r.Pending {
-		t.Fatal("superseded delivery must not re-arm dispatch")
-	}
-	r = r.OnDelivered(3) // latest round lands
+	r = r.OnDelivered(1)
 	if r.Pending {
-		t.Fatal("latest delivery must clear in-flight accounting")
+		t.Fatal("the only active collector's completion must release capacity")
+	}
+	r, out = r.DispatchLatest()
+	if !out.Dispatch || out.Gen != g3 {
+		t.Fatalf("only latest selection should be dispatched: %+v", out)
 	}
 }
 
@@ -181,40 +184,25 @@ func TestRefreshIdleReselectMarksOutstanding(t *testing.T) {
 	}
 }
 
-// A hung acquisition must not stall refresh forever: after the
-// stall deadline the next tick abandons the wedged round and
-// dispatches the current generation. The abandoned round's late
-// delivery is refused by both gates (accounting here, install in
-// applyRefresh) and can never re-arm dispatch.
-func TestRefreshHungRoundAbandonsAfterDeadline(t *testing.T) {
+// A timeout or long wait cannot release a permit while the source is
+// still executing. Recovery requires the originating completion.
+func TestRefreshNeverAbandonsExecutingAcquisition(t *testing.T) {
 	var r Refresh
 	r, out := r.Tick() // gen 1 dispatched, outstanding
 	if !out.Dispatch {
 		t.Fatal("tick 1 must dispatch")
 	}
-	// The dispatch tick counts: the deadline tick is the one at
-	// dispatchedAt+stallAfterTicks, so stallAfterTicks-1 ticks
-	// coalesce first (ticks 2..dispatchedAt+stallAfterTicks-1).
-	for i := 0; i < stallAfterTicks-1; i++ {
+	for i := 0; i < 100; i++ {
 		r, out = r.Tick()
 		if out.Dispatch {
-			t.Fatalf("tick %d must coalesce onto the hung round, got %+v", i+2, out)
+			t.Fatalf("tick %d must retain the permit, got %+v", i+2, out)
 		}
 	}
 	if !r.Pending {
 		t.Fatal("hung round must still be outstanding at the deadline")
 	}
-	r, out = r.Tick() // past the deadline: abandon + re-dispatch
-	if !out.Dispatch || out.Gen != 2 {
-		t.Fatalf("post-deadline tick must dispatch gen 2, got %+v", out)
-	}
-	// The wedged round finally lands: refused, accounting untouched.
 	r = r.OnDelivered(1)
-	if !r.Pending {
-		t.Fatal("abandoned delivery must not re-arm dispatch")
-	}
-	r = r.OnDelivered(2)
 	if r.Pending {
-		t.Fatal("current delivery must clear in-flight accounting")
+		t.Fatal("originating completion must release permit")
 	}
 }

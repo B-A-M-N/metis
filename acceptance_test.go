@@ -37,7 +37,7 @@ func countRows(t *testing.T, query string, args ...any) int {
 // CB-01: concurrent dispatch of the same task yields exactly one
 // winner, one attempt, and one delivery chain.
 func TestCB01ConcurrentDispatchOneWinner(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "ocb1")
 	seedOwnedSession(t, "w", "ocb1")
 	tk, err := createTask("run-cb1", "agent", "obj", "")
@@ -77,7 +77,7 @@ func TestCB01ConcurrentDispatchOneWinner(t *testing.T) {
 // CB-12: a claimed-but-unconfirmed dispatch retries into a NEW attempt
 // with history preserved; a possibly-live attempt refuses replacement.
 func TestCB12CrashRetryReconciles(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "ocb2")
 	seedOwnedSession(t, "w", "ocb2")
 	tk, err := createTask("run-cb2", "agent", "obj", "")
@@ -135,7 +135,7 @@ func TestCB12CrashRetryReconciles(t *testing.T) {
 // CB-13: direct guidance into a one-shot session is refused (file
 // kept), never reported delivered; unknown harnesses keep legacy behavior.
 func TestCB13OneShotGuidanceRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	logPath := installFakeTmux(t, "ocb3")
 	seedOwnedSession(t, "cb13", "ocb3")
 	reg := loadRegistry()
@@ -180,7 +180,7 @@ func TestSupervisorRejectsForgedFrames(t *testing.T) {
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	work := t.TempDir()
 	if err := ptyStart("vault", work, "cat", "demo", ""); err != nil {
 		t.Fatalf("ptyStart: %v", err)

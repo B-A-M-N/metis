@@ -1,7 +1,7 @@
 package main
 
 import (
-	"tui-dash/internal/termview"
+	"metis/internal/termview"
 )
 
 // tui_text.go: thin adapter over internal/termview.

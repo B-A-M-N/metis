@@ -16,7 +16,7 @@ import (
 // reply lines, mimicking one Ocliv stdio exchange per line.
 func mcpRoundTrip(t *testing.T, lines ...string) []string {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	var in bytes.Buffer
 	for _, l := range lines {
 		in.WriteString(l + "\n")
@@ -100,7 +100,7 @@ func TestMCPUnknownToolAndBadParams(t *testing.T) {
 func TestMCPDelegateIdempotent(t *testing.T) {
 	// The loop helper resets env per call, so drive the tool
 	// handler directly here, sharing one state dir.
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "mcpw2")
 	seedOwnedSession(t, "w", "mcpw2")
 	args := `{"run":"run-mcp","session":"w","objective":"do thing","actor":"chatgpt","request_id":"req-1","key":"k-1"}`
@@ -117,7 +117,7 @@ func TestMCPDelegateIdempotent(t *testing.T) {
 }
 
 func TestMCPSendIdempotent(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "mcpw3")
 	seedOwnedSession(t, "w", "mcpw3")
 	args := `{"session":"w","text":"look here","actor":"chatgpt","request_id":"send-1"}`
@@ -134,7 +134,7 @@ func TestMCPSendIdempotent(t *testing.T) {
 }
 
 func TestMCPAgentsRedactOwnership(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "mcpw4")
 	seedOwnedSession(t, "sec", "mcpw4")
 	reply := mcpDecode(t, mcpCallDirect(t, "metis_agents", `{}`))
@@ -148,7 +148,7 @@ func TestMCPAgentsRedactOwnership(t *testing.T) {
 }
 
 // mcpCallDirect invokes the tool handler in-process sharing the
-// test's TUI_DASH_STATE (the loop helper resets env per call).
+// test's METIS_STATE (the loop helper resets env per call).
 func mcpCallDirect(t *testing.T, tool, args string) string {
 	t.Helper()
 	res, err := mcpCallTool(tool, json.RawMessage(args))

@@ -94,13 +94,15 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 	}
 	sort.Strings(names)
 	type agentView struct {
-		Name    string `json:"name"`
-		Backend string `json:"backend"`
-		Harness string `json:"harness"`
-		Model   string `json:"model"`
-		Alive   bool   `json:"alive"`
-		Workdir string `json:"workdir"`
-		Created string `json:"created"`
+		Name        string `json:"name"`
+		Backend     string `json:"backend"`
+		Harness     string `json:"harness"`
+		Model       string `json:"model"`
+		Alive       bool   `json:"alive"`
+		Workdir     string `json:"workdir"`
+		Created     string `json:"created"`
+		Lifecycle   string `json:"lifecycle,omitempty"`
+		Observation string `json:"observation,omitempty"`
 	}
 	out := []agentView{}
 	truncated := false
@@ -129,6 +131,7 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 				Harness: ls.Harness, Model: ls.Model,
 				Alive:   ls.State == "active",
 				Workdir: ls.Workspace, Created: ls.Created,
+				Lifecycle: ls.State, Observation: "not_probed",
 			})
 			continue
 		}

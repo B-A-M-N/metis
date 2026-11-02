@@ -7,7 +7,7 @@ package main
 //	graph_lineage.go — lineage construction (buildRunGraph)
 //	graph_readiness.go — dependency readiness (graphBlockers, graphReady)
 //	graph_project_coverage.go — run/project/session coverage projections
-//	cli_graph.go — `tui-dash graph <op> --run RUN` dispatch (graphCmd)
+//	cli_graph.go — `metis graph <op> --run RUN` dispatch (graphCmd)
 //
 // Observation vs owed duty stay separate: these projections never
 // merge with the authoritative coverage-obligation service

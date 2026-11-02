@@ -2701,3 +2701,82 @@ projection; commits on master (no reproducible baseline yet).
 - Cleanup: workers stopped, no tmux/daemon/demo residue,
   /tmp/livequal2-* removed, ambient restored (only pre-existing
   user sessions/index rows remain — verified by ID).
+
+## 2026-11-02 re-review remediation dispositions
+
+- **P1 Diagnose history filter — FIXED.** `diagnose` reads the full
+  bounded sink before session filtering, deduplicates and sorts matching
+  rows, then returns the newest requested limit. Invalid limits and
+  empty, unavailable, unmatched, or possibly evicted history are
+  reported distinctly. Evidence: `TestDiagnoseFiltersBeforeLimit`,
+  `TestDiagnoseRejectsInvalidLimit`,
+  `TestDiagnoseNoMatchExplainsRetainedHistory`.
+- **P1 Native lifecycle scope — FIXED.** Logical fallback requires
+  readable shell-store absence and an active muse-native identity;
+  execution checks backend, lifecycle, native ID, workspace, model,
+  provider, and profile before host submission. Evidence:
+  `TestMuseTurnRefusesStoppedNativeBeforeSubmit`,
+  `TestNativeUseRejectsLogicalBindingDrift`,
+  `TestWorkspaceResolverDoesNotFallbackOnStoreFailure`,
+  `TestResolveExecTargetDoesNotFallbackOnLogicalStoreFailure`.
+- **P1 Native TUI — FIXED.** The dashboard lists stable
+  `native:<name>` identities, canonical backend names remain separate,
+  panes show bounded local records without dialing Muse, feed jumps
+  resolve native workers, and terminal attach/input paths refuse them.
+  Native guidance uses the structured Muse route. Evidence:
+  `TestTUIListsNativeOnlySession`, `TestTUISelectNativeDoesNotAttachTmux`,
+  `TestTUIRejectsTerminalBytesForNative`,
+  `TestFeedJumpResolvesNativeIdentity`,
+  `TestNativeProjectionCannotLeakAcrossTabs`.
+- **P1 Refresh concurrency — FIXED.** One acquisition permit stays held
+  until the correlated source returns; reselects coalesce, latest
+  selection is collected next, a 10-second context cancels cooperative
+  work, and tmux subprocesses honor it. An uncooperative source retains
+  its permit. Evidence: 100-selection blocked-source regression,
+  timeout/permit test, non-abandonment and stale-completion tests.
+- **P1 Development loop/inventory — FIXED.** `test-quick` is ~1s,
+  source inventory check matches 687 test functions, and the refresh
+  command runs the full uncached suite. Final `make test-full`: fresh
+  build, suite 194.042s, race subset 15.207s; build and vet clean.
+- **P2 Diagnostic provenance — FIXED.** Resource counters say
+  `observer_process`; native `alive` remains compatible while
+  `lifecycle` and `observation=not_probed` clarify that stored state is
+  not reachability. Evidence: `TestDiagnoseLabelsNativeLifecycleAndObserverMetrics`.
+- **P2 Development isolation — FIXED.** Added a role worktree helper
+  that creates unique branch/worktree/state paths and refuses existing
+  paths; smoke-tested creation and collision refusal in a temporary Git
+  repository. Verifiers can use local committed worktrees without push.
+- **P2 Active documentation — FIXED.** Removed the stale no-commit
+  blocker, refreshed the test inventory, and separated the one recorded
+  FI-backed `meta`/`musefi` turn from echo-only qualifications.
+- **P2 Broad fixture cost — DEFERRED.** Named follow-up:
+  `test-fixture-profile`, owned by test maintainers after the quick-gate
+  baseline. Warm `openTasksDB()` measured 0.814ms/op and the slowest
+  individual test was 4.31s; no worthwhile database or single-test
+  optimization was shown. Profile fake-tmux setup and subprocess cost
+  before changing shared fixtures; preserve per-test state isolation.
+
+## 2026-11-02 — Metis rebrand follow-through
+
+- **Rebrand — IMPLEMENTED.** `metis` is the module, executable, CLI/TUI
+  identity, and preferred state/diagnostic environment namespace. Build
+  scripts and integration qualification build/run `metis`; the worktree
+  helper exports `METIS_STATE`; demo workers re-exec the current binary.
+  Existing tests now use Metis environment names. `make build`,
+  `GOCACHE=/tmp/td-gocache go vet ./...`, inventory check (687 tests),
+  shell syntax checks, and `git diff --check` pass. Test suite not run.
+- **Compatibility — RETAINED.** `tui-dash` executable symlink,
+  `TUI_DASH_STATE` and `TUI_DASH_OPS_DIAG` environment aliases, old
+  state/work directories, `tui-` tmux session prefix, and old owner key
+  remain supported. Fresh installs use Metis-named state/work paths;
+  existing directories are reused in place. Go checkout directory
+  remains `/home/bamn/tui-dash`.
+
+## 2026-11-02 — Metis tmux namespace follow-through
+
+- New shell sessions use `metis-<name>`. Existing registry records keep
+  their stored `tui-<name>` target; records without a target probe both
+  prefixes. Input ownership is read from `METIS_OWNER` first, then the
+  legacy `TUI_DASH_OWNER`; new sessions stamp both during transition.
+  Refresh liveness is keyed by each record's concrete tmux name. Build,
+  vet, inventory, shell syntax, and diff checks pass; tests not run.

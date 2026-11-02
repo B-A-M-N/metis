@@ -142,7 +142,7 @@ func TestReadConfinedFileConfinesFirst(t *testing.T) {
 // The stored execution receipt must contain the redacted argv, never
 // the raw prompt.
 func TestExecutionReceiptStoresRedactedArgv(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	prompt := strings.Repeat("receipt prompt bulk ", 40)
 	argv := []string{"muse", "exec", prompt}
 	red, _ := marshalRedactedArgv(argv)

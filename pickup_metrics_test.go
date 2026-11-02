@@ -17,7 +17,7 @@ import (
 // Dispatch -> claim must expose the dispatch timestamp, the claim
 // timestamp, and the correct latency between them.
 func TestPickupDispatchedThenClaimedExposesLatency(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p3lat")
 	seedOwnedSession(t, "w1", "p3lat")
 	tk, err := createTask("run-p3-lat", "agent", "latency objective", "done")
@@ -74,7 +74,7 @@ func TestPickupDispatchedThenClaimedExposesLatency(t *testing.T) {
 // A dispatched-but-unclaimed task must count in the queue-depth
 // gauge, while a claimed task must not.
 func TestPickupUnclaimedTaskAgesQueueGauge(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "p3q")
 	seedOwnedSession(t, "w1", "p3q")
 	seedOwnedSession(t, "w2", "p3q")

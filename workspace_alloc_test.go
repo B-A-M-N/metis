@@ -59,7 +59,7 @@ func gitHeadOf(t *testing.T, repo string) string {
 
 // alloc records base rev + owner.
 func TestWorktreeAllocRecordsBaseRev(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	want := gitHeadOf(t, repo)
 	rec, err := allocWorktree(repo, "task-alpha", 1, testReq("orch"))
@@ -86,7 +86,7 @@ func TestWorktreeAllocRecordsBaseRev(t *testing.T) {
 
 // Same owner re-alloc is idempotent: same record, no duplicate row.
 func TestWorktreeAllocIdempotentSameOwner(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	first, err := allocWorktree(repo, "task-beta", 2, testReq("orch"))
 	if err != nil {
@@ -106,7 +106,7 @@ func TestWorktreeAllocIdempotentSameOwner(t *testing.T) {
 
 // Different owner mapping to the same live path is refused.
 func TestWorktreeAllocDifferentOwnerSamePathRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	if _, err := allocWorktree(repo, "task/x", 1, testReq("orch")); err != nil {
 		t.Fatalf("first alloc: %v", err)
@@ -119,7 +119,7 @@ func TestWorktreeAllocDifferentOwnerSamePathRefused(t *testing.T) {
 
 // Non-git dir is refused: never invent a revision.
 func TestWorktreeAllocNonGitRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	plain := t.TempDir()
 	if _, err := allocWorktree(plain, "task-nogit", 1, testReq("orch")); err == nil {
 		t.Fatalf("alloc in non-git dir succeeded; must be refused")
@@ -128,7 +128,7 @@ func TestWorktreeAllocNonGitRefused(t *testing.T) {
 
 // Git repo with unresolvable HEAD (no commits) is refused.
 func TestWorktreeAllocNoHeadRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := t.TempDir()
 	cmd := exec.Command("git", "init", "-q")
 	cmd.Dir = repo
@@ -142,7 +142,7 @@ func TestWorktreeAllocNoHeadRefused(t *testing.T) {
 
 // Release frees the binding; re-alloc by the same owner is allowed.
 func TestWorktreeReleaseThenRealloc(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	if _, err := allocWorktree(repo, "task-rel", 1, testReq("orch")); err != nil {
 		t.Fatalf("alloc: %v", err)
@@ -171,7 +171,7 @@ func TestWorktreeReleaseThenRealloc(t *testing.T) {
 
 // Double release is refused.
 func TestWorktreeDoubleReleaseRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	if _, err := allocWorktree(repo, "task-dbl", 1, testReq("orch")); err != nil {
 		t.Fatalf("alloc: %v", err)
@@ -189,7 +189,7 @@ func TestWorktreeDoubleReleaseRefused(t *testing.T) {
 
 // Release never deletes the directory, even with owner content inside.
 func TestWorktreeReleaseNeverDeletesDir(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	rec, err := allocWorktree(repo, "task-keep", 1, testReq("orch"))
 	if err != nil {
@@ -213,7 +213,7 @@ func TestWorktreeReleaseNeverDeletesDir(t *testing.T) {
 
 // Dirty repo allocates but records dirty=true.
 func TestWorktreeAllocDirtyRecorded(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, true)
 	rec, err := allocWorktree(repo, "task-dirty", 1, testReq("orch"))
 	if err != nil {
@@ -226,7 +226,7 @@ func TestWorktreeAllocDirtyRecorded(t *testing.T) {
 
 // Lookup of unknown binding errors; list is scoped to the repo.
 func TestWorktreeLookupAndList(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repoA := initGitRepo(t, false)
 	repoB := initGitRepo(t, false)
 	if _, err := allocWorktree(repoA, "task-a", 1, testReq("orch")); err != nil {

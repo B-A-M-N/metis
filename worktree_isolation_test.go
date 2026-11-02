@@ -26,7 +26,7 @@ func gitWorktreesOf(t *testing.T, repo string) string {
 // alloc must produce a real detached worktree at the recorded base
 // revision, carrying the committed file — not an empty directory.
 func TestWorktreeAllocCreatesRealWorktree(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	want := gitHeadOf(t, repo)
 	rec, err := allocWorktree(repo, "task-real", 1, testReq("orch"))
@@ -53,7 +53,7 @@ func TestWorktreeAllocCreatesRealWorktree(t *testing.T) {
 // Two bindings from one repo must not observe each other's
 // uncommitted writes, and the base checkout stays untouched.
 func TestWorktreesIsolateWrites(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	a, err := allocWorktree(repo, "task-iso-a", 1, testReq("orch"))
 	if err != nil {
@@ -90,7 +90,7 @@ func TestWorktreesIsolateWrites(t *testing.T) {
 // names worktree W cannot go working from any other root, and the
 // bound pickup moves the binding allocated -> in_use exactly once.
 func TestWorktreePickupScopeEnforced(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "tscope")
 	repo := initGitRepo(t, false)
 
@@ -150,7 +150,7 @@ func TestWorktreePickupScopeEnforced(t *testing.T) {
 // silently re-bound: re-alloc recreates it when git allows, and
 // records uncertain when recovery is blocked.
 func TestWorktreeReallocAfterManualRemove(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	repo := initGitRepo(t, false)
 	rec, err := allocWorktree(repo, "task-gone", 1, testReq("orch"))
 	if err != nil {

@@ -20,8 +20,15 @@ import (
 // refresh command for the current selection, so worker moves always
 // repaint from freshly collected data.
 func (m *model) navReselect() tea.Cmd {
+	if sel := m.selName(); sel != "" && m.isNativeSelection(sel) {
+		m.direct = false
+	}
+	wasPending := m.refreshCtl.Pending
 	var gen int
 	m.refreshCtl, gen = m.refreshCtl.Reselect()
+	if wasPending {
+		return nil
+	}
 	return m.refreshCmd(gen, m.selName(), true)
 }
 
@@ -54,6 +61,11 @@ func (m *model) navDown() tea.Cmd {
 
 // toggleDirect flips live-send mode and reports the new posture.
 func (m *model) toggleDirect() {
+	if sel := m.selName(); sel != "" && m.isNativeSelection(sel) {
+		m.direct = false
+		m.status = "native workers use structured Muse steering; direct terminal mode unavailable"
+		return
+	}
 	m.direct = !m.direct
 	if m.direct {
 		m.status = "direct mode ON (live input, one writer at a time)"

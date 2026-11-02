@@ -15,7 +15,7 @@ import (
 
 func seedGraphRun(t *testing.T) (run string, ids map[string]string) {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "graphfix")
 	seedOwnedSession(t, "w", "graphfix")
 	run = "run-graph"

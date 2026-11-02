@@ -10,7 +10,7 @@ import (
 )
 
 func TestTaskLifecycle(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "o1")
 	seedOwnedSession(t, "sess1", "o1")
 	seedOwnedSession(t, "sess2", "o1")
@@ -104,7 +104,7 @@ func TestTaskLifecycle(t *testing.T) {
 }
 
 func TestTaskVerifyFail(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "o1")
 	seedOwnedSession(t, "s", "o1")
 	tk, err := createTask("r", "a", "obj", "")
@@ -127,7 +127,7 @@ func TestTaskVerifyFail(t *testing.T) {
 }
 
 func TestDispatchRejectsUnusableSession(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "o9")
 	seedOwnedSession(t, "live", "o9")
 	seedOwnedSession(t, "gone", "o9")
@@ -171,7 +171,7 @@ func TestDispatchRejectsUnusableSession(t *testing.T) {
 }
 
 func TestConcurrentDispatchOneWinner(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "o8")
 	seedOwnedSession(t, "w", "o8")
 	tk, err := createTask("r", "a", "obj", "")
@@ -203,7 +203,7 @@ func TestConcurrentDispatchOneWinner(t *testing.T) {
 }
 
 func TestCreateTaskIdempotent(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTaskIdem("run-k", "agent", "obj", "", "k1")
 	if err != nil {
 		t.Fatal(err)
@@ -264,7 +264,7 @@ func TestCreateTaskIdempotent(t *testing.T) {
 // Databases created before the idempotency key existed must migrate on
 // first open: old rows stay readable and keyed creates work afterwards.
 func TestTaskKeyMigration(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := sql.Open("sqlite", tasksDBPath())
 	if err != nil {
 		t.Fatal(err)

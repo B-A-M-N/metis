@@ -14,6 +14,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -74,13 +75,20 @@ func demoAdapter() Adapter {
 		OneShot:          true,
 		AcceptsLiveInput: false,
 		BuildCommand: func(workdir, prompt, model string) string {
-			exe := "tui-dash"
-			return fmt.Sprintf("%q demo --workdir %q --steps 120 --delay 1", exe, workdir)
+			return fmt.Sprintf("%s demo --workdir %s --steps 120 --delay 1", shQuote(currentExecutable()), shQuote(workdir))
 		},
 		ManagedArgv: func(workdir, prompt, model string) ([]string, error) {
-			return []string{"tui-dash", "demo", "--workdir", workdir, "--steps", "120", "--delay", "1"}, nil
+			return []string{currentExecutable(), "demo", "--workdir", workdir, "--steps", "120", "--delay", "1"}, nil
 		},
 	}
+}
+
+func currentExecutable() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return "metis"
+	}
+	return exe
 }
 
 // oneShotExecAdapter builds a bounded CLI exec invocation.

@@ -15,7 +15,7 @@ import (
 // was explicitly rejected); the test names that boundary instead
 // of hiding it.
 func TestMCPControlSmokeLoop(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "msmoke")
 	seedOwnedSession(t, "w", "msmoke")
 

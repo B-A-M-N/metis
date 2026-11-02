@@ -10,23 +10,30 @@ mutate the same authoritative state machine at the same time.
   only — never the owning component.
 - Implementer: changes the owning component, runs the focused
   gate, then the domain gate. One implementer per state machine.
-- Verifier: independently re-runs the gates on the slice (fresh
-  checkout or the author's tree after push to the shared branch),
-  runs the integration-affected domains, and checks for coupling
+- Verifier: independently re-runs the gates on the slice; the
+  coordinator can inspect a locally committed worktree, so no remote
+  push is required. The verifier runs the affected domains and checks for coupling
   the author missed. A green suite the author ran themselves is
   evidence, not verification.
 
-## Isolation mechanics (all verified in this repo)
+## Isolation mechanics
 
-- Worktrees: `git worktree add /tmp/<name> <base>` per agent.
-  The tree at `/home/bamn/tui-dash` is the integration point;
-  feature work never happens there directly.
-- Test state: every test sets `TUI_DASH_STATE` to a temp dir
-  (`t.Setenv`), and fixtures (`installFakeTmux`) are per-test
-  temp dirs. Two suites on one machine do not share state files.
+- Worktrees: use `bash scripts/metis-worktree.sh <role> [base]` to
+  create a unique branch, worktree, and private state directory for
+  investigator, implementer, and verifier roles. The tree at
+  `/home/bamn/tui-dash` is the integration point; feature work happens
+  in the role worktree. The helper refuses existing paths/branches and
+  never removes worktrees or state.
+- Test state: give each worker a unique `METIS_STATE` directory
+  (for example `/tmp/metis-state-investigator`) in addition to the
+  per-test `t.Setenv` isolation. Fixtures (`installFakeTmux`) are
+  per-test temp dirs. Two suites on one machine do not share state.
+  `TUI_DASH_STATE` remains accepted as a legacy alias.
   Ambient exceptions an agent must NOT touch concurrently:
   the ambient tmux server, the ambient muse daemon socket, and
-  `$TUI_DASH_STATE` when unset (developers' real state).
+  Metis's default state directory when both overrides are unset.
+- New tmux sessions use `metis-<name>`; existing registered
+  `tui-<name>` sessions keep their stored target and remain usable.
 - GOCACHE may be shared read/write (`/tmp/td-gocache`); Go
   handles concurrent use. Do not share `go test` result files.
 

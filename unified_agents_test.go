@@ -50,7 +50,7 @@ func seedPtyRow(t *testing.T, name, workdir string) {
 }
 
 func TestMCPAgentsListsUnifiedSessions(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "unified-owner")
 	markFakeTmuxDead(t)
 	seedOwnedSession(t, "tm", "unified-owner")
@@ -107,7 +107,7 @@ func TestMCPAgentsListsUnifiedSessions(t *testing.T) {
 // one hard rule: listing is observation only, never a terminal
 // attachment capability (a native session is not a fake PTY).
 func TestMCPAgentsListsNativeSessions(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "unified-native")
 	seedLogicalRow(t, "nw")
 	res, err := mcpCallTool("metis_agents", mustJSON(t, map[string]any{}))
@@ -137,7 +137,7 @@ func TestMCPAgentsListsNativeSessions(t *testing.T) {
 }
 
 func TestMCPProjectsListsUnifiedSessions(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "unified-proj")
 	markFakeTmuxDead(t)
 	work := t.TempDir()

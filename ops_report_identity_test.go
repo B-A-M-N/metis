@@ -9,8 +9,8 @@ import (
 
 func reportIdentitySetup(t *testing.T) Task {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
-	t.Setenv("TUI_DASH_OPS_DIAG", "")
+	t.Setenv("METIS_STATE", t.TempDir())
+	t.Setenv("METIS_OPS_DIAG", "")
 	opsReset()
 	installFakeTmux(t, "op-ops")
 	seedOwnedSession(t, "w", "op-ops")

@@ -1,6 +1,6 @@
 package main
 
-// Bubble Tea TUI for tui-dash.
+// Bubble Tea dashboard for Metis.
 // Panes: Sessions (left), Live output (right top), Git (right middle),
 // Events + guidance input (bottom).
 // Guidance defaults to file mode; `d` toggles direct send-keys mode.
@@ -12,7 +12,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 type tickMsg time.Time
@@ -51,10 +51,11 @@ type model struct {
 	// logGen remembers the last seen output generation per session.
 	logGen map[string]int
 	// tabInfo holds the current rail identity blocks by session name.
-	tabInfo  map[string]tabDetail
-	live     []string
-	gitLines []string
-	events   []string
+	tabInfo    map[string]tabDetail
+	identities map[string]sessionIdentity
+	live       []string
+	gitLines   []string
+	events     []string
 	// guideCtl owns guidance editing and submit serialization
 	// (internal/tui): input buffer, one-in-flight busy flag, and
 	// outcome status. Only its transitions mutate it; the shell
@@ -141,6 +142,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// projections are refused with an explicit stale marker
 		// instead of being silently dropped or, worse, installed.
 		m.applyRefresh(msg.data)
+		if msg.data.gen != m.refreshCtl.Gen && !m.refreshCtl.Pending {
+			var out tuistate.TickOutcome
+			m.refreshCtl, out = m.refreshCtl.DispatchLatest()
+			if out.Dispatch {
+				return m, m.refreshCmd(out.Gen, m.selName(), out.EveryGit)
+			}
+		}
 		return m, nil
 	case guidanceResultMsg:
 		// Outcome status is the component's decision: it always
@@ -184,8 +192,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.status = "guidance sending…"
 					m.nav = m.nav.ToNav()
 					return m, submitGuidanceCmd(
-						sel, intent.Text, m.direct,
-						OperationRequest{Actor: "tui-operator", RequestID: newRequestID()})
+						m.canonicalSession(sel), intent.Text, m.direct,
+						OperationRequest{Actor: "metis-operator", RequestID: newRequestID()})
 				case tuistate.GuideHold:
 					// A submit is already in flight: hold this
 					// one rather than delivering out of order.

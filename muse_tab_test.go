@@ -12,7 +12,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 // museKeyMsg builds nav key messages the way the existing TUI tests do.
@@ -31,7 +31,7 @@ func museKeyMsg(k string) tea.KeyMsg {
 
 func museTestSetup(t *testing.T) {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "musetok")
 	seedOwnedSession(t, "w", "musetok")
 }

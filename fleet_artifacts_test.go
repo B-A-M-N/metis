@@ -23,7 +23,7 @@ func backdateFleetArtifact(t *testing.T, manifestID string, ns int64) {
 // same bytes from another node are a different manifest row, so
 // cross-node confusion is impossible by construction.
 func TestFleetArtifactsBindNodeAndAttempt(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	host, err := os.Hostname()
 	if err != nil {
 		t.Skipf("no hostname: %v", err)
@@ -56,7 +56,7 @@ func TestFleetArtifactsBindNodeAndAttempt(t *testing.T) {
 // The same row re-recorded is the same manifest: retries and
 // duplicate reports converge instead of multiplying rows.
 func TestFleetArtifactsIdempotentRecord(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	host, err := os.Hostname()
 	if err != nil {
 		t.Skipf("no hostname: %v", err)
@@ -81,7 +81,7 @@ func TestFleetArtifactsIdempotentRecord(t *testing.T) {
 // Unknown manifests are refused: retrieval of a never-recorded
 // identity is an error, never empty bytes presented as content.
 func TestFleetArtifactsUnknownRefused(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	if _, err := getFleetArtifact("fart-missing"); err == nil {
 		t.Fatal("retrieved unknown manifest, want refusal")
 	}
@@ -91,7 +91,7 @@ func TestFleetArtifactsUnknownRefused(t *testing.T) {
 // execution still references: fresh rows and rows bound to a
 // claimed attempt survive; ancient unreferenced rows go.
 func TestFleetArtifactsGCRespectsLive(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	host, err := os.Hostname()
 	if err != nil {
 		t.Skipf("no hostname: %v", err)

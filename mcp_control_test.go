@@ -13,7 +13,7 @@ import (
 )
 
 func TestMCPDependRoundTrip(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	first, err := createTask("run-d", "w", "first thing", "done")
 	if err != nil {
 		t.Fatal(err)
@@ -92,7 +92,7 @@ func countDepEdges(t *testing.T, taskID, depID string) int {
 }
 
 func TestMCPCancelRoundTrip(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	made, err := createTask("run-c", "w", "live work", "done")
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +136,7 @@ func TestMCPCancelRoundTrip(t *testing.T) {
 }
 
 func TestMCPCorrectLineage(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	src, err := createTask("run-f", "w", "original work", "done")
 	if err != nil {
 		t.Fatal(err)
@@ -199,7 +199,7 @@ func TestMCPCorrectLineage(t *testing.T) {
 }
 
 func TestMCPDependAuth(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	a, err := createTask("run-a", "w", "a work", "done")
 	if err != nil {
 		t.Fatal(err)

@@ -1,22 +1,22 @@
 package main
 
-// tui-dash: a Go Bubble Tea dashboard for a visible coding agent.
+// Metis: a Go control plane and Bubble Tea dashboard for coding agents.
 //
 // Usage (friendly forms; old single-word names still work):
-//   tui-dash watch [--session NAME]      open the dashboard
-//   tui-dash up ...                      start session if needed, then open it
-//   tui-dash agent start|stop|list|adopt|snapshot|work ...
-//   tui-dash send --name NAME --text TEXT
-//   tui-dash tasks | task create|status|dispatch|report|verify|cancel|followup|depend|...
-//   tui-dash guides | guide list|status|pending
-//   tui-dash report get|compare|attach ...
-//   tui-dash run finalize|limit ... | graph ... | muse ... | mcp serve
-//   tui-dash demo --workdir DIR [--steps N] [--delay SECONDS]
+//   metis watch [--session NAME]        open the dashboard
+//   metis up ...                        start session if needed, then open it
+//   metis agent start|stop|list|adopt|snapshot|work ...
+//   metis send --name NAME --text TEXT
+//   metis tasks | task create|status|dispatch|report|verify|cancel|followup|depend|...
+//   metis guides | guide list|status|pending
+//   metis report get|compare|attach ...
+//   metis run finalize|limit ... | graph ... | muse ... | mcp serve
+//   metis demo --workdir DIR [--steps N] [--delay SECONDS]
 //       The simulated worker used by `up` by default.
 //
-// This binary does NOT show Muse's own chat work. It shows a worker
-// agent running in a tmux session (tui-<name>), which is what the
-// user watches and guides. Guidance defaults to file mode.
+// Metis shows worker sessions and durable orchestration records. It
+// does NOT mirror Muse's own chat conversation. Guidance defaults to
+// file mode for shell-backed sessions.
 
 import (
 	"encoding/json"
@@ -39,48 +39,49 @@ func emitJSON(v any) {
 }
 
 func usage() {
-	fmt.Println(`tui-dash - live TUI for visible coding agents
+	fmt.Println(`Metis - control plane and live dashboard for coding agents
 
-  tui-dash watch [--session NAME]
+  metis watch [--session NAME]
       Open the dashboard (same as: run).
-  tui-dash up [--session NAME] [--workdir DIR] [--cmd CMD]
+  metis up [--session NAME] [--workdir DIR] [--cmd CMD]
       Start the session if it is not running, then open the dashboard.
-  tui-dash agent start --name NAME --workdir DIR [--cmd CMD | --harness H --prompt TEXT] [--model M]
-  tui-dash agent list [--json]  (also: agents, workers, sessions)
-  tui-dash agent stop --name NAME | agent adopt --name NAME
-  tui-dash agent snapshot [--name NAME] | agent work --session NAME [--once]
-  tui-dash send --name NAME --text TEXT [--direct]
+  metis agent start --name NAME --workdir DIR [--cmd CMD | --harness H --prompt TEXT] [--model M]
+  metis agent list [--json]  (also: agents, workers, sessions)
+  metis agent stop --name NAME | agent adopt --name NAME
+  metis agent snapshot [--name NAME] | agent work --session NAME [--once]
+  metis send --name NAME --text TEXT [--direct]
       Message a worker (same as: inject).
-  tui-dash tasks [--run RUN]  (also: task list)
-  tui-dash task create --run RUN --agent AGENT --objective TEXT [--acceptance TEXT] [--workdir DIR]
-  tui-dash task status --task ID | task dispatch --task ID --session NAME
-  tui-dash task report --task ID --report TEXT|@FILE
-  tui-dash task verify --task ID [--pass] [--approve WHO]
-  tui-dash task cancel --task ID | task followup --task ID --objective TEXT
-  tui-dash task depend --task ID --on DEP-ID | task reconcile --task ID
-  tui-dash task verdict --task ID --criterion C1 --verdict PASS --reason TEXT
-  tui-dash task share --task ID | task set-root --task ID --workdir DIR
-  tui-dash run finalize --run RUN [--json] | run limit --run RUN --max-live N
-  tui-dash guide list --name NAME [--json] | guide status --id ID
-  tui-dash guides  (needs-attention guidance; same as: guide pending)
-  tui-dash report get --task ID | report compare --run RUN | report attach --task ID --path FILE
-  tui-dash graph walk|blockers|ready|coverage --run RUN
-  tui-dash muse daemon|bind|turn|status ...
-  tui-dash mcp serve
+  metis tasks [--run RUN]  (also: task list)
+  metis task create --run RUN --agent AGENT --objective TEXT [--acceptance TEXT] [--workdir DIR]
+  metis task status --task ID | task dispatch --task ID --session NAME
+  metis task report --task ID --report TEXT|@FILE
+  metis task verify --task ID [--pass] [--approve WHO]
+  metis task cancel --task ID | task followup --task ID --objective TEXT
+  metis task depend --task ID --on DEP-ID | task reconcile --task ID
+  metis task verdict --task ID --criterion C1 --verdict PASS --reason TEXT
+  metis task share --task ID | task set-root --task ID --workdir DIR
+  metis run finalize --run RUN [--json] | run limit --run RUN --max-live N
+  metis guide list --name NAME [--json] | guide status --id ID
+  metis guides  (needs-attention guidance; same as: guide pending)
+  metis report get --task ID | report compare --run RUN | report attach --task ID --path FILE
+  metis graph walk|blockers|ready|coverage --run RUN
+  metis muse daemon|bind|turn|status ...
+  metis mcp serve
       Local stdio MCP adapter for model clients (also hosted by
       Ocliv mcp expose for remote access). No HTTP listener.
-  tui-dash doctor [--json]
-  tui-dash diagnose --session NAME [--json]
-  tui-dash demo --workdir DIR [--steps N] [--delay SECONDS]
-  tui-dash pty-start --name NAME --workdir DIR --cmd CMD [--harness H] [--model M]
-  tui-dash pty-list [--json] | pty-log | pty-input | pty-receipt | pty-resize | pty-status | pty-stop
+  metis doctor [--json]
+  metis diagnose --session NAME [--json]
+  metis demo --workdir DIR [--steps N] [--delay SECONDS]
+  metis pty-start --name NAME --workdir DIR --cmd CMD [--harness H] [--model M]
+  metis pty-list [--json] | pty-log | pty-input | pty-receipt | pty-resize | pty-status | pty-stop
 
 Old single-word names (task-list, guidance-outstanding, inject,
 run, ...) still work. Flags are unchanged.
 Append --json to agent list, tasks, task status, report get,
 report compare, pty-list, or pty-status for JSON output.
 
-State: $TUI_DASH_STATE, default ~/.local/share/tui-dash/sessions.json
+Compatibility: tui-dash command and TUI_DASH_STATE remain supported.
+State: $METIS_STATE (legacy: $TUI_DASH_STATE); default ~/.local/share/metis/sessions.json (reuses existing ~/.local/share/tui-dash)
 Docs: README.md in this folder.`)
 }
 
@@ -146,7 +147,7 @@ func aliasArgs(args []string) []string {
 	return args
 }
 
-// groupHelp returns a verb listing for a bare noun (`tui-dash task`)
+// groupHelp returns a verb listing for a bare noun (`metis task`)
 // with no verb. It reports false for real commands (including bare
 // `run`, which opens the TUI) so they dispatch normally.
 func groupHelp(word string) (string, bool) {
@@ -160,7 +161,7 @@ func groupHelp(word string) (string, bool) {
 	}
 	sort.Strings(names)
 	var b strings.Builder
-	fmt.Fprintf(&b, "tui-dash %s <verb> [flags] — verbs:\n", word)
+	fmt.Fprintf(&b, "metis %s <verb> [flags] — verbs:\n", word)
 	for _, v := range names {
 		fmt.Fprintf(&b, "  %s %s\n", word, v)
 	}

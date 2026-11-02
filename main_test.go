@@ -12,7 +12,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	tuistate "tui-dash/internal/tui"
+	tuistate "metis/internal/tui"
 )
 
 // TestMain re-execs into supervisor mode when the test binary is
@@ -25,18 +25,18 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 	// Cross-process ID-collision probe: a child test binary re-execed
-	// with TUI_DASH_IDGEN_PROBE set prints fresh generator output and
+	// with METIS_IDGEN_PROBE set prints fresh generator output and
 	// exits without running the suite. See
 	// task_idgen_crossprocess_test.go.
-	if os.Getenv("TUI_DASH_IDGEN_PROBE") != "" {
-		runIDGenProbe(os.Getenv("TUI_DASH_IDGEN_PROBE"))
+	if os.Getenv("METIS_IDGEN_PROBE") != "" {
+		runIDGenProbe(os.Getenv("METIS_IDGEN_PROBE"))
 		os.Exit(0)
 	}
 	os.Exit(m.Run())
 }
 
 func TestPublicJSONNoOwner(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	s := Session{Name: "n", Tmux: "tui-n", Workdir: "/w", Command: "c", Created: "t", Owner: "secret-token", Harness: "muse", Model: "m"}
 	data, err := json.Marshal(s.Public())
 	if err != nil {
@@ -68,7 +68,7 @@ func TestPublicJSONNoOwner(t *testing.T) {
 
 func TestStatePerms(t *testing.T) {
 	state := t.TempDir()
-	t.Setenv("TUI_DASH_STATE", state)
+	t.Setenv("METIS_STATE", state)
 	if err := saveRegistry(map[string]Session{}); err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestAdoptExplicit(t *testing.T) {
 		t.Skip("tmux not available")
 	}
 	state := t.TempDir()
-	t.Setenv("TUI_DASH_STATE", state)
+	t.Setenv("METIS_STATE", state)
 	work := t.TempDir()
 	if out, err := exec.Command("tmux", "new-session", "-d", "-s", "tui-leg", "-c", work, "sleep", "60").CombinedOutput(); err != nil {
 		t.Fatalf("tmux start: %v %s", out, err)
@@ -172,7 +172,7 @@ func TestCLIAliases(t *testing.T) {
 		"watch": "run", "workers": "agents", "sessions": "list",
 	}
 	for in, want := range cases {
-		args := append([]string{"tui-dash"}, strings.Fields(in)...)
+		args := append([]string{"metis"}, strings.Fields(in)...)
 		args = append(args, "--run", "R")
 		got := aliasArgs(args)
 		if got[1] != want {
@@ -184,16 +184,16 @@ func TestCLIAliases(t *testing.T) {
 	}
 	// Legacy meanings survive: bare `run` still opens the TUI, and
 	// canonical names pass through untouched.
-	if got := aliasArgs([]string{"tui-dash", "run", "--session", "x"}); got[1] != "run" {
+	if got := aliasArgs([]string{"metis", "run", "--session", "x"}); got[1] != "run" {
 		t.Fatalf("bare run rewritten: %v", got)
 	}
 	for _, canon := range []string{"task-list", "inject", "mcp", "graph", "muse", "pty-log"} {
-		if got := aliasArgs([]string{"tui-dash", canon}); got[1] != canon {
+		if got := aliasArgs([]string{"metis", canon}); got[1] != canon {
 			t.Fatalf("canonical %q rewritten: %v", canon, got)
 		}
 	}
 	// Typos never land on a wrong command.
-	if got := aliasArgs([]string{"tui-dash", "task", "bogus"}); got[1] != "task" {
+	if got := aliasArgs([]string{"metis", "task", "bogus"}); got[1] != "task" {
 		t.Fatalf("typo rewritten: %v", got)
 	}
 	// Bare nouns offer their verbs; real commands do not.
@@ -218,7 +218,7 @@ func TestStartValidation(t *testing.T) {
 
 func TestInjectAndSnapshot(t *testing.T) {
 	state := t.TempDir()
-	t.Setenv("TUI_DASH_STATE", state)
+	t.Setenv("METIS_STATE", state)
 	work := t.TempDir()
 	reg := map[string]Session{
 		"unit": {Name: "unit", Tmux: "tui-unit", Workdir: work, Command: "echo hi"},
@@ -267,7 +267,7 @@ func TestStopOwnership(t *testing.T) {
 		t.Skip("tmux not available")
 	}
 	state := t.TempDir()
-	t.Setenv("TUI_DASH_STATE", state)
+	t.Setenv("METIS_STATE", state)
 	work := t.TempDir()
 	// Foreign session: live tmux session with no registry entry.
 	if out, err := exec.Command("tmux", "new-session", "-d", "-s", "tui-foreign", "-c", work, "sleep", "60").CombinedOutput(); err != nil {
@@ -554,7 +554,7 @@ func TestTabIdentityColors(t *testing.T) {
 }
 
 func TestTabTitlesFromTasks(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	installFakeTmux(t, "ot")
 	seedOwnedSession(t, "w0", "ot")
 	if _, err := createTaskIdem("run-t", "muse", "repair login", "", "k1"); err != nil {
@@ -571,7 +571,7 @@ func TestTabTitlesFromTasks(t *testing.T) {
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("FAKE_TMUX_LIST", "tui-w0")
+	t.Setenv("FAKE_TMUX_LIST", "metis-w0")
 	d := collectRefreshData(liveRefreshSource{}, 1, "", false)
 	got, ok := d.tabInfo["w0"]
 	if !ok {
@@ -624,7 +624,7 @@ func TestSendTerminalInputOwnership(t *testing.T) {
 		t.Skip("tmux not available")
 	}
 	state := t.TempDir()
-	t.Setenv("TUI_DASH_STATE", state)
+	t.Setenv("METIS_STATE", state)
 	work := t.TempDir()
 	if out, err := exec.Command("tmux", "new-session", "-d", "-s", "tui-foreign", "-c", work, "sleep", "60").CombinedOutput(); err != nil {
 		t.Fatalf("tmux start: %v %s", out, err)
@@ -656,7 +656,7 @@ func TestSendTerminalInputOwnership(t *testing.T) {
 		t.Fatalf("input to owned session failed: %v", err)
 	}
 	time.Sleep(time.Second)
-	out, _ := tmux("capture-pane", "-p", "-t", "tui-kbd")
+	out, _ := tmux("capture-pane", "-p", "-t", "metis-kbd")
 	if !strings.Contains(out, "echo hi-typed") {
 		t.Fatalf("typed input missing from pane: %q", out)
 	}
@@ -669,17 +669,17 @@ func minInt(a, b int) int {
 	return b
 }
 
-// Integration test, run only after `go build -o tui-dash .` in this folder.
+// Integration test, run only after `make build` creates ./metis.
 func TestIntegrationTmux(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (needs fresh binary); run make test-integration")
 	}
-	bin, err := filepath.Abs("tui-dash")
+	bin, err := filepath.Abs("metis")
 	if err != nil || bin == "" {
 		t.Skip("binary path unavailable")
 	}
 	if _, err := os.Stat(bin); err != nil {
-		t.Skip("build ./tui-dash first: go build -o tui-dash .")
+		t.Skip("build ./metis first: make build")
 	}
 	if _, err := exec.LookPath("tmux"); err != nil {
 		t.Skip("tmux not available")

@@ -11,7 +11,7 @@ import (
 
 func openProvisionRepoDB(t *testing.T) func() {
 	t.Helper()
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	db, err := openTasksDB()
 	if err != nil {
 		t.Fatal(err)

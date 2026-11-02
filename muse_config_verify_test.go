@@ -18,7 +18,7 @@ func TestSessionStartSelectsAndEchoesConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	stopDaemon := startTestDaemon(t, home)
@@ -53,7 +53,7 @@ func TestVerifySessionConfigRefusesMismatch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	stopDaemon := startTestDaemon(t, home)
@@ -93,7 +93,7 @@ func TestBindBlocksUnverifiedModel(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	stopDaemon := startTestDaemon(t, home)
@@ -127,7 +127,7 @@ func TestBindBlocksUnverifiedModel(t *testing.T) {
 // Metis never adopts a session whose effective config contradicts
 // the authorized selection.
 func TestStartRefusesLyingServer(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	starts := 0
 	client, server := net.Pipe()
 	stubMuseServer(t, server, func(id int64, method string, params json.RawMessage) (any, *museError) {
@@ -186,7 +186,7 @@ func TestManagedTurnRefusesModelDrift(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (daemon/host turns); run without -short")
 	}
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
 	stopDaemon := startTestDaemon(t, home)
@@ -232,7 +232,7 @@ func TestManagedTurnRefusesModelDrift(t *testing.T) {
 // attributed to the terminal turn that produced it. Blanking would
 // flip resume to from-now mode and silently drop history.
 func TestCursorEmptyWriteRetainsPosition(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "w", "cur")
 	if err := bindMuseSession("w", "native-1", "c0", "echo", "", testReq("op")); err != nil {
 		t.Fatalf("bind: %v", err)
@@ -256,7 +256,7 @@ func TestCursorEmptyWriteRetainsPosition(t *testing.T) {
 }
 
 func TestCursorWriteAttributesTurn(t *testing.T) {
-	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("METIS_STATE", t.TempDir())
 	seedOwnedSession(t, "w", "cur2")
 	if err := bindMuseSession("w", "native-1", "c0", "echo", "", testReq("op")); err != nil {
 		t.Fatalf("bind: %v", err)
