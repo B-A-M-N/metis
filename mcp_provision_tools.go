@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // Provision lifecycle states: intent is persisted (reserved) before
@@ -192,6 +193,26 @@ func provisionTmuxEstablished(want mcpProvisionRecord) bool {
 	return provisionWorkspaceMatches(entry.Workdir, want.Workdir)
 }
 
+// provisionTmuxLaunchEstablished waits briefly for the tmux shell to exec
+// the curated Muse Code process. `new-session` returns as soon as the shell
+// exists, before exec.LookPath's target becomes pane_current_command; without
+// this bounded settle window a healthy launch can be marked indeterminate.
+func provisionTmuxLaunchEstablished(want mcpProvisionRecord) bool {
+	if want.Harness != "muse-code" {
+		return provisionTmuxEstablished(want)
+	}
+	deadline := time.Now().Add(8 * time.Second)
+	for {
+		if provisionTmuxEstablished(want) {
+			return true
+		}
+		if !time.Now().Before(deadline) {
+			return false
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
 // provisionPtyLive reports whether the wanted PTY session is live
 // AND dispatchable right now: the supervisor and worker are both
 // provably alive under their fencing identities, and the row still
@@ -328,7 +349,7 @@ func (mcpProvisionSessionBackend) ProvisionLaunchVerified(want mcpProvisionRecor
 	case provisionBackendNative:
 		return provisionNativeEstablished(want)
 	default:
-		return provisionTmuxEstablished(want)
+		return provisionTmuxLaunchEstablished(want)
 	}
 }
 

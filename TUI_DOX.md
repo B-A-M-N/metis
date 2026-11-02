@@ -12,8 +12,10 @@ The rail uses project/instance labels while canonical session IDs remain the
 control identity. The selected pane is a sanitized text snapshot, not a VT
 emulator; `F5` suspends Bubble Tea and attaches the normal terminal to the
 ownership-verified tmux target. `F6` opens the cached info drawer (provider,
-model, profile, workdir, health, and recent events), closed by default. The
-pinned Meta.ai tab is an activity/controller slot, never a mirrored web chat;
+model, profile, workdir, health, the existing resource snapshot, and recent
+session-scoped operation errors/events), collected asynchronously and closed
+by default. Resource provenance remains labeled as observer-process data.
+The pinned Meta.ai tab is an activity/controller slot, never a mirrored web chat;
 MCP remains the controller interface. Prompt submission captures its target
 session before leaving the update path and preserves the single-writer lease.
 
@@ -26,7 +28,7 @@ session before leaving the update path and preserves the single-writer lease.
 | sessions | cached `names`, `running`, `entry`, `tabInfo`, `logGen`, preselect | installed by `applyRefresh` from `refreshData` only when `sessionsOk` (registry clean + PTY query ok); failure keeps last-known + stale marker | start/stop sessions, create PTYs, heal streams, acquire ownership, write persistence |
 | terminal | `live`, `gitLines`, `events`, `input`, `direct`, parked `inputPending` | `tui_input.go`, guidance arms in `tui.go` | PTY management, lease issuance, tmux control, FIFO writes, queue ownership |
 | muse-feed | `feed`, derived `museState/museOpen/museBlocked` | installed by `applyRefresh`; jump via navigation | session authority, delegation, approval decisions, event persistence |
-| panels | `infoOpen` and cached drawer composition; legacy `graphPanel` state stays out of the primary view | F6 in `tui.go`; render in `tui_render_worker.go` | Git commands, graph persistence, workspace mutation, task decisions |
+| panels | `infoOpen` and cached drawer detail snapshot (resource metrics, ops errors, session events); legacy `graphPanel` state stays out of the primary view | F6 and result fencing in `tui.go`; bounded reads in `tui_info.go`; render in `tui_render_worker.go` | Git commands, graph persistence, workspace mutation, task decisions |
 | refresh | triggers, in-flight accounting (`Pending`), coalescing, deadlines, freshness | state + transitions in `internal/tui` (`Refresh.Tick/Reselect/Startup/OnDelivered`); shell builds commands in `tui.go`; acquisition in `tui_source.go` | own pane data, define business truth, mutate presentation state, retry mutations |
 | attach | limited in-TUI input attempt plus ownership-verified external tmux attach | `internal/tui` (`Attach.Request/Classify`, pure); adapter and `tea.ExecProcess` command in `tui_attach.go`, tmux target/command in `session_tmux.go` | heal streams, own terminal output, mutate anything but its own gen/session |
 | guidance | input buffer, editing, submit serialization (`Busy`), outcome status | `internal/tui` (`Guide.Type/Backspace/Clear/Submit/Complete`, pure); shell owns mode, builds `submitGuidanceCmd` from the intent | execute guidance, mutate tasks, authorize, second-dispatch |

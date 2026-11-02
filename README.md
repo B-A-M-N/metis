@@ -89,8 +89,10 @@ already have. No other runtime is needed once the binary is built.
 - **Full terminal:** press `F5` to suspend Metis and attach the normal
   terminal to that exact owned tmux session. Detaching returns to Metis.
 - **Info drawer:** press `F6` to show provider/model, profile, working
-  directory, process state, and recent session events. It is closed by
-  default.
+  directory, process state, the existing observer/resource snapshot, and
+  recent session-scoped operation errors. It also lists recent session
+  events. The drawer is closed by default; observer process metrics are
+  labeled separately from worker process state.
 - **Prompt bar:** press `i`, type text, and press Enter. Submission
   captures the selected session ID and uses the input lease; `d`
   switches to durable guidance-file delivery. On the Meta.ai tab the

@@ -46,11 +46,23 @@ evidence row states.
   readable but does not preserve full terminal control state. `F6` showed the
   cached info drawer. No Meta/local provider prompt or inference was run.
 - Interactive launcher uses a curated `muse-code` command through
-  `ProvisionService` and the tmux lifecycle. Provision confirmation checks
-  that `muse` is the actual pane process; a shell-only pane is not accepted.
+  `ProvisionService` and the tmux lifecycle. Provision confirmation waits
+  briefly for the tmux shell to exec Muse Code, then checks the recorded
+  identity, owned tmux target, workspace, and actual pane process; a
+  shell-only pane is not accepted as a completed launch. The F6 drawer reuses
+  the existing observer resource snapshot and session-filtered ops diagnostics.
 - The pinned Meta.ai tab is an MCP controller/activity surface, not a web
   conversation mirror. Prompt, direct-toggle, and terminal-attach actions are
   disabled there unless a worker tab is selected.
+- Fresh no-inference qualification (2026-11-02, isolated tmux + Muse config):
+  `locus-01` and `locus-02` launched in `/home/bamn/Locus` and were confirmed
+  as Muse processes on distinct pane IDs/PIDs. The Metis TUI showed
+  `Locus · 01` and `Locus · 02`; selection changed between them while PIDs
+  stayed fixed. Separate normal-terminal tmux clients attached to each exact
+  target and detached back without restarting either process. `F6` showed the
+  process/resource snapshot and diagnostic section. Muse displayed its
+  workspace-trust prompt under the isolated config; it was left unanswered,
+  so this re-run submitted no prompt and made no trust decision.
 
 - One FI-backed `meta`/`musefi` turn (P6-2): bind, turn, status,
   receipts, and a `QUAL-OK` reply were observed. This is the only

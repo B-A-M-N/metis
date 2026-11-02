@@ -74,8 +74,33 @@ func renderInfoPane(m model, sel string, lay renderLayout) []string {
 		"Process: " + health,
 		"Working directory:",
 		workdir,
-		"Recent session events:",
 	}
+	if m.infoSession != sel {
+		lines = append(lines, "Metrics/errors loading…")
+	} else {
+		res := m.infoResources
+		lines = append(lines, fmt.Sprintf("Obs goroutines: %d", res.Goroutines),
+			fmt.Sprintf("Obs heap: %.1f MiB", float64(res.HeapAlloc)/(1024*1024)))
+		stream := "not recorded"
+		if m.infoStreamFound {
+			stream = "unavailable"
+			if m.infoStream.Bytes >= 0 {
+				stream = fmt.Sprintf("%d / %d bytes", m.infoStream.Bytes, res.StreamCap)
+			}
+		}
+		lines = append(lines, "Stream: "+strings.ReplaceAll(stream, " bytes", "B"), "Recent ops errors:")
+		if len(m.infoDiagnostics) == 0 {
+			lines = append(lines, "(none observed)")
+		} else {
+			for _, diagnostic := range m.infoDiagnostics {
+				stamp := diagnostic.At.Local().Format("15:04:05")
+				lines = append(lines, sanitizeLine(fmt.Sprintf("%s %s/%s: %s", stamp,
+					diagnostic.Phase, diagnostic.ErrorClass, diagnostic.Detail)))
+			}
+		}
+		lines = append(lines, "Ops source: "+m.infoDiagnosticSource)
+	}
+	lines = append(lines, "Recent session events:")
 	ev := boundLines(m, sel, m.events)
 	var selectedEvents []string
 	for _, line := range ev {
@@ -89,7 +114,7 @@ func renderInfoPane(m model, sel string, lay renderLayout) []string {
 	if len(selectedEvents) == 0 {
 		lines = append(lines, "(none recorded)")
 	} else {
-		start := len(selectedEvents) - 4
+		start := len(selectedEvents) - 2
 		if start < 0 {
 			start = 0
 		}

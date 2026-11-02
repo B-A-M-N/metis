@@ -76,11 +76,17 @@ type model struct {
 	// graphPanel toggles the MD path-traversal banner on the right.
 	// panelRun/panel carry its last-collected projection, installed
 	// only through applyRefresh like every other pane.
-	graphPanel bool
-	infoOpen   bool
-	panelRun   string
-	panel      []string
-	status     string
+	graphPanel           bool
+	infoOpen             bool
+	infoSession          string
+	infoDiagnostics      []opsEvent
+	infoResources        resourceUsageSnapshot
+	infoStream           streamResourceUsage
+	infoStreamFound      bool
+	infoDiagnosticSource string
+	panelRun             string
+	panel                []string
+	status               string
 	// paneSel records which session the installed sel-scoped panes
 	// (entry, live, events, git) were collected for. Only
 	// applyRefresh writes it, alongside the installs; renderers show
@@ -183,6 +189,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = "returned from terminal attach for " + msg.display
 		}
 		return m, nil
+	case sessionInfoMsg:
+		if m.infoOpen && !m.nav.OnMuse && m.selName() == msg.display {
+			m.infoSession = msg.display
+			m.infoDiagnostics = msg.diagnostics
+			m.infoResources = msg.resources
+			m.infoStream = msg.stream
+			m.infoStreamFound = msg.streamFound
+			m.infoDiagnosticSource = msg.diagnosticSource
+		}
+		return m, nil
 	case tea.KeyMsg:
 		if m.nav.Mode == tuistate.ModeAttach {
 			return m.attachKey(msg)
@@ -244,6 +260,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// submitGuidanceCmd, stream healing in attachCmd, and key
 		// delivery on the session senders.
 		var navCmd tea.Cmd
+		priorSel := m.selName()
 		switch msg.String() {
 		case "q":
 			return m, tea.Quit
@@ -290,6 +307,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.infoOpen = !m.infoOpen
 			if m.infoOpen {
 				m.status = "session info drawer open (F6 closes)"
+				if sel := m.selName(); sel != "" {
+					navCmd = sessionInfoCmd(sel, m.canonicalSession(sel))
+				}
 			} else {
 				m.status = "session info drawer closed"
 			}
@@ -308,6 +328,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.scroll < 0 {
 				m.scroll = 0
 			}
+		}
+		if m.infoOpen && !m.nav.OnMuse && m.selName() != "" && m.selName() != priorSel {
+			sel := m.selName()
+			navCmd = tea.Batch(navCmd, sessionInfoCmd(sel, m.canonicalSession(sel)))
 		}
 		return m, navCmd
 	}
