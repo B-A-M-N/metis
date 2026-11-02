@@ -44,6 +44,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -157,13 +158,40 @@ func opsReset() {
 	opsNext = 0
 }
 
+// opsErrorCoder is implemented by domain errors that carry their
+// own stable diagnostic code. A carried code beats substring
+// matching: a typed error classifies by its code even when its
+// text matches nothing (or matches the wrong pattern), including
+// through fmt %w wrapping. The code set is closed (opsKnownClass),
+// so a typo in a producer can never invent a silent new class;
+// anything else keeps the substring fallback below.
+type opsErrorCoder interface{ OpsErrorCode() string }
+
+// opsKnownClass reports whether s is a stable diagnostic code.
+// The set is closed: producers must use one of these, and the
+// "unknown" bucket (plus the substring fallback) absorbs the rest.
+func opsKnownClass(s string) bool {
+	switch s {
+	case "conflict", "terminal", "budget", "not_found",
+		"auth", "verification", "reconcile_refused", "unknown":
+		return true
+	}
+	return false
+}
+
 // classifyOpsError maps an operation error to a stable class for
-// aggregation. Matching is substring-based over the durable
-// state machines' existing error text; anything unrecognized is
-// "unknown", never dropped.
+// aggregation. Typed codes first; then substring-based matching
+// over the durable state machines' existing error text; anything
+// unrecognized is "unknown", never dropped.
 func classifyOpsError(err error) string {
 	if err == nil {
 		return ""
+	}
+	var coded opsErrorCoder
+	if errors.As(err, &coded) {
+		if code := coded.OpsErrorCode(); opsKnownClass(code) {
+			return code
+		}
 	}
 	s := strings.ToLower(err.Error())
 	switch {

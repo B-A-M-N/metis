@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -62,6 +63,25 @@ func TestOpsDiagErrorClasses(t *testing.T) {
 	}
 	if got := classifyOpsError(nil); got != "" {
 		t.Errorf("classifyOpsError(nil) = %q, want empty", got)
+	}
+}
+
+// Typed error codes beat substring matching: a conflict-typed
+// error classifies "conflict" even when its text matches no known
+// substring, including through a wrapping layer. Untyped errors
+// keep the substring fallback.
+func TestOpsDiagTypedCodeBeatsSubstring(t *testing.T) {
+	typed := &ProvisionError{Message: "totally novel failure mode", Conflict: true}
+	if got := classifyOpsError(typed); got != "conflict" {
+		t.Errorf("typed conflict classified %q, want conflict", got)
+	}
+	wrapped := fmt.Errorf("outer context: %w", typed)
+	if got := classifyOpsError(wrapped); got != "conflict" {
+		t.Errorf("wrapped typed conflict classified %q, want conflict", got)
+	}
+	untyped := errors.New("totally novel failure mode")
+	if got := classifyOpsError(untyped); got != "unknown" {
+		t.Errorf("untyped novel error classified %q, want unknown fallback", got)
 	}
 }
 

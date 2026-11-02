@@ -89,6 +89,16 @@ type ProvisionError struct {
 
 func (e *ProvisionError) Error() string { return e.Message }
 
+// OpsErrorCode reports the stable diagnostic class for observeOps.
+// Conflicts are typed; every other provision failure keeps the
+// substring fallback (empty code is not a known class).
+func (e *ProvisionError) OpsErrorCode() string {
+	if e != nil && e.Conflict {
+		return "conflict"
+	}
+	return ""
+}
+
 func provisionFailure(format string, args ...any) *ProvisionError {
 	return &ProvisionError{Message: fmt.Sprintf(format, args...)}
 }

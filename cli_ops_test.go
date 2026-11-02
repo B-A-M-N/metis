@@ -121,6 +121,52 @@ func TestCliOpsReadOnly(t *testing.T) {
 	}
 }
 
+// Identifier filters select correlated evidence through the real
+// command: one request's events across phases, one task, one
+// session, one phase, one error class, errors only. Filters apply
+// within the bounded read; --limit still bounds the read itself.
+func TestCliOpsFilters(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("TUI_DASH_OPS_DIAG", "1")
+	opsReset()
+	opsSinkMu.Lock()
+	opsSinkLines = -1
+	opsSinkMu.Unlock()
+	observeOps(opsPhaseDispatch, "req-a", "task-1", 0, "sess-1", nil)
+	observeOps(opsPhaseClaim, "req-a", "task-1", 1, "sess-1", errors.New("concurrent dispatch won"))
+	observeOps(opsPhaseExecution, "req-b", "task-2", 0, "sess-2", errors.New("no such session: gone"))
+	observeOps(opsPhaseReport, "req-b", "task-2", 0, "sess-2", nil)
+	cases := []struct {
+		args []string
+		want int
+	}{
+		{[]string{"--req", "req-a"}, 2},
+		{[]string{"--task", "task-2"}, 2},
+		{[]string{"--session", "sess-1"}, 2},
+		{[]string{"--phase", "claim"}, 1},
+		{[]string{"--class", "not_found"}, 1},
+		{[]string{"--errors-only"}, 2},
+		{[]string{"--attempt", "0"}, 3},
+		{[]string{"--req", "req-a", "--errors-only"}, 1},
+	}
+	for _, c := range cases {
+		_, out := captureStdout(t, func() int { return cliOps(c.args) })
+		if got := strings.Count(out, "\n"); got != c.want {
+			t.Errorf("cliOps(%v) = %d rows, want %d:\n%s", c.args, got, c.want, out)
+		}
+	}
+	_, out := captureStdout(t, func() int { return cliOps([]string{"--req", "req-a", "--json"}) })
+	if strings.Count(out, "req-a") != 2 {
+		t.Errorf("json mode must honor filters, got:\n%s", out)
+	}
+	if code := cliOps([]string{"--phase", "bogus"}); code != 2 {
+		t.Errorf("unknown phase must refuse with exit 2, got %d", code)
+	}
+	if code := cliOps([]string{"--class", "bogus"}); code != 2 {
+		t.Errorf("unknown class must refuse with exit 2, got %d", code)
+	}
+}
+
 func TestCliOpsOutputStaysRedacted(t *testing.T) {
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	t.Setenv("TUI_DASH_OPS_DIAG", "1")

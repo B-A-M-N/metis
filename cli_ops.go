@@ -22,19 +22,15 @@ package main
 // tasks.db. No remote transport reaches this command; like every
 // other CLI read here it runs as the local owner.
 //
-// NOTE (wiring): dispatch needs one case in dispatchCLI
-// (main.go), which this surface does not own:
-//
-//	case "ops":
-//		return cliOps(args)
-//
-// Until that lands, cliOps is reachable from tests only.
+// Wiring: dispatched from main.go dispatchCLI (case "ops").
+// This surface owns only flag parsing, filtering, and rendering.
 
 import (
 	"flag"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // opsHumanCap bounds one human-readable row so a pathological
@@ -42,20 +38,102 @@ import (
 // already capped at opsDetailCap, this is display-only.
 const opsHumanCap = 300
 
+// opsFilter selects correlated evidence within one bounded read.
+// Empty strings and attempt < 0 match everything; since <= 0
+// disables the time bound. Filters never widen the read: --limit
+// still bounds the sink rows scanned.
+type opsFilter struct {
+	req, task, session, phase, class string
+	attempt                         int
+	errorsOnly                      bool
+	since                           time.Duration
+}
+
+// filterOpsEvents keeps the events matching f, oldest-first in,
+// oldest-first out. Pure: operators and tests share it, control
+// flow never touches it.
+func filterOpsEvents(evs []opsEvent, f opsFilter, now time.Time) []opsEvent {
+	out := evs[:0:0]
+	for _, ev := range evs {
+		if f.req != "" && ev.RequestID != f.req {
+			continue
+		}
+		if f.task != "" && ev.TaskID != f.task {
+			continue
+		}
+		if f.session != "" && ev.Session != f.session {
+			continue
+		}
+		if f.phase != "" && string(ev.Phase) != f.phase {
+			continue
+		}
+		if f.class != "" && ev.ErrorClass != f.class {
+			continue
+		}
+		if f.attempt >= 0 && ev.Attempt != f.attempt {
+			continue
+		}
+		if f.errorsOnly && ev.Disposition != opsDispositionError {
+			continue
+		}
+		if f.since > 0 && now.Sub(ev.At) > f.since {
+			continue
+		}
+		out = append(out, ev)
+	}
+	return out
+}
+
+// validOpsPhase reports whether p names a known phase (or all, when
+// empty). Unknown names are refused so a typo cannot silently
+// select nothing.
+func validOpsPhase(p string) bool {
+	if p == "" {
+		return true
+	}
+	for _, known := range []opsPhase{
+		opsPhaseDispatch, opsPhaseClaim, opsPhaseExecution,
+		opsPhaseReport, opsPhaseVerification, opsPhaseCancellation,
+		opsPhaseReconciliation,
+	} {
+		if p == string(known) {
+			return true
+		}
+	}
+	return false
+}
+
 // cliOps implements the `ops` command: bounded, read-only dump
 // of recent operation diagnostics.
 func cliOps(args []string) int {
 	fs := flag.NewFlagSet("ops", flag.ContinueOnError)
 	limit := fs.Int("limit", 50, "max events to show (newest kept, oldest-first)")
 	asJSON := fs.Bool("json", false, "machine-readable output")
+	req := fs.String("req", "", "only events for this request ID")
+	task := fs.String("task", "", "only events for this task ID")
+	attempt := fs.Int("attempt", -1, "only events for this attempt number")
+	session := fs.String("session", "", "only events for this session")
+	phase := fs.String("phase", "", "only events in this phase (dispatch|claim|execution|report|verification|cancellation|reconciliation)")
+	class := fs.String("class", "", "only events with this error class (conflict|terminal|budget|not_found|auth|verification|reconcile_refused|unknown)")
+	errorsOnly := fs.Bool("errors-only", false, "only error dispositions")
+	since := fs.Duration("since", 0, "only events from the last duration (e.g. 30m, 2h)")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: tui-dash ops [--limit N] [--json]")
+		fmt.Fprintln(os.Stderr, "usage: tui-dash ops [--limit N] [--json] [--req ID] [--task ID] [--attempt N] [--session S] [--phase P] [--class C] [--errors-only] [--since D]")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Read recent operation diagnostics (best-effort sample;")
-		fmt.Fprintln(os.Stderr, "the ledger stays authoritative). Opt in with")
-		fmt.Fprintln(os.Stderr, "TUI_DASH_OPS_DIAG=1; reads $TUI_DASH_STATE/ops_diag.jsonl.")
+		fmt.Fprintln(os.Stderr, "the ledger stays authoritative). Filters select within")
+		fmt.Fprintln(os.Stderr, "the bounded read; --limit still bounds rows scanned.")
+		fmt.Fprintln(os.Stderr, "Opt in with TUI_DASH_OPS_DIAG=1; reads $TUI_DASH_STATE/ops_diag.jsonl.")
 	}
 	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if !validOpsPhase(*phase) {
+		fmt.Fprintf(os.Stderr, "unknown phase %q (want dispatch|claim|execution|report|verification|cancellation|reconciliation)\n", *phase)
+		return 2
+	}
+	if *class != "" && !opsKnownClass(*class) {
+		fmt.Fprintf(os.Stderr, "unknown error class %q\n", *class)
 		return 2
 	}
 	n := *limit
@@ -74,6 +152,11 @@ func cliOps(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+	evs = filterOpsEvents(evs, opsFilter{
+		req: *req, task: *task, session: *session, phase: *phase,
+		class: *class, attempt: *attempt, errorsOnly: *errorsOnly,
+		since: *since,
+	}, time.Now().UTC())
 	if *asJSON {
 		out := make([]opsEventJSON, 0, len(evs))
 		for _, ev := range evs {
