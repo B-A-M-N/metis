@@ -45,8 +45,8 @@ func usage() {
       Open the dashboard (same as: run).
   metis up [--session NAME] [--workdir DIR] [--cmd CMD]
       Start the session if it is not running, then open the dashboard.
-  metis launch --name NAME --workdir DIR [--provider meta|local|echo] [--model ID] [--profile ID]
-      Launch one interactive Muse Code session through tmux.
+  metis launch --name NAME --workdir DIR [--provider meta|local|echo] [--backend pty|tmux] [--model ID] [--profile ID]
+      Launch one interactive Muse Code session (managed PTY default; tmux keeps F5 full-terminal attach).
   metis agent start --name NAME --workdir DIR [--cmd CMD | --harness H --prompt TEXT] [--model M]
   metis agent list [--json]  (also: agents, workers, sessions)
   metis agent stop --name NAME | agent adopt --name NAME
@@ -68,9 +68,13 @@ func usage() {
   metis report get --task ID | report compare --run RUN | report attach --task ID --path FILE
   metis graph walk|blockers|ready|coverage --run RUN
   metis muse daemon|bind|turn|status ...
+  metis m2m receive --session NAME [--wait SECS] [--timeout SECS] [--json]
   metis mcp serve
       Local stdio MCP adapter for model clients (also hosted by
-      Ocliv mcp expose for remote access). No HTTP listener.
+      Ocliv mcp expose for remote access).
+  metis mcp serve-http --listen 127.0.0.1:PORT
+      Authenticated HTTP MCP (JWT from METIS_MCP_ISSUER) for Ocliv
+      mcp publish --local. Numeric loopback only.
   metis doctor [--json]
   metis diagnose --session NAME [--json]
   metis demo --workdir DIR [--steps N] [--delay SECONDS]
@@ -300,6 +304,8 @@ func dispatchCLI(cmd string, args []string) int {
 		return cliMcp(args)
 	case "muse":
 		return cliMuse(args)
+	case "m2m":
+		return cliM2M(args)
 	case "ops":
 		return cliOps(args)
 	default:

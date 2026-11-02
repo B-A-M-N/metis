@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -64,11 +65,36 @@ func cliGraph(args []string) int {
 func cliMcp(args []string) int {
 	// Thin stdio adapter for model clients (local Muse Code
 	// directly; remote models through Ocliv's `mcp expose`,
-	// which hosts this stdio interface). No HTTP listener here.
-	if (len(args)+2) < 3 || args[0] != "serve" {
-		fmt.Fprintln(os.Stderr, "usage: metis mcp serve")
+	// which hosts this stdio interface).
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: metis mcp serve | metis mcp serve-http --listen 127.0.0.1:PORT")
 		return 2
 	}
-	mcpServeStdio()
-	return 0
+	switch args[0] {
+	case "serve":
+		mcpServeStdio()
+		return 0
+	case "serve-http":
+		// Authenticated HTTP transport for Ocliv `mcp publish
+		// --local` publication. Binds numeric loopback only; every
+		// call needs a JWT from the configured external issuer.
+		listen := "127.0.0.1:0"
+		rest := args[1:]
+		for i := 0; i < len(rest); i++ {
+			a := rest[i]
+			if v, ok := strings.CutPrefix(a, "--listen="); ok {
+				listen = v
+			} else if a == "--listen" && i+1 < len(rest) {
+				listen = rest[i+1]
+				i++
+			} else {
+				fmt.Fprintln(os.Stderr, "usage: metis mcp serve-http --listen 127.0.0.1:PORT")
+				return 2
+			}
+		}
+		return mcpServeHTTP(listen)
+	default:
+		fmt.Fprintln(os.Stderr, "usage: metis mcp serve | metis mcp serve-http --listen 127.0.0.1:PORT")
+		return 2
+	}
 }
