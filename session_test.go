@@ -27,20 +27,57 @@ func installFakeTmux(t *testing.T, owner string) (logPath string) {
 case "$1" in
   has-session)
     echo "has-session" >> "$FAKE_TMUX_LOG"
+    tgt="$3"
+    if [ -f "$FAKE_TMUX_DIR/dead-$tgt" ]; then exit 1; fi
+    if [ -f "$FAKE_TMUX_DIR/live-$tgt" ]; then exit 0; fi
     [ -f "$FAKE_TMUX_DIR/dead" ] && exit 1 || exit 0 ;;
   list-sessions)
     for s in $FAKE_TMUX_LIST; do echo "$s"; done
     exit 0 ;;
+  new-session)
+    # A fresh launch makes exactly this session live, mirroring
+    # real tmux; every other name keeps its prior state.
+    rm -f "$FAKE_TMUX_DIR/dead-$4"
+    touch "$FAKE_TMUX_DIR/live-$4"
+    exit 0 ;;
   display-message)
-    [ -f "$FAKE_TMUX_DIR/dead" ] && exit 1
-    echo "${FAKE_TMUX_ID:-\$99}"; exit 0 ;;
+    tgt="$4"
+    if [ -f "$FAKE_TMUX_DIR/dead-$tgt" ]; then exit 1; fi
+    if [ -f "$FAKE_TMUX_DIR/live-$tgt" ]; then :; elif [ -f "$FAKE_TMUX_DIR/dead" ]; then exit 1; fi
+    echo "${FAKE_TMUX_ID:-\$99}"; printf '%s' "$tgt" > "$FAKE_TMUX_DIR/killmap"; exit 0 ;;
   show-environment)
+    # Prefer a stamp recorded by set-environment for this target
+    # (real tmux returns what was actually stamped); fall back to
+    # the install-time owner for pre-existing foreign sessions.
+    if [ -f "$FAKE_TMUX_DIR/owner-$3" ]; then
+      echo "$4=$(cat "$FAKE_TMUX_DIR/owner-$3")"; exit 0
+    fi
     echo "TUI_DASH_OWNER=$FAKE_TMUX_OWNER"; exit 0 ;;
   kill-session)
     echo "kill-session $@" >> "$FAKE_TMUX_LOG"
-    touch "$FAKE_TMUX_DIR/dead"
+    rm -f "$FAKE_TMUX_DIR/live-$3"
+    touch "$FAKE_TMUX_DIR/dead-$3"
+    case "$3" in
+      \$*)
+        # Killed by immutable session ID: retire the name that ID
+        # last resolved to (this single-ID fake collapses all
+        # sessions to one ID, so last resolution wins).
+        if [ -f "$FAKE_TMUX_DIR/killmap" ]; then
+          nm=$(cat "$FAKE_TMUX_DIR/killmap")
+          rm -f "$FAKE_TMUX_DIR/live-$nm"
+          touch "$FAKE_TMUX_DIR/dead-$nm"
+        fi ;;
+    esac
     exit "${FAKE_TMUX_KILL_RC:-0}" ;;
-  send-keys|pipe-pane|set-environment|capture-pane)
+  set-environment)
+    echo "$1 $@" >> "$FAKE_TMUX_LOG"
+    # Track ownership stamps per target so a session created and
+    # stamped by startSession verifies, mirroring real tmux.
+    if [ "$4" = "TUI_DASH_OWNER" ] && [ -n "$5" ]; then
+      printf '%s' "$5" > "$FAKE_TMUX_DIR/owner-$3"
+    fi
+    exit 0 ;;
+  send-keys|pipe-pane|capture-pane)
     echo "$1 $@" >> "$FAKE_TMUX_LOG"
     exit 0 ;;
   *)
@@ -209,5 +246,33 @@ func TestStopDeadSessionMarksStopped(t *testing.T) {
 	data, _ := os.ReadFile(logPath)
 	if strings.Contains(string(data), "kill-session") {
 		t.Fatalf("dead session must not be killed, log:\n%s", data)
+	}
+}
+
+// The fake models per-session liveness like real tmux: launching
+// one session does not revive unrelated dead names, and killing by
+// immutable session ID retires the resolved name so the post-kill
+// confirm loop observes the death.
+func TestFakeTmuxPerSessionLiveness(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	installFakeTmux(t, "tok-i")
+	markFakeTmuxDead(t)
+	if err := startSession("a", t.TempDir(), "sleep 60", "custom", ""); err != nil {
+		t.Fatalf("launch: %v", err)
+	}
+	if !sessionRunning("a") {
+		t.Fatal("launched session must read as live")
+	}
+	if sessionRunning("b") {
+		t.Fatal("unrelated name must stay dead after another session launches")
+	}
+	if err := stopSession("a"); err != nil {
+		t.Fatalf("stop: %v", err)
+	}
+	if sessionRunning("a") {
+		t.Fatal("session killed by ID must read as dead")
+	}
+	if got := loadRegistry()["a"]; !got.Stopped {
+		t.Fatal("stopped session must be recorded stopped")
 	}
 }

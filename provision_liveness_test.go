@@ -335,7 +335,11 @@ func TestProvisionNativeConflictingLogicalIdentity(t *testing.T) {
 func TestProvisionReplayHealthyAdoptsLive(t *testing.T) {
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	installFakeTmux(t, "healthy-owner")
-	markFakeTmuxDead(t)
+	// No dead marker: this pins the live-session adopt path (owned,
+	// unstopped, workspace-matched entry + live backend ->
+	// running+reconciled). A dead backend with a live-looking
+	// registry entry is a distinct stale-entry case the service
+	// refuses rather than adopting.
 	work := t.TempDir()
 	mustRegisterRoot(t, work, true)
 	seedRegistryEntry(t, "ok", "healthy-owner", work, false)

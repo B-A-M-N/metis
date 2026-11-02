@@ -91,6 +91,9 @@ func TestCmdStatusLeavesCursor(t *testing.T) {
 	if err := updateMuseCursor("w", "cursor-old-sentinel", "turn-sentinel"); err != nil {
 		t.Fatal(err)
 	}
+	if !museDaemonReady() {
+		t.Skip("no ambient muse daemon serving the default store; start one for full status coverage")
+	}
 	if err := museCmdStatus("w", "echo", ""); err != nil {
 		t.Fatal(err)
 	}
