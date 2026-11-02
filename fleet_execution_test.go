@@ -19,6 +19,7 @@ func uniqueTaskKey(prefix string) string {
 // execution owner: a second node claiming the same attempt is
 // refused, never forked into a duplicate execution.
 func TestFleetExecutionSingleOwner(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	host, err := os.Hostname()
 	if err != nil {
 		t.Skipf("no hostname: %v", err)
@@ -52,6 +53,7 @@ func TestFleetExecutionSingleOwner(t *testing.T) {
 // Claims require a live node: stale liveness cannot take ownership,
 // or a dead node would hold work nobody can see.
 func TestFleetExecutionStaleNodeRefused(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	host, err := os.Hostname()
 	if err != nil {
 		t.Skipf("no hostname: %v", err)
@@ -70,6 +72,7 @@ func TestFleetExecutionStaleNodeRefused(t *testing.T) {
 // Completing settles the binding and frees the slot: the node can
 // take new work, and settling an unknown execution is refused.
 func TestFleetExecutionCompleteSettles(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	host, err := os.Hostname()
 	if err != nil {
 		t.Skipf("no hostname: %v", err)

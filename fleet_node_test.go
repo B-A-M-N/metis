@@ -21,6 +21,7 @@ func backdateFleetHeartbeat(t *testing.T, nodeID string, ns int64) {
 // Enrollment mints a stable node identity that heartbeats keep
 // alive. No node, no fleet routing.
 func TestFleetNodeEnrollHeartbeatAlive(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	id, err := enrollFleetNode("host-a", `{"muse":true}`)
 	if err != nil {
 		t.Fatalf("enrollFleetNode: %v", err)
@@ -55,6 +56,7 @@ func TestFleetNodeEnrollHeartbeatAlive(t *testing.T) {
 // A heartbeat for an unknown node is refused, not auto-registered:
 // identity comes from enrollment, never from first contact.
 func TestFleetNodeUnknownHeartbeatRefused(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	if err := heartbeatFleetNode("node-does-not-exist"); err == nil {
 		t.Fatal("heartbeat for unknown node succeeded, want refusal")
 	}
@@ -63,6 +65,7 @@ func TestFleetNodeUnknownHeartbeatRefused(t *testing.T) {
 // A node whose heartbeat lapsed stays listed but is not alive.
 // Stale liveness must never read as ready.
 func TestFleetNodeStaleNotAlive(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	id, err := enrollFleetNode("host-stale", `{}`)
 	if err != nil {
 		t.Fatalf("enrollFleetNode: %v", err)
@@ -81,6 +84,7 @@ func TestFleetNodeStaleNotAlive(t *testing.T) {
 
 // Two enrollments never share an identity, even for the same host.
 func TestFleetNodeEnrollDistinctIdentity(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	a, err := enrollFleetNode("host-same", `{}`)
 	if err != nil {
 		t.Fatalf("enroll a: %v", err)

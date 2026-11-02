@@ -120,6 +120,7 @@ func isBusyErrorForTest(err error) bool {
 // victim's own tx (a separate connection would only serialize on the
 // victim's lock); the rollback must unwind even the probe's write.
 func TestStaleReportCannotFileAgainstNewerAttempt(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	run, _ := coverageSetup(t, "staler")
 	id := reportBoundaryTask(t, run, "w", "auth-stale.go")
 	base, err := getTask(id)
@@ -169,6 +170,7 @@ func TestStaleReportCannotFileAgainstNewerAttempt(t *testing.T) {
 // reconcile to a newer attempt, and the next report must land on the
 // newer attempt with history append-only — never under the stale one.
 func TestReportVsRetryKeepsAuthoritativeAttempt(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	run, _ := coverageSetup(t, "authattempt")
 	seedHarnessSession(t, "w-seq", "authattempt", "demo")
 	id := reportBoundaryTask(t, run, "w-seq", "auth-seq.go")
@@ -233,6 +235,7 @@ func TestReportVsRetryKeepsAuthoritativeAttempt(t *testing.T) {
 // with the ledger report_ready. SQLITE_BUSY is a contention
 // artifact, not an outcome: the reporter retries it to quiescence.
 func TestConcurrentReportVsRetryFilesAuthoritativeAttempt(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	run, _ := coverageSetup(t, "raceretry")
 	for round := 0; round < 3; round++ {
 		sess := fmt.Sprintf("w-race-%d", round)
@@ -302,6 +305,7 @@ func TestConcurrentReportVsRetryFilesAuthoritativeAttempt(t *testing.T) {
 // opens its own connection), so under write contention it cannot
 // wedge on the caller's own lock. Coverage and history are unchanged.
 func TestCoverageFailureRefusesPromptlyWithoutLockWait(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	run, _ := coverageSetup(t, "covfault")
 	seedHarnessSession(t, "w-fault", "covfault", "demo")
 	id := reportBoundaryTask(t, run, "w-fault", "auth-fault.go")

@@ -12,6 +12,7 @@ import (
 // predicate. Twenty racers against two slots must leave exactly two
 // reservations — never an over-admitted third.
 func TestFleetReserveConcurrentCapacity(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	id, err := enrollFleetNode("host-race", `{}`)
 	if err != nil {
 		t.Fatalf("enrollFleetNode: %v", err)
@@ -56,6 +57,7 @@ func TestFleetReserveConcurrentCapacity(t *testing.T) {
 // not a silent success. Idempotent replay requires identical
 // payload, not merely an identical key.
 func TestFleetReserveRequestIDConflict(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	id, err := enrollFleetNode("host-idem", `{}`)
 	if err != nil {
 		t.Fatalf("enrollFleetNode: %v", err)
@@ -74,6 +76,7 @@ func TestFleetReserveRequestIDConflict(t *testing.T) {
 // P0-D: concurrent claims for one attempt converge on a single
 // owner with no stranded reservation on the loser.
 func TestFleetClaimRaceNoOrphan(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	host, err := os.Hostname()
 	if err != nil {
 		t.Skipf("no hostname: %v", err)
@@ -130,6 +133,7 @@ func TestFleetClaimRaceNoOrphan(t *testing.T) {
 // P0-C (outbox): a reused request ID with different op/payload is a
 // conflict, not a silent replay of the old operation.
 func TestFleetOutboxRequestIDConflict(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	id, err := enrollFleetNode("host-obx", `{}`)
 	if err != nil {
 		t.Fatalf("enrollFleetNode: %v", err)

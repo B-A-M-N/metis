@@ -10,6 +10,7 @@ import (
 // Routing to an unknown node is refused: the fleet never executes
 // against an identity it did not enroll.
 func TestFleetRouteUnknownNodeRefused(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	if _, err := fleetRouteSession("node-missing", "any-session", 10*time.Minute); err == nil {
 		t.Fatal("routed to unknown node, want refusal")
 	} else if !strings.Contains(err.Error(), "unknown") {
@@ -20,6 +21,7 @@ func TestFleetRouteUnknownNodeRefused(t *testing.T) {
 // A stale node is known but not routable: liveness gates routing,
 // and the error must say so.
 func TestFleetRouteStaleNodeRefused(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	host, err := os.Hostname()
 	if err != nil {
 		t.Skipf("no hostname: %v", err)
@@ -40,6 +42,7 @@ func TestFleetRouteStaleNodeRefused(t *testing.T) {
 // remote transport does not exist yet, so routing must refuse and
 // name the missing leg.
 func TestFleetRouteRemoteNodeRefused(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	id, err := enrollFleetNode("definitely-not-this-host", `{"muse":true}`)
 	if err != nil {
 		t.Fatalf("enrollFleetNode: %v", err)
@@ -58,6 +61,7 @@ func TestFleetRouteRemoteNodeRefused(t *testing.T) {
 // session the local resolver's own error must surface, proving the
 // request reached the local leg rather than being swallowed.
 func TestFleetRouteLocalNodeDelegatesToSession(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	host, err := os.Hostname()
 	if err != nil {
 		t.Skipf("no hostname: %v", err)
