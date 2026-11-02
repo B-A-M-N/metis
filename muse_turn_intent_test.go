@@ -18,6 +18,9 @@ import (
 // executing twice. Kill Metis after accept but before the ack, and
 // the recovered intent names a command the server already knows.
 func TestTurnResubmitDedups(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

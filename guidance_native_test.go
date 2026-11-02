@@ -74,6 +74,9 @@ func TestNativeSteerWithoutDaemonFails(t *testing.T) {
 // admitted as a queued MSP turn: delivered with the admission
 // (disposition + turn id), never terminal keystrokes.
 func TestNativeSteerDeliversQueuedTurn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)

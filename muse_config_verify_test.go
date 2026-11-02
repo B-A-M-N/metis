@@ -15,6 +15,9 @@ import (
 )
 
 func TestSessionStartSelectsAndEchoesConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
@@ -47,6 +50,9 @@ func TestSessionStartSelectsAndEchoesConfig(t *testing.T) {
 }
 
 func TestVerifySessionConfigRefusesMismatch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
@@ -84,6 +90,9 @@ func TestVerifySessionConfigRefusesMismatch(t *testing.T) {
 }
 
 func TestBindBlocksUnverifiedModel(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
@@ -174,6 +183,9 @@ func TestStartRefusesLyingServer(t *testing.T) {
 // model no longer matches the server-reported effective config
 // refuses the turn before anything is submitted.
 func TestManagedTurnRefusesModelDrift(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)

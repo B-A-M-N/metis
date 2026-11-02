@@ -32,6 +32,9 @@ func writeNumberedLog(t *testing.T, dir string, count int) string {
 }
 
 func TestBoundedTailMillionLineLog(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (perf characterization); run without -short")
+	}
 	dir := t.TempDir()
 	p := writeNumberedLog(t, dir, 1000000)
 	start := time.Now()

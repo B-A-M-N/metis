@@ -105,6 +105,9 @@ func TestMuseBindingRequiresRequest(t *testing.T) {
 // no model calls and no quota. The echo turn returns the prompt, so
 // the report must contain the task's own objective text.
 func TestMuseNativeWorkerLoopEndToEnd(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
@@ -161,6 +164,9 @@ func TestMuseNativeWorkerLoopEndToEnd(t *testing.T) {
 // An unbound session must be refused before anything executes, with
 // the claim refunded so the attempt is not consumed.
 func TestMuseNativeWorkerLoopRefusesUnbound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	home := t.TempDir()
 	t.Setenv("XDG_DATA_HOME", home)
@@ -186,6 +192,9 @@ func TestMuseNativeWorkerLoopRefusesUnbound(t *testing.T) {
 }
 
 func TestMuseResumeRecovery(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	seedOwnedSession(t, "w", "resume")
 	home := t.TempDir()

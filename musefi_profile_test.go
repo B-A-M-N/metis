@@ -19,6 +19,9 @@ import (
 )
 
 func TestMuseFiProfileServesEchoSession(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (live FI profile); run without -short")
+	}
 	real, err := filepath.EvalSymlinks(os.ExpandEnv("$HOME/.local/bin/musefi"))
 	if err != nil {
 		t.Skipf("musefi launcher absent: %v", err)

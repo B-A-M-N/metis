@@ -174,6 +174,9 @@ func TestCB13OneShotGuidanceRefused(t *testing.T) {
 // Supervisor boundary: forged frames from a non-lease-holder are
 // refused at the supervisor; the PTY is untouched and the worker lives.
 func TestSupervisorRejectsForgedFrames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}

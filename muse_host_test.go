@@ -205,6 +205,9 @@ func TestMuseHostLateReplyDropped(t *testing.T) {
 // terminal completion, same-session continuation, commandId dedup,
 // and session listing. No model calls, no quota.
 func TestMuseEchoLifecycle(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	if _, err := lookupMuse(); err != nil {
 		t.Skipf("muse binary absent: %v", err)
 	}

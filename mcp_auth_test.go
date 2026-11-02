@@ -40,6 +40,9 @@ func seedReportedTask(t *testing.T, run, agent, session string) string {
 }
 
 func TestMCPRemotePrincipalDenied(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (daemon/host turns); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-remote")
 	installFakeTmux(t, "o1")

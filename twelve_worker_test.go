@@ -11,6 +11,9 @@ import (
 // distinct fleet execution owners, distinct tabs, and independent
 // input leases — under one controller and one node capacity budget.
 func TestTwelveWorkerFleet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (fleet scale); run without -short")
+	}
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}

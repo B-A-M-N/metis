@@ -1,4 +1,30 @@
-.PHONY: build test clean
+# Metis test gates.
+#
+# Gate ladder (cheapest first):
+#   test-fast        every code-edit iteration: -short mode (skips the
+#                    measured integration set: daemon/host turns, fleet
+#                    scale, perf characterization, timing/race stress,
+#                    fresh-binary test) + all internal packages.
+#   test-domain      one area after a coherent fix: AREA=<name> selects
+#                    a -run pattern (see area map below).
+#   test-integration affected workflows: builds a fresh binary from the
+#                    exact tree first (TestIntegrationTmux staleness
+#                    fix), then runs the full suite without -short.
+#   test-full        integration checkpoints and release: full uncached
+#                    suite, then the race subset.
+#   test             legacy alias of test-full (release gate).
+#
+# Slow-test inventory: measured with
+#   go test -json -count=1 -buildvcs=false ./...
+#   (`go test -json` Elapsed per Test) and recorded in
+#   test-inventory.json (test -> {owner file, seconds, deps}).
+#   Regenerate after major suite changes. Tests measuring >=1.5s
+#   that spin daemons/hosts/PTY/fleets, characterize perf, or are
+#   timing/race stress carry `if testing.Short()` skips. Pure-logic
+#   slow tests stay in every gate (their cost is fixture overhead, a
+#   future optimization target, not an integration dependency).
+# Never add t.Parallel: many tests share env and daemon state.
+.PHONY: build test clean test-fast test-domain test-integration test-full
 
 # -buildvcs=false is required on pop-os: plain `go build` fails there
 # with "error obtaining VCS status: exit status 128", because Go
@@ -9,7 +35,38 @@ build:
 	go build -buildvcs=false -o tui-dash .
 
 test:
-	go test ./...
+	$(MAKE) test-full
 
 clean:
 	rm -f tui-dash
+
+test-fast:
+	GOCACHE=/tmp/td-gocache go test -short -count=1 -buildvcs=false ./...
+
+# AREA selects one domain's -run pattern. Examples:
+#   make test-domain AREA=sessions | provision | dispatch | tui |
+#   muse | assurance | workspace | fleet | transport | terminal
+test-domain:
+	@: $${AREA:?usage: make test-domain AREA=<sessions|provision|dispatch|tui|muse|assurance|workspace|fleet|transport|terminal>}
+	case "$(AREA)" in \
+	  sessions)  PAT='Session|Registry|Pty|Attach|SendInput' ;; \
+	  provision) PAT='Provision|BindRetry|MCPBind' ;; \
+	  dispatch)  PAT='Dispatch|BlockedWorker|AdvDispatch|FinalizeRaces|ConcurrentDep' ;; \
+	  tui)       PAT='Tui|TUI|Model|View|Render|Graph|Refresh|Boundary|Nav|Guide|Feed' ;; \
+	  muse)      PAT='Muse|Turn|Steer|GuidanceNative|CmdStatus|Native' ;; \
+	  assurance) PAT='Assur|Verdict|Verif|Coverage|Report|Judg|Receipt|Reconcile' ;; \
+	  workspace) PAT='Workspace|ProjectRoot|Reserve|Workdir' ;; \
+	  fleet)     PAT='Fleet|Worker|SixWorkers|TwelveWorker' ;; \
+	  transport) PAT='MCP|Cli|Ops|Terminal|Doctor|Diagnose' ;; \
+	  terminal)  PAT='Terminal|Pty|PTY|InputSender|Supervisor|Lease' ;; \
+	  *) echo "unknown AREA $(AREA)"; exit 2 ;; \
+	esac; \
+	GOCACHE=/tmp/td-gocache go test -count=1 -buildvcs=false -run "$$PAT" .
+
+# Fresh binary first: TestIntegrationTmux exercises ./tui-dash, and a
+# stale binary would silently qualify an older tree.
+test-integration: build
+	GOCACHE=/tmp/td-gocache go test -count=1 -buildvcs=false ./...
+
+test-full: test-integration
+	GOCACHE=/tmp/td-gocache go test -race -count=1 -buildvcs=false -run 'TestDispatchConcurrentCrossSessionOneWinnerNoOrphan|TestDispatchLateAdmissionRefusedBeforePrepare|TestMCPDepend|TestMCPProvision|TestCoverageRevisedEvidenceReopensGate' .

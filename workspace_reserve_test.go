@@ -13,6 +13,9 @@ import (
 // exactly one owner with no loser ever observably dispatched: losers
 // are refused, never committed-then-yielded.
 func TestDispatchWorkspaceRaceSingleOwner(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (concurrency stress); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	installFakeTmux(t, "wrace")
 	seedOwnedSession(t, "w", "wrace")

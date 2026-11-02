@@ -74,6 +74,9 @@ func TestDependencyEditRestrictedToPending(t *testing.T) {
 // Two concurrent opposite edge additions must serialize: exactly
 // one wins, and the graph never holds a cycle.
 func TestConcurrentDepEdgesSerialize(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (concurrency stress); run without -short")
+	}
 	for i := 0; i < 10; i++ {
 		func() {
 			t.Setenv("TUI_DASH_STATE", t.TempDir())
@@ -140,6 +143,9 @@ func TestRemoteIngressDisablesLocalTrust(t *testing.T) {
 // holding a non-terminal racer task proves admission slipped past
 // the close commit (check-versus-commit race).
 func TestFinalizeRacesTaskAdmission(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (concurrency stress); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	for iter := 0; iter < 12; iter++ {
 		run := fmt.Sprintf("run-race-%d", iter)

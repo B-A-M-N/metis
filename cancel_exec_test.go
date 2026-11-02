@@ -103,6 +103,9 @@ func TestCancelRefusesRecycledPID(t *testing.T) {
 // still recorded (facts are facts) but no report is filed on a
 // task that is no longer working.
 func TestLoopHonorsMidRunCancel(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (timing-bound); run without -short")
+	}
 	t.Setenv("TUI_DASH_STATE", t.TempDir())
 	installFakeTmux(t, "cx3")
 	seedOwnedSession(t, "w", "cx3")

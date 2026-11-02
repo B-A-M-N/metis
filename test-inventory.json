@@ -1,0 +1,4042 @@
+{
+ "measured_from": "go test -json -count=1 -buildvcs=false ./... (267s package elapsed, 613 results, 0 fail)",
+ "short_policy": "short-skipped = integration-class (daemon/host/PTY/fleet/binary/perf/stress/timing) AND measured >=1.5s, plus fresh-binary gate; pure-logic slow tests stay in all gates",
+ "tests": {
+  "TestAcceptanceImmutable": {
+   "file": "phase3_test.go",
+   "seconds": 0.6,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAckedButUnboundReconcilesAcrossKeys": {
+   "file": "muse_bind_idempotency_test.go",
+   "seconds": 0.48,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAdoptExplicit": {
+   "file": "main_test.go",
+   "seconds": 0.07,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAdvDispatchAtomicity": {
+   "file": "adversarial_commit_test.go",
+   "seconds": 0.56,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAdvDispatchConcurrentOneWinner": {
+   "file": "adversarial_commit_test.go",
+   "seconds": 1.06,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAdvDispatchRefusalSideEffectFree": {
+   "file": "adversarial_commit_test.go",
+   "seconds": 0.43,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAdvFifoReassemblyBounded": {
+   "file": "adversarial_commit_test.go",
+   "seconds": 0.73,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestAdvProcessGroupKillsDescendants": {
+   "file": "adversarial_commit_test.go",
+   "seconds": 0.52,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestApprovalAttentionBindsTask": {
+   "file": "attention_test.go",
+   "seconds": 0.4,
+   "status": "pass",
+   "deps": []
+  },
+  "TestApprovalAttentionLifecycle": {
+   "file": "attention_test.go",
+   "seconds": 0.43,
+   "status": "pass",
+   "deps": []
+  },
+  "TestArtifactEvidence": {
+   "file": "reports_test.go",
+   "seconds": 0.25,
+   "status": "pass",
+   "deps": []
+  },
+  "TestArtifactScopedToAttempt": {
+   "file": "phase3_test.go",
+   "seconds": 0.82,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAssembleRefreshFromSource": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAssuranceConflictingJudgmentsPersistAndBlockVerify": {
+   "file": "verdict_assurance_test.go",
+   "seconds": 1,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAssuranceLegacyRowsMigrateWithAttribution": {
+   "file": "verdict_assurance_test.go",
+   "seconds": 1.34,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAssuranceOperatorAcceptanceIsNotTechnicalProof": {
+   "file": "verdict_assurance_test.go",
+   "seconds": 0.88,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAssuranceOperatorOverrideDisposition": {
+   "file": "verdict_assurance_test.go",
+   "seconds": 0.62,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAssuranceSelfSupersedeResolvesDispute": {
+   "file": "verdict_assurance_test.go",
+   "seconds": 1.08,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAssuranceStaleRevisionJudgmentDoesNotCarry": {
+   "file": "verdict_assurance_test.go",
+   "seconds": 0.94,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAssuranceUnknownMethodRefused": {
+   "file": "verdict_assurance_test.go",
+   "seconds": 0.66,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAtomicLeaseRace": {
+   "file": "terminal_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttachClassifyConfirmed": {
+   "file": "internal/tui/attach_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestAttachClassifyIgnores": {
+   "file": "internal/tui/attach_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestAttachClassifyRefused": {
+   "file": "internal/tui/attach_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestAttachDetachCycle": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttachEnterUsesAsyncCommand": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0.02,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttachHealsStream": {
+   "file": "tui_projection_test.go",
+   "seconds": 0.02,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttachRefusalDetaches": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttachRefusesStopped": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttachRequestBumpsGeneration": {
+   "file": "internal/tui/attach_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestAttachSamePathSameAttemptRefused": {
+   "file": "phase3_test.go",
+   "seconds": 0.48,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttachStaleRefusalCannotClobberNewerAttach": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0.02,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttachTerminalRefused": {
+   "file": "phase3_test.go",
+   "seconds": 0.6,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttentionLifecycle": {
+   "file": "attention_test.go",
+   "seconds": 0.37,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttentionSplitApprovalNoTask": {
+   "file": "attention_split_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestAttentionSplitResolveUnknownNoop": {
+   "file": "attention_split_test.go",
+   "seconds": 0.24,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBatchedFleetRefresh": {
+   "file": "terminal_test.go",
+   "seconds": 0.6,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestBindBlocksUnverifiedModel": {
+   "file": "muse_config_verify_test.go",
+   "seconds": 2.19,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestBindConflictingPayloadRefused": {
+   "file": "muse_bind_idempotency_test.go",
+   "seconds": 0.32,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBindRejectsProviderChange": {
+   "file": "muse_turn_wiring_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBindRetryConvergesSameRequestID": {
+   "file": "provision_p0_test.go",
+   "seconds": 1.58,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestBindRetrySameKeyCreatesOneNativeSession": {
+   "file": "muse_bind_idempotency_test.go",
+   "seconds": 0.35,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBindUncertainIntentStaysRecoverable": {
+   "file": "muse_bind_idempotency_test.go",
+   "seconds": 0.33,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBlockedWorkerDoesNotSerialize": {
+   "file": "phase2_test.go",
+   "seconds": 0.45,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryAttachOutcomesRoutedThroughFence": {
+   "file": "boundary_test.go",
+   "seconds": 0.03,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryGuidanceRoutedThroughComponent": {
+   "file": "boundary_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryInternalTUIImportClosure": {
+   "file": "boundary_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryModeWritesRoutedThroughNav": {
+   "file": "boundary_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryNoGlobalRefreshSource": {
+   "file": "boundary_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryNoStatusSniffing": {
+   "file": "boundary_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryPaneBindingSingleWriter": {
+   "file": "boundary_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryPaneReadsRoutedThroughBinding": {
+   "file": "boundary_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryReadUIHasNoSQLImport": {
+   "file": "boundary_test.go",
+   "seconds": 0.03,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundarySendKeysRequiresLease": {
+   "file": "boundary_test.go",
+   "seconds": 0.1,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryTerminalHasNoTeaDependency": {
+   "file": "boundary_test.go",
+   "seconds": 0.04,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundaryTransportHasNoDBOpeners": {
+   "file": "boundary_test.go",
+   "seconds": 0.18,
+   "status": "pass",
+   "deps": []
+  },
+  "TestBoundedTailMillionLineLog": {
+   "file": "bounded_reads_test.go",
+   "seconds": 3.74,
+   "status": "pass",
+   "deps": [
+    "short-skipped"
+   ]
+  },
+  "TestBoundedTailRotationDuringRead": {
+   "file": "bounded_reads_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCB01ConcurrentDispatchOneWinner": {
+   "file": "acceptance_test.go",
+   "seconds": 0.55,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCB12CrashRetryReconciles": {
+   "file": "acceptance_test.go",
+   "seconds": 0.48,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCB13OneShotGuidanceRefused": {
+   "file": "acceptance_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCLIAliases": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelConfirmedReleasesWorkspace": {
+   "file": "cancel_two_stage_test.go",
+   "seconds": 0.68,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelLiveNativeTurnStaysUnconfirmed": {
+   "file": "cancel_two_stage_test.go",
+   "seconds": 0.62,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelNativeReceiptWithoutBinding": {
+   "file": "cancel_two_stage_test.go",
+   "seconds": 0.4,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelPendingNeedsNoStop": {
+   "file": "cancel_two_stage_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelPropagatesToDescendants": {
+   "file": "phase2_test.go",
+   "seconds": 0.58,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelRecordsUnconfirmedStop": {
+   "file": "phase2_test.go",
+   "seconds": 0.63,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelRefusesRecycledPID": {
+   "file": "cancel_exec_test.go",
+   "seconds": 0.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelRetainsSharedWorker": {
+   "file": "phase2_test.go",
+   "seconds": 0.68,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelStopsBoundWorker": {
+   "file": "phase2_test.go",
+   "seconds": 0.6,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelStopsManagedProcess": {
+   "file": "cancel_exec_test.go",
+   "seconds": 0.77,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCancelUncertainKeepsWorkspaceBlocked": {
+   "file": "cancel_two_stage_test.go",
+   "seconds": 0.72,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCapacityLimitAdmission": {
+   "file": "run_policy_split_test.go",
+   "seconds": 0.44,
+   "status": "pass",
+   "deps": []
+  },
+  "TestChainedTurnObserver": {
+   "file": "muse_turn_wiring_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestChangedPayloadAfterUncertainSubmitRefused": {
+   "file": "muse_turn_intent_test.go",
+   "seconds": 0.8,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCliOpsHonestAboutMissingIdentity": {
+   "file": "cli_ops_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCliOpsJSON": {
+   "file": "cli_ops_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCliOpsLimit": {
+   "file": "cli_ops_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCliOpsMissingSink": {
+   "file": "cli_ops_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCliOpsOutputStaysRedacted": {
+   "file": "cli_ops_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCliOpsReadOnly": {
+   "file": "cli_ops_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCliOpsReadSurface": {
+   "file": "cli_ops_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCliWorkerLoopAcceptsNativeTurnHarness": {
+   "file": "cli_worker_loop_test.go",
+   "seconds": 2.71,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestClosedRunRefusesAdmission": {
+   "file": "run_policy_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCmdStatusLeavesCursor": {
+   "file": "muse_turn_wiring_test.go",
+   "seconds": 5.51,
+   "status": "skip",
+   "deps": [
+    "muse-daemon"
+   ]
+  },
+  "TestCodexModelFlag": {
+   "file": "phase2_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCollectLeavesMissingStreamAlone": {
+   "file": "tui_projection_test.go",
+   "seconds": 0.32,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCollectRefreshDataUsesReadModel": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCombinedNames": {
+   "file": "terminal_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCompareReports": {
+   "file": "reports_test.go",
+   "seconds": 0.57,
+   "status": "pass",
+   "deps": []
+  },
+  "TestConcurrentDepEdgesSerialize": {
+   "file": "run_policy_test.go",
+   "seconds": 2.55,
+   "status": "pass",
+   "deps": [
+    "short-skipped"
+   ]
+  },
+  "TestConcurrentDispatchOneWinner": {
+   "file": "controller_test.go",
+   "seconds": 0.6,
+   "status": "pass",
+   "deps": []
+  },
+  "TestConcurrentDispatchRespectsRunLimit": {
+   "file": "dispatch_atomicity_test.go",
+   "seconds": 0.43,
+   "status": "pass",
+   "deps": []
+  },
+  "TestConcurrentIDGeneratorsUnique": {
+   "file": "task_idgen_crossprocess_test.go",
+   "seconds": 0.1,
+   "status": "pass",
+   "deps": []
+  },
+  "TestConcurrentReconcileSingleWinner": {
+   "file": "dispatch_atomicity_test.go",
+   "seconds": 0.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestConcurrentReportVsRetryFilesAuthoritativeAttempt": {
+   "file": "report_tx_boundary_test.go",
+   "seconds": 1.41,
+   "status": "pass",
+   "deps": []
+  },
+  "TestConcurrentTakeoverOneWinner": {
+   "file": "terminal_test.go",
+   "seconds": 0.76,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestConsumerKillRestartDuplicatePickupRefused": {
+   "file": "consumer_readiness_test.go",
+   "seconds": 0.61,
+   "status": "pass",
+   "deps": []
+  },
+  "TestContradictionsStayAttributed": {
+   "file": "phase3_test.go",
+   "seconds": 0.73,
+   "status": "pass",
+   "deps": []
+  },
+  "TestControllerID": {
+   "file": "terminal_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCorrectionBudgetEnforced": {
+   "file": "phase2_test.go",
+   "seconds": 0.53,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCorrectionCarriesPriorArtifacts": {
+   "file": "phase3_test.go",
+   "seconds": 0.8,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCorrectionCycleEndToEnd": {
+   "file": "e2e_correction_test.go",
+   "seconds": 1.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoverageBlocksFinalize": {
+   "file": "coverage_enforce_test.go",
+   "seconds": 0.6,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoverageBlocksVerify": {
+   "file": "coverage_enforce_test.go",
+   "seconds": 0.73,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoverageFailureRefusesPromptlyWithoutLockWait": {
+   "file": "report_tx_boundary_test.go",
+   "seconds": 0.54,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoverageGateKeepsRequiredReviewsRole": {
+   "file": "verdict_assurance_test.go",
+   "seconds": 1.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoverageGeneratedFromPolicy": {
+   "file": "coverage_enforce_test.go",
+   "seconds": 0.82,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoverageGraphProjectsAndSessions": {
+   "file": "coverage_graph_test.go",
+   "seconds": 0.73,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoveragePolicyValidation": {
+   "file": "coverage_enforce_test.go",
+   "seconds": 0.18,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoverageRevisedEvidenceReopensGate": {
+   "file": "coverage_gate_test.go",
+   "seconds": 0.61,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoverageSupersededOnNewEvidence": {
+   "file": "coverage_enforce_test.go",
+   "seconds": 0.54,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCoverageVerifiedDoesNotSatisfyObligation": {
+   "file": "coverage_obligations_test.go",
+   "seconds": 0.57,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCrashBetweenDeliverAndClaim": {
+   "file": "phase2_test.go",
+   "seconds": 0.44,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCreateTaskIdempotent": {
+   "file": "controller_test.go",
+   "seconds": 0.47,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCriterionVerdictBindings": {
+   "file": "verdict_test.go",
+   "seconds": 0.67,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCrossProcessIDGeneratorsUnique": {
+   "file": "task_idgen_crossprocess_test.go",
+   "seconds": 0.12,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCursorEmptyWriteRetainsPosition": {
+   "file": "muse_config_verify_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestCursorWriteAttributesTurn": {
+   "file": "muse_config_verify_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDecideBindsCommandIDToPayload": {
+   "file": "muse_approvals_test.go",
+   "seconds": 0.31,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDecodeFrameClassification": {
+   "file": "internal/musewire/musewire_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestDemoGuidanceAck": {
+   "file": "main_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDependIdempotentReplayAndConflict": {
+   "file": "run_policy_split_test.go",
+   "seconds": 0.25,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDependPathsConvergeOnCycle": {
+   "file": "run_policy_split_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDependencyBlocksDispatch": {
+   "file": "phase2_test.go",
+   "seconds": 0.34,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDependencyCycleRejected": {
+   "file": "phase2_test.go",
+   "seconds": 0.28,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDependencyEditRestrictedToPending": {
+   "file": "run_policy_test.go",
+   "seconds": 0.39,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDependencyFailedBlocks": {
+   "file": "phase2_test.go",
+   "seconds": 0.68,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDependencyRequiresVerified": {
+   "file": "phase2_test.go",
+   "seconds": 1.07,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchAssignmentOverdue": {
+   "file": "consumer_readiness_test.go",
+   "seconds": 0.39,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchBindsExecutionRoot": {
+   "file": "phase2_test.go",
+   "seconds": 0.44,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchCommitRevalidatesDependencies": {
+   "file": "dispatch_service_test.go",
+   "seconds": 0.36,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchConcurrentCrossSessionOneWinnerNoOrphan": {
+   "file": "dispatch_service_test.go",
+   "seconds": 0.44,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchDeliversInstruction": {
+   "file": "reports_test.go",
+   "seconds": 0.4,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchEnforcesAuthorizedRoot": {
+   "file": "phase2_test.go",
+   "seconds": 0.48,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchLateAdmissionRefusedBeforePrepare": {
+   "file": "dispatch_service_test.go",
+   "seconds": 0.31,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchParkedSessionBlockedLaterPickupExactlyOnce": {
+   "file": "consumer_readiness_test.go",
+   "seconds": 0.58,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchReadinessProjectionDistinct": {
+   "file": "consumer_readiness_test.go",
+   "seconds": 0.46,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchRejectsUnusableSession": {
+   "file": "controller_test.go",
+   "seconds": 0.35,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchTeamCapacityRace": {
+   "file": "admission_test.go",
+   "seconds": 0.51,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchTeamEligibilityRefused": {
+   "file": "admission_test.go",
+   "seconds": 0.47,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDispatchWorkspaceRaceSingleOwner": {
+   "file": "workspace_reserve_test.go",
+   "seconds": 3.22,
+   "status": "pass",
+   "deps": [
+    "short-skipped"
+   ]
+  },
+  "TestDoctorFlagsUncertainExecution": {
+   "file": "doctor_test.go",
+   "seconds": 0.43,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDoctorMCPIngressFailClosed": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDoctorMCPIngressRemoteOK": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDoctorNeverMigrates": {
+   "file": "doctor_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDuplicateReportLeavesCoverageUnchanged": {
+   "file": "report_coverage_tx_test.go",
+   "seconds": 0.53,
+   "status": "pass",
+   "deps": []
+  },
+  "TestDuplicateReportRefused": {
+   "file": "phase3_test.go",
+   "seconds": 0.49,
+   "status": "pass",
+   "deps": []
+  },
+  "TestEncodeCallByteExact": {
+   "file": "internal/musewire/musewire_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestEncodeDecodeRoundTrip": {
+   "file": "internal/musewire/musewire_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestEncodeNotifyByteExact": {
+   "file": "internal/musewire/musewire_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestEncodeResultByteExact": {
+   "file": "internal/musewire/musewire_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestEnsureManagedWorkerLoopStartsAndRestarts": {
+   "file": "consumer_readiness_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestErrorString": {
+   "file": "internal/musewire/musewire_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestExecutionReceiptStoresRedactedArgv": {
+   "file": "exec_boundary_test.go",
+   "seconds": 0.15,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFailurePreservedAcrossCorrection": {
+   "file": "phase3_test.go",
+   "seconds": 0.91,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFakeTmuxPerSessionLiveness": {
+   "file": "session_test.go",
+   "seconds": 0.04,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFeedFailureKeepsLastKnown": {
+   "file": "tui_projection_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFinalizeOnlyAuthorityClosesRun": {
+   "file": "run_policy_split_test.go",
+   "seconds": 0.4,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFinalizeRacesTaskAdmission": {
+   "file": "run_policy_test.go",
+   "seconds": 8.45,
+   "status": "pass",
+   "deps": [
+    "short-skipped"
+   ]
+  },
+  "TestFinalizeRunRefusesUnresolved": {
+   "file": "phase2_test.go",
+   "seconds": 0.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetArtifactsBindNodeAndAttempt": {
+   "file": "fleet_artifacts_test.go",
+   "seconds": 0.05,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetArtifactsGCRespectsLive": {
+   "file": "fleet_artifacts_test.go",
+   "seconds": 0.15,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetArtifactsIdempotentRecord": {
+   "file": "fleet_artifacts_test.go",
+   "seconds": 0.05,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetArtifactsUnknownRefused": {
+   "file": "fleet_artifacts_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetClaimContentionRefusesWorker": {
+   "file": "fleet_wiring_test.go",
+   "seconds": 0.77,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetClaimRaceNoOrphan": {
+   "file": "fleet_atomicity_test.go",
+   "seconds": 0.14,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetExecutionCompleteSettles": {
+   "file": "fleet_execution_test.go",
+   "seconds": 0.11,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetExecutionSingleOwner": {
+   "file": "fleet_execution_test.go",
+   "seconds": 0.12,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetExecutionStaleNodeRefused": {
+   "file": "fleet_execution_test.go",
+   "seconds": 0.03,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetNoOfferLegacyPath": {
+   "file": "fleet_wiring_test.go",
+   "seconds": 0.71,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetNodeEnrollDistinctIdentity": {
+   "file": "fleet_node_test.go",
+   "seconds": 0.04,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetNodeEnrollHeartbeatAlive": {
+   "file": "fleet_node_test.go",
+   "seconds": 0.04,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetNodeStaleNotAlive": {
+   "file": "fleet_node_test.go",
+   "seconds": 0.06,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetNodeUnknownHeartbeatRefused": {
+   "file": "fleet_node_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetOfferExecutesUnderClaim": {
+   "file": "fleet_wiring_test.go",
+   "seconds": 0.93,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetOutboxAckRemovesFromPending": {
+   "file": "fleet_outbox_test.go",
+   "seconds": 0.06,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetOutboxAckUnknownRefused": {
+   "file": "fleet_outbox_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetOutboxEnqueueIdempotent": {
+   "file": "fleet_outbox_test.go",
+   "seconds": 0.05,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetOutboxEnqueueReplay": {
+   "file": "fleet_outbox_test.go",
+   "seconds": 0.05,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetOutboxRequestIDConflict": {
+   "file": "fleet_atomicity_test.go",
+   "seconds": 0.03,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetReserveConcurrentCapacity": {
+   "file": "fleet_atomicity_test.go",
+   "seconds": 0.13,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetReserveRequestIDConflict": {
+   "file": "fleet_atomicity_test.go",
+   "seconds": 0.03,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetResourcesCapacityGates": {
+   "file": "fleet_resources_test.go",
+   "seconds": 0.08,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetResourcesReleaseFrees": {
+   "file": "fleet_resources_test.go",
+   "seconds": 0.11,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetResourcesUnknownNodeRefused": {
+   "file": "fleet_resources_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetRouteLocalNodeDelegatesToSession": {
+   "file": "fleet_transport_test.go",
+   "seconds": 0.07,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetRouteRemoteNodeRefused": {
+   "file": "fleet_transport_test.go",
+   "seconds": 0.07,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetRouteStaleNodeRefused": {
+   "file": "fleet_transport_test.go",
+   "seconds": 0.05,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetRouteUnknownNodeRefused": {
+   "file": "fleet_transport_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetSameHarnessIndependentSessions": {
+   "file": "worker_run_test.go",
+   "seconds": 1.41,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetSameNodeClaimConverges": {
+   "file": "fleet_wiring_test.go",
+   "seconds": 0.54,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetSettleCrashBeforeSettlement": {
+   "file": "fleet_settle_test.go",
+   "seconds": 0.89,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetSettleDuplicateRefused": {
+   "file": "fleet_settle_test.go",
+   "seconds": 0.37,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetSettleFailurePreservesOutcome": {
+   "file": "fleet_settle_test.go",
+   "seconds": 1.05,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFleetSettleRunSurfacesSettlementError": {
+   "file": "fleet_settle_test.go",
+   "seconds": 0.96,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFollowupBindsParentReport": {
+   "file": "phase2_test.go",
+   "seconds": 0.65,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFollowupRequiresRequest": {
+   "file": "phase2_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestFramedInputLarge": {
+   "file": "terminal_test.go",
+   "seconds": 0.53,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestGitInfoLargeNonGitTree": {
+   "file": "bounded_reads_test.go",
+   "seconds": 0.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGitInfoSymlinkAndInaccessible": {
+   "file": "bounded_reads_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGitPaneClearedOnSessionChange": {
+   "file": "p0c_projection_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphBlockersAndReady": {
+   "file": "graph_test.go",
+   "seconds": 1.06,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphCmdRequiresRun": {
+   "file": "graph_split_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphCmdRunFlagWithoutValue": {
+   "file": "graph_split_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphCmdUnknownOp": {
+   "file": "graph_split_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphCoverage": {
+   "file": "graph_test.go",
+   "seconds": 0.89,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphPanelCap": {
+   "file": "graph_panel_test.go",
+   "seconds": 0.92,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphPanelLines": {
+   "file": "graph_panel_test.go",
+   "seconds": 0.99,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphPanelSanitizesObjectives": {
+   "file": "graph_panel_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphPanelToggle": {
+   "file": "graph_panel_test.go",
+   "seconds": 1.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphRenderHoistsOneOpen": {
+   "file": "graph_panel_test.go",
+   "seconds": 2.13,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGraphWalkDeterministic": {
+   "file": "graph_test.go",
+   "seconds": 0.81,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGuidanceCrashRecovery": {
+   "file": "phase2_test.go",
+   "seconds": 0.2,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGuidanceDoubleEnterSerializes": {
+   "file": "phase4_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGuidanceDurableAndAudited": {
+   "file": "phase2_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGuidanceRefusalRecorded": {
+   "file": "phase2_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGuidanceResultNamesOriginSession": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGuidanceSubmitOffUpdatePath": {
+   "file": "phase4_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestGuideBackspaceIsRuneAware": {
+   "file": "internal/tui/guide_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestGuideCompleteClearsBusyAndNamesOrigin": {
+   "file": "internal/tui/guide_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestGuideCompleteReportsError": {
+   "file": "internal/tui/guide_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestGuideSubmitDropsBlank": {
+   "file": "internal/tui/guide_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestGuideSubmitHoldsWhileBusy": {
+   "file": "internal/tui/guide_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestGuideSubmitSendsTrimmedText": {
+   "file": "internal/tui/guide_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestGuideTypeAppendsRunes": {
+   "file": "internal/tui/guide_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestHighOutputIsolation": {
+   "file": "terminal_test.go",
+   "seconds": 1.08,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestHostCloseUnblocksWait": {
+   "file": "muse_turn_wiring_test.go",
+   "seconds": 0.2,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInjectAndSnapshot": {
+   "file": "main_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputBackspaceRuneAware": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputResultSessionBinding": {
+   "file": "input_sender_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputSenderBounded": {
+   "file": "input_sender_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputSenderCloseIsIdempotent": {
+   "file": "input_sender_lifecycle_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputSenderLifecycleHundredsReturnToBaseline": {
+   "file": "input_sender_lifecycle_test.go",
+   "seconds": 0.14,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputSenderPreservesOrder": {
+   "file": "input_sender_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputSenderQueuedStaleDrainsOnReplace": {
+   "file": "input_sender_lifecycle_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputSenderReplacementRetiresPredecessor": {
+   "file": "input_sender_lifecycle_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputSenderRetireDrainsQueuedWork": {
+   "file": "input_sender_lifecycle_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestInputSenderStaleGenerationNeverExecutes": {
+   "file": "input_sender_lifecycle_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestIntegrationTmux": {
+   "file": "main_test.go",
+   "seconds": 4.34,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "fresh-binary"
+   ]
+  },
+  "TestJudgmentsSameSecondKeepFilingOrder": {
+   "file": "verdict_assurance_test.go",
+   "seconds": 0.28,
+   "status": "pass",
+   "deps": []
+  },
+  "TestLatestObjectiveByAgentAtScale": {
+   "file": "task_titles_test.go",
+   "seconds": 0.38,
+   "status": "pass",
+   "deps": []
+  },
+  "TestLatestObjectiveByAgentReportsOwnLatest": {
+   "file": "task_titles_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestLatestObjectiveByAgentUsesIndex": {
+   "file": "task_titles_test.go",
+   "seconds": 0.16,
+   "status": "pass",
+   "deps": []
+  },
+  "TestLayoutGeometrySnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestLiveContentSnapshotBoundedRefresh": {
+   "file": "bounded_reads_test.go",
+   "seconds": 0.5,
+   "status": "pass",
+   "deps": []
+  },
+  "TestLiveStartingRefusesTakeover": {
+   "file": "terminal_test.go",
+   "seconds": 0.72,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestLocalFleetNodeStable": {
+   "file": "fleet_wiring_test.go",
+   "seconds": 0.24,
+   "status": "pass",
+   "deps": []
+  },
+  "TestLogRotationGapStatus": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestLookupAdapter": {
+   "file": "agents_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestLoopHonorsMidRunCancel": {
+   "file": "cancel_exec_test.go",
+   "seconds": 2.72,
+   "status": "pass",
+   "deps": [
+    "short-skipped"
+   ]
+  },
+  "TestLoopRestartNamesOpenExecutions": {
+   "file": "loop_wait_test.go",
+   "seconds": 0.46,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPAgentsListsUnifiedSessions": {
+   "file": "unified_agents_test.go",
+   "seconds": 0.28,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPAgentsRedactOwnership": {
+   "file": "mcp_adapter_test.go",
+   "seconds": 0.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPAgentsSortedAndPaged": {
+   "file": "mcp_hardening_test.go",
+   "seconds": 0.24,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPApproveGated": {
+   "file": "mcp_approvals_test.go",
+   "seconds": 0.34,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestMCPAttentionListOpen": {
+   "file": "mcp_attention_test.go",
+   "seconds": 0.03,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPAttentionSettleAuth": {
+   "file": "mcp_attention_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPAttentionSettleGuardsRevision": {
+   "file": "mcp_attention_test.go",
+   "seconds": 0.14,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPBindKeepsStdoutClean": {
+   "file": "provision_p0_test.go",
+   "seconds": 2.01,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestMCPBindRefusesWithoutDaemon": {
+   "file": "mcp_provision_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPCancelRoundTrip": {
+   "file": "mcp_control_test.go",
+   "seconds": 0.43,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPControlSmokeLoop": {
+   "file": "mcp_smoke_test.go",
+   "seconds": 0.97,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPCorrectAtomicRollbackOnInjectedFailure": {
+   "file": "mcp_atomicity_test.go",
+   "seconds": 0.32,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPCorrectConcurrentConflictAtomic": {
+   "file": "mcp_atomicity_test.go",
+   "seconds": 0.36,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPCorrectLineage": {
+   "file": "mcp_control_test.go",
+   "seconds": 0.34,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPCorrectReplayConflict": {
+   "file": "mcp_idempotency_test.go",
+   "seconds": 0.33,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPDelegateIdempotent": {
+   "file": "mcp_adapter_test.go",
+   "seconds": 0.37,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPDependAtomicRollbackOnInjectedFailure": {
+   "file": "mcp_atomicity_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPDependAuth": {
+   "file": "mcp_control_test.go",
+   "seconds": 0.39,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPDependConcurrentConflictAtomic": {
+   "file": "mcp_atomicity_test.go",
+   "seconds": 0.4,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPDependReplayConflict": {
+   "file": "mcp_idempotency_test.go",
+   "seconds": 0.34,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPDependRoundTrip": {
+   "file": "mcp_control_test.go",
+   "seconds": 0.34,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPGraphTool": {
+   "file": "graph_test.go",
+   "seconds": 0.94,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPIngressAuthorizedWriter": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0.51,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPIngressExplicitRemoteRequiresToken": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0.18,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPIngressHostedDeclaredModeStillNeedsCredential": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPIngressHostedUndeclaredFailsClosed": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0.2,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPIngressImplicitLocalTrustPreserved": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0.51,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPIngressReadsStayOpen": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0.28,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPIngressRemoteApproveDeniedDespiteCaps": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestMCPIngressScopedTaskCapability": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0.43,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPIngressUnauthorizedVerifier": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0.88,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPIngressWrongTokenRefused": {
+   "file": "mcp_ingress_test.go",
+   "seconds": 0.2,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPInitializeAndList": {
+   "file": "mcp_adapter_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPNewToolsAdvertised": {
+   "file": "mcp_tasks_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPNotificationToolsCallPerformsNoMutation": {
+   "file": "mcp_notification_test.go",
+   "seconds": 0.35,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPNotificationUnknownMethodStaysSilent": {
+   "file": "mcp_notification_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPNumericZeroID": {
+   "file": "mcp_hardening_test.go",
+   "seconds": 0.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProjects": {
+   "file": "mcp_tasks_test.go",
+   "seconds": 0.31,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProjectsListsUnifiedSessions": {
+   "file": "unified_agents_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionBackendConflict": {
+   "file": "provision_backend_test.go",
+   "seconds": 0.34,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionBindAuth": {
+   "file": "mcp_provision_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionCustomCommandAllowedOnCapableRoot": {
+   "file": "project_roots_test.go",
+   "seconds": 0.28,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionCustomCommandNeedsCapability": {
+   "file": "project_roots_test.go",
+   "seconds": 0.24,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionDefaults": {
+   "file": "mcp_provision_test.go",
+   "seconds": 0.34,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionHarnessCommandAllowedOnPlainRoot": {
+   "file": "project_roots_test.go",
+   "seconds": 0.32,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionIntentPrecedesLaunch": {
+   "file": "provision_p0_test.go",
+   "seconds": 0.36,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionNativeRefused": {
+   "file": "provision_backend_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionPtyBackend": {
+   "file": "provision_backend_test.go",
+   "seconds": 0.61,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionRefusesUnregisteredRoot": {
+   "file": "project_roots_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionReplayConflict": {
+   "file": "provision_p0_test.go",
+   "seconds": 0.3,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionResultStates": {
+   "file": "provision_p0_test.go",
+   "seconds": 0.31,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPProvisionRoundTrip": {
+   "file": "mcp_provision_test.go",
+   "seconds": 0.43,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPReadSplitAgentsEmptyShape": {
+   "file": "mcp_read_split_test.go",
+   "seconds": 0.24,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPReadSplitApprovalsParamShape": {
+   "file": "mcp_read_split_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPReadSplitEventsShape": {
+   "file": "mcp_read_split_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPReadSplitGraphParamShape": {
+   "file": "mcp_read_split_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPReadSplitProjectsEmptyShape": {
+   "file": "mcp_read_split_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPReadSplitStatusShape": {
+   "file": "mcp_read_split_test.go",
+   "seconds": 0.24,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPReadSplitTaskRowShape": {
+   "file": "mcp_read_split_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPReadSplitTaskStatusShape": {
+   "file": "mcp_read_split_test.go",
+   "seconds": 0.3,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPReadSplitTasksListShape": {
+   "file": "mcp_read_split_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPRemotePrincipalDenied": {
+   "file": "mcp_auth_test.go",
+   "seconds": 2.13,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "musefi-binary"
+   ]
+  },
+  "TestMCPResultTooLargeIsExplicit": {
+   "file": "mcp_hardening_test.go",
+   "seconds": 0.02,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPSendIdempotent": {
+   "file": "mcp_adapter_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPSessionStopReplacedSession": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 0.43,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTaskStatus": {
+   "file": "mcp_tasks_test.go",
+   "seconds": 1.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTasksList": {
+   "file": "mcp_tasks_test.go",
+   "seconds": 0.28,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalAuthorizedRemote": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 0.44,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalInputBlocked": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 0.25,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalInputReplay": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 0.37,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalInputRivalWriters": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 0.43,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalInputRivalWritersPty": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 0.34,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalInputStaleGeneration": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 1.53,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalOutputBounded": {
+   "file": "mcp_terminal_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalPtyInputQueued": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 1.41,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalResizeAfterRestart": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 0.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalStatusUnified": {
+   "file": "mcp_terminal_test.go",
+   "seconds": 0.24,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalTmuxSuccess": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 0.48,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPTerminalUnauthorizedRemote": {
+   "file": "mcp_terminal_control_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPUnknownToolAndBadParams": {
+   "file": "mcp_adapter_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPVerifyGated": {
+   "file": "mcp_tasks_test.go",
+   "seconds": 0.86,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPVerifyPassNeedsVerdicts": {
+   "file": "mcp_tasks_test.go",
+   "seconds": 1.32,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMCPWriteTokenGatesMutations": {
+   "file": "mcp_hardening_test.go",
+   "seconds": 0.56,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMain": {
+   "file": "main_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestManagedArgvNoShell": {
+   "file": "worker_run_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestManagedTurnRefusesModelDrift": {
+   "file": "muse_config_verify_test.go",
+   "seconds": 2.29,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestMuseActivityDisconnectHistory": {
+   "file": "tui_projection_test.go",
+   "seconds": 0.25,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseActivityPendingApprovalHoldsAttention": {
+   "file": "tui_projection_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseActivityRecentDisconnect": {
+   "file": "tui_projection_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseActivityRecentDisconnectAfterTraffic": {
+   "file": "tui_projection_test.go",
+   "seconds": 0.18,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseActivityStaleApprovalIgnored": {
+   "file": "tui_projection_test.go",
+   "seconds": 0.2,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseApprovalObserverReceipt": {
+   "file": "muse_approvals_test.go",
+   "seconds": 0.94,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseApprovalTable": {
+   "file": "muse_approvals_test.go",
+   "seconds": 0.28,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseBindRefusesUnknownSession": {
+   "file": "muse_bind_test.go",
+   "seconds": 0.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseBindingPinsWorkspace": {
+   "file": "muse_bind_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseBindingProfileFencing": {
+   "file": "muse_profile_test.go",
+   "seconds": 0.24,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestMuseBindingRefusesSilentRebind": {
+   "file": "muse_bind_test.go",
+   "seconds": 0.36,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseBindingRequiresRequest": {
+   "file": "muse_bind_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseCommandIDShape": {
+   "file": "muse_host_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseDaemonEnvPinsCommanderStore": {
+   "file": "musefi_profile_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestMuseDecideApproval": {
+   "file": "muse_approvals_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseEchoLifecycle": {
+   "file": "muse_host_test.go",
+   "seconds": 3.54,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestMuseEnterJumpsToWorker": {
+   "file": "muse_tab_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseFeedRenderSnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseFeedShowsDelegationAndReply": {
+   "file": "muse_tab_test.go",
+   "seconds": 0.6,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseFeedStaleRefused": {
+   "file": "muse_tab_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseFiProfileServesEchoSession": {
+   "file": "musefi_profile_test.go",
+   "seconds": 1.99,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon",
+    "musefi-binary"
+   ]
+  },
+  "TestMuseHostFraming": {
+   "file": "muse_host_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseHostLateReplyDropped": {
+   "file": "muse_host_test.go",
+   "seconds": 0.2,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseListPendingPassthrough": {
+   "file": "muse_approvals_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseNativeWorkerLoopEndToEnd": {
+   "file": "muse_bind_test.go",
+   "seconds": 4.04,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestMuseNativeWorkerLoopRefusesUnbound": {
+   "file": "muse_bind_test.go",
+   "seconds": 1.89,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestMusePresenceExpiredLeaseFallsBack": {
+   "file": "muse_presence_test.go",
+   "seconds": 0.04,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMusePresenceLeaseHoldsConnected": {
+   "file": "muse_presence_test.go",
+   "seconds": 0.03,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseProfileMigration": {
+   "file": "muse_profile_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseProfileResolve": {
+   "file": "muse_profile_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestMuseResumeRecovery": {
+   "file": "muse_bind_test.go",
+   "seconds": 1.99,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestMuseServerRequestsSurfaced": {
+   "file": "muse_approvals_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseTabExplicitTargetSelectsWorker": {
+   "file": "muse_tab_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseTabNavigationCycle": {
+   "file": "muse_tab_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseTabPinnedFirst": {
+   "file": "muse_tab_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestMuseTabSelectedByDefault": {
+   "file": "muse_tab_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestNativeAmbiguousSubmitNeverRefunds": {
+   "file": "native_refund_test.go",
+   "seconds": 0.78,
+   "status": "pass",
+   "deps": []
+  },
+  "TestNativeOnlySessionLifecycle": {
+   "file": "native_session_test.go",
+   "seconds": 0.73,
+   "status": "pass",
+   "deps": []
+  },
+  "TestNativePreSubmitCleanupCrashReplay": {
+   "file": "native_refund_test.go",
+   "seconds": 0.79,
+   "status": "pass",
+   "deps": []
+  },
+  "TestNativePreSubmitRefundIsReusable": {
+   "file": "native_refund_test.go",
+   "seconds": 0.99,
+   "status": "pass",
+   "deps": []
+  },
+  "TestNativeProvisionAuthorizesRoot": {
+   "file": "native_session_test.go",
+   "seconds": 0.35,
+   "status": "pass",
+   "deps": []
+  },
+  "TestNativeRefundDoesNotRewriteOtherAttempts": {
+   "file": "native_refund_test.go",
+   "seconds": 0.64,
+   "status": "pass",
+   "deps": []
+  },
+  "TestNativeSteerDeliversQueuedTurn": {
+   "file": "guidance_native_test.go",
+   "seconds": 2.12,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestNativeSteerWithoutBindingRefused": {
+   "file": "guidance_native_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestNativeSteerWithoutDaemonFails": {
+   "file": "guidance_native_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestNavClampPinsInvalidCursor": {
+   "file": "internal/tui/nav_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestNavFeedCursorFollowsData": {
+   "file": "internal/tui/nav_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestNavFollowTabsScrollsFleet": {
+   "file": "internal/tui/nav_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestNavJumpToFeedTarget": {
+   "file": "internal/tui/nav_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestNavModePreservesCursor": {
+   "file": "internal/tui/nav_mode_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestNavModeTransitions": {
+   "file": "internal/tui/nav_mode_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestNavRestoreBindsByIdentity": {
+   "file": "internal/tui/nav_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestNavUpDownWithMuseTab": {
+   "file": "internal/tui/nav_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestNoImplicitProviderFallback": {
+   "file": "phase2_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestObligationBlockingSet": {
+   "file": "coverage_obligations_test.go",
+   "seconds": 0.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestObligationIllegalTransition": {
+   "file": "coverage_obligations_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": []
+  },
+  "TestObligationLifecycle": {
+   "file": "coverage_obligations_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestObligationRequireIdempotent": {
+   "file": "coverage_obligations_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpenWorkerOutputRefusesSymlink": {
+   "file": "exec_boundary_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagErrorClasses": {
+   "file": "ops_diag_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagNeedsNoDatabase": {
+   "file": "ops_diag_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagObserveError": {
+   "file": "ops_diag_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagObserveOK": {
+   "file": "ops_diag_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagRedaction": {
+   "file": "ops_diag_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagRedactsObservedErrors": {
+   "file": "ops_diag_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagRingBounded": {
+   "file": "ops_diag_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagSinkBounded": {
+   "file": "ops_diag_sink_test.go",
+   "seconds": 0.1,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagSinkOptIn": {
+   "file": "ops_diag_sink_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagSinkReadRespectsLimit": {
+   "file": "ops_diag_sink_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagSinkReadSkipsBadRows": {
+   "file": "ops_diag_sink_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagSinkRedaction": {
+   "file": "ops_diag_sink_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsDiagSinkStateDirIsolation": {
+   "file": "ops_diag_sink_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsReportErrorKeepsIdentity": {
+   "file": "ops_report_identity_test.go",
+   "seconds": 0.69,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsReportIdentityWithRequest": {
+   "file": "ops_report_identity_test.go",
+   "seconds": 0.59,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsReportLegacyAdapterNoInventedRequest": {
+   "file": "ops_report_identity_test.go",
+   "seconds": 1.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOpsReportSessionFromTurnIntent": {
+   "file": "ops_report_identity_test.go",
+   "seconds": 0.85,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOrchAppendAndCursorPages": {
+   "file": "orchestration_events_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOrchIdempotentAppend": {
+   "file": "orchestration_events_test.go",
+   "seconds": 0.25,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOrchPayloadTruncatedWithMarker": {
+   "file": "orchestration_events_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOrchRejectsUnknownType": {
+   "file": "orchestration_events_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOutputCappedDuringStreaming": {
+   "file": "output_cap_test.go",
+   "seconds": 1.1,
+   "status": "pass",
+   "deps": []
+  },
+  "TestOutputMirroredToSessionStream": {
+   "file": "output_cap_test.go",
+   "seconds": 1,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPadExactWidth": {
+   "file": "internal/termview/termview_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestPickupDispatchedThenClaimedExposesLatency": {
+   "file": "pickup_metrics_test.go",
+   "seconds": 0.49,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPickupProjectionIsPure": {
+   "file": "pickup_metrics_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPickupRequiresWorkspaceReservation": {
+   "file": "workspace_reserve_test.go",
+   "seconds": 0.61,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPickupUnclaimedTaskAgesQueueGauge": {
+   "file": "pickup_metrics_test.go",
+   "seconds": 0.61,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPreSubmitStillRefunds": {
+   "file": "muse_turn_intent_test.go",
+   "seconds": 0.65,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPresenceAbandonedWork": {
+   "file": "muse_presence_facts_test.go",
+   "seconds": 0.35,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPresenceBlockedApproval": {
+   "file": "muse_presence_facts_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPresenceEstimateRendersLabeled": {
+   "file": "muse_presence_facts_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPresenceExpiredLease": {
+   "file": "muse_presence_facts_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPresenceIdleConnection": {
+   "file": "muse_presence_facts_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPresenceLiveTurnWithoutRecentTraffic": {
+   "file": "muse_presence_facts_test.go",
+   "seconds": 0.38,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPresenceTrafficAloneIsEstimate": {
+   "file": "muse_presence_facts_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionConflictCreatesNoWorkdir": {
+   "file": "provision_service_test.go",
+   "seconds": 0.3,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionNativeConflictingLogicalIdentity": {
+   "file": "provision_liveness_test.go",
+   "seconds": 0.38,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionReplayDeadSessionNeverAdopted": {
+   "file": "provision_liveness_test.go",
+   "seconds": 0.35,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionReplayForeignSessionNeverAdopted": {
+   "file": "provision_liveness_test.go",
+   "seconds": 0.37,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionReplayHealthyAdoptsLive": {
+   "file": "provision_liveness_test.go",
+   "seconds": 0.32,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionReplayPtyCorpseNeverAdopted": {
+   "file": "provision_liveness_test.go",
+   "seconds": 0.5,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionReplayReplacedSessionNeverAdopted": {
+   "file": "provision_liveness_test.go",
+   "seconds": 0.33,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionReplayStaleWorkdirNeverAdopted": {
+   "file": "provision_liveness_test.go",
+   "seconds": 0.31,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionReplayStoppedNativeNeverAdopted": {
+   "file": "provision_liveness_test.go",
+   "seconds": 0.37,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionReplayStoppedSessionNeverAdopted": {
+   "file": "provision_liveness_test.go",
+   "seconds": 0.32,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionRepositoryCompareAndSetFencing": {
+   "file": "provision_repository_test.go",
+   "seconds": 0.17,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionRepositoryDuplicateInsertLeavesWinner": {
+   "file": "provision_repository_test.go",
+   "seconds": 0.16,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionRepositoryInsertLoadRoundTrip": {
+   "file": "provision_repository_test.go",
+   "seconds": 0.16,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionReservedIntentReconcilesMissingWorkdir": {
+   "file": "provision_service_test.go",
+   "seconds": 0.3,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionStaleTransitionMustNotClobber": {
+   "file": "provision_service_test.go",
+   "seconds": 0.18,
+   "status": "pass",
+   "deps": []
+  },
+  "TestProvisionTransitionTable": {
+   "file": "provision_service_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPtyKeyBytes": {
+   "file": "terminal_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPtyLease": {
+   "file": "terminal_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPtySuperviseLifecycle": {
+   "file": "terminal_test.go",
+   "seconds": 1.08,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestPtyUnknown": {
+   "file": "terminal_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestPtyWorkerExitRecorded": {
+   "file": "terminal_test.go",
+   "seconds": 0.37,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestPublicJSONNoOwner": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReadConfinedFileConfinesFirst": {
+   "file": "exec_boundary_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReadModelLatestRunEmpty": {
+   "file": "task_readmodel_test.go",
+   "seconds": 0.17,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReadModelLatestRunRoundTrip": {
+   "file": "task_readmodel_test.go",
+   "seconds": 0.28,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReadModelTaskStatusDetailRoundTrip": {
+   "file": "task_readmodel_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReadModelTaskStatusDetailUnknownTask": {
+   "file": "task_readmodel_test.go",
+   "seconds": 0.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReconcileDispatchedWaitsForPickup": {
+   "file": "reconcile_test.go",
+   "seconds": 0.45,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReconcileFailedExitPreservesEvidence": {
+   "file": "reconcile_test.go",
+   "seconds": 0.49,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReconcileHookTracksUncertainToResolved": {
+   "file": "recovery_metrics_test.go",
+   "seconds": 0.65,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReconcileOpenExecutionIsUncertain": {
+   "file": "reconcile_test.go",
+   "seconds": 0.45,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReconcileReportReadyAwaitsVerdicts": {
+   "file": "reconcile_test.go",
+   "seconds": 0.59,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReconcileTerminalIsDoneAndReadOnly": {
+   "file": "reconcile_test.go",
+   "seconds": 0.6,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRecoveryProjectionIsPure": {
+   "file": "recovery_metrics_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRecoveryResolvedReportsDuration": {
+   "file": "recovery_metrics_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRecoveryUncertainAgesVisibly": {
+   "file": "recovery_metrics_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRedactArgvKeepsStructureDropsContent": {
+   "file": "exec_boundary_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRefreshApplyPreservesForeignStatus": {
+   "file": "p0c_projection_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRefreshDeliveryCorrelatesExactly": {
+   "file": "internal/tui/refresh_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestRefreshHungRoundAbandonsAfterDeadline": {
+   "file": "internal/tui/refresh_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestRefreshIdleReselectMarksOutstanding": {
+   "file": "internal/tui/refresh_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestRefreshMsgAppliesPreservesSelectionAndGit": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRefreshMsgStaleIgnored": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRefreshReselectBypassesPending": {
+   "file": "internal/tui/refresh_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestRefreshReselectStormKeepsPendingUntilLatest": {
+   "file": "internal/tui/refresh_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestRefreshSessionsFailureKeepsLastKnown": {
+   "file": "p0c_projection_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRefreshSkipsWhileOneIsInFlight": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0.5,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRefreshSourceIsInstanceScoped": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRefreshStaleGenerationRefused": {
+   "file": "p0c_projection_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRefreshStaleSessionRefused": {
+   "file": "p0c_projection_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRefreshStartupBumpsWithoutPending": {
+   "file": "internal/tui/refresh_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestRefreshTickSingleFlight": {
+   "file": "internal/tui/refresh_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestRegistryConcurrentSaves": {
+   "file": "phase2_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRegistryLockConcurrentWrites": {
+   "file": "session_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRegressedCriterionAttention": {
+   "file": "verdict_test.go",
+   "seconds": 0.69,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRemoteIngressDisablesLocalTrust": {
+   "file": "run_policy_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRenderANSISanitizedSnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRenderFrameGeometrySnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRenderLongSessionListSnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRenderScrollOffsetsLiveSnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRenderSelectionChangeHidesPreviousSession": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRenderStaleProjectionSnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRenderUnicodeWidthsSnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReopenAfterWriteSkipsMigrationDDL": {
+   "file": "schema_epoch_test.go",
+   "seconds": 0.47,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRepeatedFailureAttention": {
+   "file": "verdict_test.go",
+   "seconds": 0.76,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReportFilingValidation": {
+   "file": "worker_protocol_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReportProvenance": {
+   "file": "phase3_test.go",
+   "seconds": 0.52,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReportVsRetryKeepsAuthoritativeAttempt": {
+   "file": "report_tx_boundary_test.go",
+   "seconds": 0.81,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResolveExecTargetMuseNative": {
+   "file": "exec_target_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestResolveExecTargetMuseNativeNeedsDaemon": {
+   "file": "exec_target_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestResolveExecTargetNativeNeedsBinding": {
+   "file": "exec_target_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResolveExecTargetPtyMissing": {
+   "file": "exec_target_test.go",
+   "seconds": 0.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResolveExecTargetTMUX": {
+   "file": "exec_target_test.go",
+   "seconds": 0.17,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResolveExecTargetUnknown": {
+   "file": "exec_target_test.go",
+   "seconds": 0.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResolveOwnedTargetBindsID": {
+   "file": "session_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResolvePanelRun": {
+   "file": "graph_panel_test.go",
+   "seconds": 1.18,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResolveStoppedNativeRefused": {
+   "file": "native_session_test.go",
+   "seconds": 0.31,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResolveWorkerCommand": {
+   "file": "agents_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResolveWorkerCommandNativeRefuses": {
+   "file": "provision_p0_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestResourceSnapshotReflectsLaneAndOverCapStream": {
+   "file": "resource_metrics_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRestartPreservesIdentities": {
+   "file": "phase2_test.go",
+   "seconds": 0.37,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetentionAutonomousWithoutReader": {
+   "file": "retention_autonomy_test.go",
+   "seconds": 0.1,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetentionBoundedWithoutRefresh": {
+   "file": "p0c_projection_test.go",
+   "seconds": 0.06,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetentionConcurrentRotationsSerialized": {
+   "file": "retention_autonomy_test.go",
+   "seconds": 0.03,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetentionFailureObservable": {
+   "file": "retention_autonomy_test.go",
+   "seconds": 0.03,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetentionSurvivesRestart": {
+   "file": "retention_autonomy_test.go",
+   "seconds": 0.08,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetentionUnknownGenerationHealsWithGap": {
+   "file": "retention_autonomy_test.go",
+   "seconds": 0.04,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetireInputSendersIsScopedAndIdempotent": {
+   "file": "input_sender_lifecycle_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetryBudgetEnforced": {
+   "file": "phase2_test.go",
+   "seconds": 0.86,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetryKeepsExecutionRoot": {
+   "file": "phase2_test.go",
+   "seconds": 0.51,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRetryRefreshesAttemptSidecar": {
+   "file": "dispatch_atomicity_test.go",
+   "seconds": 0.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestReviewBoundAcrossWorkers": {
+   "file": "phase3_test.go",
+   "seconds": 1.12,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRunConcurrencyLimitEnforced": {
+   "file": "phase2_test.go",
+   "seconds": 0.76,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRunLimitUnsetUnbounded": {
+   "file": "phase2_test.go",
+   "seconds": 0.63,
+   "status": "pass",
+   "deps": []
+  },
+  "TestRuneWidth": {
+   "file": "internal/termview/termview_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestSanitizeLine": {
+   "file": "internal/termview/termview_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestSanitizedOverview": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSchemaEpochConcurrentFirstOpen": {
+   "file": "schema_epoch_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSchemaEpochDowngradeRefused": {
+   "file": "schema_epoch_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSchemaEpochEmptyFileMigrates": {
+   "file": "schema_epoch_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSchemaEpochFileReplacementSamePath": {
+   "file": "schema_epoch_test.go",
+   "seconds": 0.45,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSchemaEpochInterruptedMigration": {
+   "file": "schema_epoch_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSchemaEpochNewerReaderRequired": {
+   "file": "schema_epoch_test.go",
+   "seconds": 0.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSchemaEpochOldFixtureOpen": {
+   "file": "schema_epoch_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSchemaEpochUnsupportedNewer": {
+   "file": "schema_epoch_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSelectedSummaryClampsInvalidIndex": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSendInputAndStopUseSessionID": {
+   "file": "session_test.go",
+   "seconds": 0.22,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSendTerminalInputOwnership": {
+   "file": "main_test.go",
+   "seconds": 1.38,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSeqLen": {
+   "file": "internal/termview/termview_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestSessionDistinctCommandIDsMintDistinctSessions": {
+   "file": "muse_session_rpc_test.go",
+   "seconds": 0.38,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSessionRetryAfterAckLossNeverDuplicatesSession": {
+   "file": "muse_session_rpc_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSessionStartDedupsOnCommandID": {
+   "file": "muse_bind_test.go",
+   "seconds": 0.26,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSessionStartRefusesEmptyCommandID": {
+   "file": "muse_session_rpc_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSessionStartSelectsAndEchoesConfig": {
+   "file": "muse_config_verify_test.go",
+   "seconds": 1.9,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestSessionsRoundCorruptRegistryReportsFailure": {
+   "file": "session_test.go",
+   "seconds": 0.2,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSetTeamPolicyConcurrentPublish": {
+   "file": "admission_test.go",
+   "seconds": 0.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSharedWorkspaceRequiresAuthorization": {
+   "file": "phase2_test.go",
+   "seconds": 0.66,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSixWorkersFleet": {
+   "file": "terminal_test.go",
+   "seconds": 1.84,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "pty"
+   ]
+  },
+  "TestSnapshotParityWithSeparateReads": {
+   "file": "task_readmodel_snapshot_test.go",
+   "seconds": 0.37,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSnapshotPinnedAcrossConcurrentTransition": {
+   "file": "task_readmodel_snapshot_test.go",
+   "seconds": 0.35,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStaleReportCannotFileAgainstNewerAttempt": {
+   "file": "report_tx_boundary_test.go",
+   "seconds": 0.6,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStaleStartingRecovery": {
+   "file": "terminal_test.go",
+   "seconds": 0.52,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestStartRefusesLyingServer": {
+   "file": "muse_config_verify_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStartSessionRegistryFailureCleansUpTmux": {
+   "file": "session_test.go",
+   "seconds": 0.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStartValidation": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStatePerms": {
+   "file": "main_test.go",
+   "seconds": 0.14,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStopDeadSessionMarksStopped": {
+   "file": "session_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStopFailureMarksNothing": {
+   "file": "phase2_test.go",
+   "seconds": 0.41,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStopKillFailureDoesNotMarkStopped": {
+   "file": "session_test.go",
+   "seconds": 0.02,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStopNativeTurnConfirmedOnTerminal": {
+   "file": "muse_turn_wiring_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStopNativeTurnUncertainWhenWithheld": {
+   "file": "muse_turn_wiring_test.go",
+   "seconds": 1,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStopOwnership": {
+   "file": "main_test.go",
+   "seconds": 0.18,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStopSessionRetiresInputLane": {
+   "file": "input_sender_lifecycle_test.go",
+   "seconds": 0.04,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStreamCapEnforced": {
+   "file": "phase4_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": []
+  },
+  "TestStreamTailLastLines": {
+   "file": "phase4_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSubmitReportProvenance": {
+   "file": "worker_protocol_test.go",
+   "seconds": 0.49,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSubmitReportSingleHistoryRow": {
+   "file": "worker_protocol_test.go",
+   "seconds": 0.62,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSupervisorIdentityFencing": {
+   "file": "terminal_test.go",
+   "seconds": 0.62,
+   "status": "pass",
+   "deps": [
+    "pty"
+   ]
+  },
+  "TestSupervisorRejectsForgedFrames": {
+   "file": "acceptance_test.go",
+   "seconds": 1.62,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "pty"
+   ]
+  },
+  "TestSupportsContinuation": {
+   "file": "phase2_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestSweepReportsGenerationGap": {
+   "file": "p0c_projection_test.go",
+   "seconds": 0.33,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTabDisconnectDropsAttach": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTabIdentityColors": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTabLabelRenderSnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTabPerSessionFailurePreserved": {
+   "file": "p0c_projection_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTabTitlesFromTasks": {
+   "file": "main_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTabViewportScrolls": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTaskEnvelopeValidation": {
+   "file": "worker_protocol_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTaskKeyMigration": {
+   "file": "controller_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTaskLifecycle": {
+   "file": "controller_test.go",
+   "seconds": 0.89,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTaskVerifyFail": {
+   "file": "controller_test.go",
+   "seconds": 0.63,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTeamPolicyAdmissionGates": {
+   "file": "team_policy_test.go",
+   "seconds": 0.02,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestTeamPolicyPinStable": {
+   "file": "team_policy_test.go",
+   "seconds": 0.05,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTeamPolicyRevisionHistory": {
+   "file": "team_policy_test.go",
+   "seconds": 0.04,
+   "status": "pass",
+   "deps": [
+    "musefi-binary"
+   ]
+  },
+  "TestTerminalInputResultCarriesSessionIdentity": {
+   "file": "terminal_input_session_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTerminalInputResultStaysBoundToSelectedSession": {
+   "file": "terminal_input_session_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTerminalTabsRail": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTmuxInputSingleWriter": {
+   "file": "phase4_test.go",
+   "seconds": 0.25,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTmuxLeaseExpiryFreesChannel": {
+   "file": "phase4_test.go",
+   "seconds": 0.28,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTrunc": {
+   "file": "internal/termview/termview_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestTurnIntentRejectsIdentityMismatch": {
+   "file": "muse_turn_intent_test.go",
+   "seconds": 0.24,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTurnIntentReusedOnRetry": {
+   "file": "muse_turn_intent_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestTurnResubmitDedups": {
+   "file": "muse_turn_intent_test.go",
+   "seconds": 4.09,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestTwelveWorkerFleet": {
+   "file": "twelve_worker_test.go",
+   "seconds": 3.67,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "pty"
+   ]
+  },
+  "TestUncertainSubmitKeepsWorking": {
+   "file": "muse_turn_intent_test.go",
+   "seconds": 0.66,
+   "status": "pass",
+   "deps": []
+  },
+  "TestUnicodeWidth": {
+   "file": "main_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestVerifierMustBeIndependent": {
+   "file": "phase3_test.go",
+   "seconds": 0.97,
+   "status": "pass",
+   "deps": []
+  },
+  "TestVerifyAttributesVerifier": {
+   "file": "phase3_test.go",
+   "seconds": 0.99,
+   "status": "pass",
+   "deps": []
+  },
+  "TestVerifyPassesWithAllCriteriaSatisfied": {
+   "file": "verdict_test.go",
+   "seconds": 0.91,
+   "status": "pass",
+   "deps": []
+  },
+  "TestVerifyRefusedOnFailVerdict": {
+   "file": "verdict_test.go",
+   "seconds": 0.91,
+   "status": "pass",
+   "deps": []
+  },
+  "TestVerifyRefusedOnInconclusive": {
+   "file": "verdict_test.go",
+   "seconds": 0.9,
+   "status": "pass",
+   "deps": []
+  },
+  "TestVerifyRefusedWithoutCriterionVerdicts": {
+   "file": "verdict_test.go",
+   "seconds": 0.65,
+   "status": "pass",
+   "deps": []
+  },
+  "TestVerifyRequiresAcceptance": {
+   "file": "phase3_test.go",
+   "seconds": 0.57,
+   "status": "pass",
+   "deps": []
+  },
+  "TestVerifyRequiresEvidence": {
+   "file": "reports_test.go",
+   "seconds": 1.01,
+   "status": "pass",
+   "deps": []
+  },
+  "TestVerifySessionConfigRefusesMismatch": {
+   "file": "muse_config_verify_test.go",
+   "seconds": 2.31,
+   "status": "pass",
+   "deps": [
+    "short-skipped",
+    "muse-daemon"
+   ]
+  },
+  "TestViewCursor": {
+   "file": "internal/musewire/musewire_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestViewNarrowTerminalSnapshot": {
+   "file": "tui_render_snapshot_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestViewRendersFromCacheOnly": {
+   "file": "tui_decompose_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWaitForWorkStopsOnSignal": {
+   "file": "loop_wait_test.go",
+   "seconds": 0.17,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWaitForWorkTimesOut": {
+   "file": "loop_wait_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWaitForWorkWakesOnDispatch": {
+   "file": "loop_wait_test.go",
+   "seconds": 0.33,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWaitTurnAcceptsUnqueued": {
+   "file": "muse_turn_wiring_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWaitTurnNoticesOverflowGap": {
+   "file": "muse_turn_wiring_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWidth": {
+   "file": "internal/termview/termview_test.go",
+   "seconds": null,
+   "status": "unknown",
+   "deps": []
+  },
+  "TestWorkerAmbiguousQueueRefused": {
+   "file": "worker_run_test.go",
+   "seconds": 0.68,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerClaimCannotSelfVerify": {
+   "file": "phase3_test.go",
+   "seconds": 0.82,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerClaimExactlyOnce": {
+   "file": "worker_run_test.go",
+   "seconds": 0.83,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerConsumesDispatchedTask": {
+   "file": "worker_run_test.go",
+   "seconds": 0.89,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerEnvDropsSecrets": {
+   "file": "exec_boundary_test.go",
+   "seconds": 0,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerIdleWhenNothingDispatched": {
+   "file": "worker_run_test.go",
+   "seconds": 0.18,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerPhaseClaimBindsExactAttempt": {
+   "file": "worker_phases_test.go",
+   "seconds": 0.62,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerPhasePersistSuperseded": {
+   "file": "worker_phases_test.go",
+   "seconds": 1.04,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerPhaseResolveIdle": {
+   "file": "worker_phases_test.go",
+   "seconds": 0.18,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerPhaseResolveRefusals": {
+   "file": "worker_phases_test.go",
+   "seconds": 0.55,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerReportedCarriesNativeSession": {
+   "file": "hierarchy_lineage_test.go",
+   "seconds": 0.53,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkerStaleAttemptRefused": {
+   "file": "worker_run_test.go",
+   "seconds": 0.56,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceReconcilerClassifyAddFailurePassthrough": {
+   "file": "workspace_authority_test.go",
+   "seconds": 0.27,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceReconcilerRecordUnverifiable": {
+   "file": "workspace_authority_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceRepositoryClaimBinding": {
+   "file": "workspace_authority_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceRepositoryFindLiveByPath": {
+   "file": "workspace_authority_test.go",
+   "seconds": 0.2,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceRepositoryInsertFind": {
+   "file": "workspace_authority_test.go",
+   "seconds": 0.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceRepositoryReleaseBinding": {
+   "file": "workspace_authority_test.go",
+   "seconds": 0.23,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceReservationReleaseOnTerminal": {
+   "file": "workspace_reserve_test.go",
+   "seconds": 0.71,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceSplitAllocatorCycleKeepsDirectory": {
+   "file": "workspace_extract_test.go",
+   "seconds": 0.33,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceSplitDriverMatchesShims": {
+   "file": "workspace_extract_test.go",
+   "seconds": 0.06,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorkspaceSplitRepositoryGuardsTransition": {
+   "file": "workspace_extract_test.go",
+   "seconds": 0.2,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeAllocCreatesRealWorktree": {
+   "file": "worktree_isolation_test.go",
+   "seconds": 0.29,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeAllocDifferentOwnerSamePathRefused": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.38,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeAllocDirtyRecorded": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.38,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeAllocIdempotentSameOwner": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.42,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeAllocNoHeadRefused": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.21,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeAllocNonGitRefused": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.19,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeAllocRecordsBaseRev": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.36,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeDoubleReleaseRefused": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.34,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeLookupAndList": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.45,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreePickupScopeEnforced": {
+   "file": "worktree_isolation_test.go",
+   "seconds": 0.91,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeReallocAfterManualRemove": {
+   "file": "worktree_isolation_test.go",
+   "seconds": 0.49,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeReleaseNeverDeletesDir": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.41,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreeReleaseThenRealloc": {
+   "file": "workspace_alloc_test.go",
+   "seconds": 0.4,
+   "status": "pass",
+   "deps": []
+  },
+  "TestWorktreesIsolateWrites": {
+   "file": "worktree_isolation_test.go",
+   "seconds": 0.36,
+   "status": "pass",
+   "deps": []
+  }
+ }
+}

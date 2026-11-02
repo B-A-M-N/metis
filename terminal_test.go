@@ -527,6 +527,9 @@ func TestBatchedFleetRefresh(t *testing.T) {
 }
 
 func TestSixWorkersFleet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (fleet scale); run without -short")
+	}
 	if !ptyAvailable() {
 		t.Skip("no PTY available")
 	}

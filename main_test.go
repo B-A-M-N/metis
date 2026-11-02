@@ -671,6 +671,9 @@ func minInt(a, b int) int {
 
 // Integration test, run only after `go build -o tui-dash .` in this folder.
 func TestIntegrationTmux(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration gate (needs fresh binary); run make test-integration")
+	}
 	bin, err := filepath.Abs("tui-dash")
 	if err != nil || bin == "" {
 		t.Skip("binary path unavailable")
