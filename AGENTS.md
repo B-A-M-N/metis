@@ -6,6 +6,7 @@
 - `docs/DEBUGGING.md` — failure class → command → owning domain.
 - `docs/OWNERSHIP.md` — cross-domain rules (map itself stays below).
 - `docs/CAPABILITIES.md` — implemented vs qualified vs blocked.
+- `docs/CONCURRENCY.md` — roles, worktrees, coordinator gates.
 - `LEDGER.md` — historical findings and evidence (append-only).
 - `TUI_DOX.md` — TUI component contracts. `internal/*/AGENTS.md`
   for package contracts. Start here before touching a subsystem.
