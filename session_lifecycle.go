@@ -113,6 +113,18 @@ func adoptSession(name string) (Session, error) {
 
 func stopSession(name string) error {
 	reg := loadRegistry()
+	if !sessionRunning(name) {
+		// Already dead: nothing to terminate. Confirm the absence
+		// and record stopped so a finished worker never lingers
+		// as live in the registry. No tmux addressing happens on
+		// this path, so no live session can be mis-targeted; the
+		// record is authoritative because the registry is written
+		// only through this tool's locked paths.
+		if _, ok := reg[name]; !ok {
+			return fmt.Errorf("no such session: %s", name)
+		}
+		return markSessionStopped(reg[name])
+	}
 	entry, target, err := resolveOwnedTarget(reg, name)
 	if err != nil {
 		return err
@@ -133,16 +145,23 @@ func stopSession(name string) error {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	appendEvent(entry.Workdir, "session_stopped", name)
-	retireInputSenders(name)
+	return markSessionStopped(entry)
+}
+
+// markSessionStopped records the stopped state after termination is
+// confirmed (live path) or absence is confirmed (dead path), then
+// retires the session's input senders.
+func markSessionStopped(entry Session) error {
+	appendEvent(entry.Workdir, "session_stopped", entry.Name)
+	retireInputSenders(entry.Name)
 	return withRegistryLock(func() error {
 		locked := loadRegistry()
-		cur, ok := locked[name]
+		cur, ok := locked[entry.Name]
 		if !ok {
-			return fmt.Errorf("no such session: %s", name)
+			return fmt.Errorf("no such session: %s", entry.Name)
 		}
 		cur.Stopped = true
-		locked[name] = cur
+		locked[entry.Name] = cur
 		return saveRegistry(locked)
 	})
 }

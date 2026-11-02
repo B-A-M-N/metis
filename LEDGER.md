@@ -2647,3 +2647,24 @@ projection; commits on master (no reproducible baseline yet).
 - Observation (not fixed, own slice needed): `agent stop` on an
   already-dead session errors instead of reporting stopped;
   zero user impact here (isolated registry deleted).
+
+## Phase 6b ledger — stop-on-dead-session idempotency — FIXED
+- Live-found during P6-2 cleanup: `agent stop` on a finished
+  worker errored `cannot resolve session id` and left
+  Stopped=false, so finished workers lingered as live.
+- Root cause: `stopSession` unconditionally resolved the tmux
+  session ID via `display-message`, which fails once the session
+  is gone; the record-marking tail was unreachable.
+- Fix (`session_lifecycle.go`): absence check first — a dead
+  session with a registry record marks stopped via shared
+  `markSessionStopped` (event + sender retire + locked record
+  update); no tmux addressing on that path, so no live session
+  can be mis-targeted. Live path behavior unchanged (same helper).
+  Fixture fidelity: fake `display-message` now fails when the
+  dead flag exists, matching real tmux (no live-path test sets
+  the flag; all pre-existing stop/resolve tests green).
+- Tests: `TestStopDeadSessionMarksStopped` failing-first
+  (authentic red: `cannot resolve session id for "s"`); mutation
+  proof (dead path disabled → FAIL; restored → green).
+- Verified: focused stop/resolve/start/cancel suites + `-race`
+  group green; vet clean.

@@ -32,6 +32,7 @@ case "$1" in
     for s in $FAKE_TMUX_LIST; do echo "$s"; done
     exit 0 ;;
   display-message)
+    [ -f "$FAKE_TMUX_DIR/dead" ] && exit 1
     echo "${FAKE_TMUX_ID:-\$99}"; exit 0 ;;
   show-environment)
     echo "TUI_DASH_OWNER=$FAKE_TMUX_OWNER"; exit 0 ;;
@@ -181,5 +182,32 @@ func TestRegistryLockConcurrentWrites(t *testing.T) {
 		if _, ok := reg[name]; !ok {
 			t.Fatalf("concurrent registry update lost entry %q", name)
 		}
+	}
+}
+
+// Stopping an already-dead session must succeed idempotently: the
+// record flips to stopped instead of erroring on session-id
+// resolution (live-found: `agent stop` on a finished worker
+// reported "cannot resolve session id" and left Stopped=false, so
+// a finished worker lingered as live in the registry).
+func TestStopDeadSessionMarksStopped(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	logPath := installFakeTmux(t, "tok-9")
+	seedOwnedSession(t, "s", "tok-9")
+	deadDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(deadDir, "dead"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("FAKE_TMUX_DIR", deadDir)
+	if err := stopSession("s"); err != nil {
+		t.Fatalf("stop of a dead session must succeed, got: %v", err)
+	}
+	cur := loadRegistry()["s"]
+	if !cur.Stopped {
+		t.Fatal("dead session must be recorded stopped")
+	}
+	data, _ := os.ReadFile(logPath)
+	if strings.Contains(string(data), "kill-session") {
+		t.Fatalf("dead session must not be killed, log:\n%s", data)
 	}
 }
