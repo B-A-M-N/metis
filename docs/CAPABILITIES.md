@@ -47,6 +47,16 @@ evidence row states.
   both `native:*` alive; `doctor` reported both backends/roots;
   `diagnose --session` bundle complete. Evidence: F-21 ledger row;
   driver + logs in /tmp/qual-step6 (mcp.py, daemon.log).
+- Full native task lifecycle via production surfaces (F-22 qual,
+  $0 echo, same isolated state): `metis_delegate` to qa →
+  dispatched, instruction + sidecar in the logical workspace;
+  `agent work --session qa --once` attached consumer gen 1
+  (muse-native) and executed the turn (terminal=completed);
+  `metis_task_status` attempt 1 report_ready; `metis_report`
+  carried the native-turn outcome; `metis_verify` pass correctly
+  refused without evidence, then operator override (`approve:
+  qual`, TD-094 independent of worker `qa`) verified the task
+  (assurance operator-accepted, disposition override).
 - `TestCmdStatusLeavesCursor` PASS against a live echo daemon
   (SKIP without one).
 

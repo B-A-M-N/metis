@@ -172,9 +172,12 @@ func authorizeSharedWorkspace(id string, req OperationRequest) error {
 // deliverTask writes the task instruction into the worker's workspace
 // before the dispatch transition commits. The content derives solely
 // from the task row, so concurrent dispatch racers write identical
-// bytes and only the transition winner proceeds.
+// bytes and only the transition winner proceeds. The workspace
+// resolves decoupled (live shell backing, else the logical record)
+// so native-only sessions receive instructions; an unknown name
+// still fails with the shell store's error, never an empty root.
 func deliverTask(t Task) (string, error) {
-	root, err := sessionWorkdir(t.Agent)
+	root, err := resolveSessionWorkspace(t.Agent)
 	if err != nil {
 		return "", err
 	}

@@ -60,3 +60,32 @@ func TestCliWorkerLoopAcceptsNativeTurnHarness(t *testing.T) {
 		t.Fatalf("expected report_ready, got %s", got.Status)
 	}
 }
+
+// TestCliWorkerLoopAcceptsNativeOnlySession: the worker-loop gate
+// must accept a native-only session (active logical record, no
+// shell backing), taking the harness from the record. With nothing
+// dispatched it idles at exit 0 instead of refusing the name.
+func TestCliWorkerLoopAcceptsNativeOnlySession(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	t.Setenv("XDG_DATA_HOME", t.TempDir())
+	ws, err := canonicalRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := claimLogicalSession(logicalSession{
+		Name: "nq", Backend: TargetMuseNative, Workspace: ws,
+		Harness: "muse-native", Provider: "echo",
+	})
+	if err != nil || !claimed {
+		t.Fatalf("seed logical session: claimed=%v err=%v", claimed, err)
+	}
+	assertNoShellBacking(t, "worker-loop gate")
+	if rc := cliWorkerLoop([]string{
+		"--session", "nq",
+		"--once",
+		"--wait", "0",
+		"--requester", "test-cli",
+	}); rc != 0 {
+		t.Fatalf("cli worker-loop exited %d; native-only session must be accepted", rc)
+	}
+}

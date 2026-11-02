@@ -13,6 +13,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -165,5 +166,50 @@ func TestDispatchCommitRevalidatesDependencies(t *testing.T) {
 	}
 	if cur.Status != TaskPending || cur.Attempt != 0 {
 		t.Fatalf("refused commit must leave task pending at attempt 0, got %+v", cur)
+	}
+}
+
+// TestDispatchNativeScope: a native-only session (active logical
+// record, no tmux registry row, no PTY) must resolve a dispatch
+// scope — canonical root, muse-native harness, binding profile — so
+// delegate/dispatch and instruction delivery work with no shell
+// backing. Stopped records and unknown names are refused, never
+// treated as ambient shell sessions.
+func TestDispatchNativeScope(t *testing.T) {
+	t.Setenv("TUI_DASH_STATE", t.TempDir())
+	ws, err := canonicalRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := claimLogicalSession(logicalSession{
+		Name: "nq", Backend: TargetMuseNative, Workspace: ws,
+		Harness: "muse-native", Provider: "echo",
+	})
+	if err != nil || !claimed {
+		t.Fatalf("seed logical session: claimed=%v err=%v", claimed, err)
+	}
+	assertNoShellBacking(t, "dispatch scope")
+	root, harness, profile, err := dispatchSessionScope("nq")
+	if err != nil {
+		t.Fatalf("native-only session must resolve a dispatch scope: %v", err)
+	}
+	if root != ws || harness != "muse-native" || profile != "" {
+		t.Fatalf("native scope must be (root, muse-native, ambient), got (%q, %q, %q)", root, harness, profile)
+	}
+	p, derr := deliverTask(Task{ID: "t1", Run: "r", Agent: "nq", Created: "now", Objective: "o", Acceptance: "a"})
+	if derr != nil {
+		t.Fatalf("instruction delivery must land in the logical workspace: %v", derr)
+	}
+	if got, rerr := os.ReadFile(p); rerr != nil || !strings.Contains(string(got), "## Objective") {
+		t.Fatalf("instruction file must carry the task objective at %q (read err %v)", p, rerr)
+	}
+	if err := stopLogicalSession("nq"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := dispatchSessionScope("nq"); err == nil {
+		t.Fatal("stopped native session must not resolve a dispatch scope")
+	}
+	if _, _, _, err := dispatchSessionScope("nope"); err == nil || !strings.Contains(err.Error(), "no such session") {
+		t.Fatalf("unknown name must be refused as no such session, got %v", err)
 	}
 }

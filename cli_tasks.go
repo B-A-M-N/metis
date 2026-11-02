@@ -141,15 +141,30 @@ func cliWorkerLoop(args []string) int {
 		fmt.Fprintln(os.Stderr, "worker-loop requires --session")
 		return 1
 	}
-	reg := loadRegistry()
-	entry, ok := reg[*session]
-	if !ok {
-		fmt.Fprintf(os.Stderr, "no such session: %s\n", *session)
-		return 1
-	}
+	// The loop attaches to a shell-backed session when the
+	// registry knows the name; otherwise the name must be an
+	// active native-only logical session, whose harness comes
+	// from its record (the --harness flag still overrides).
+	// Unknown or stopped names are refused, never silently
+	// treated as ambient.
 	h := *harness
-	if h == "" {
-		h = entry.Harness
+	if entry, ok := loadRegistry()[*session]; ok {
+		if h == "" {
+			h = entry.Harness
+		}
+	} else {
+		ls, found, lerr := loadLogicalSession(*session)
+		if lerr != nil || !found {
+			fmt.Fprintf(os.Stderr, "no such session: %s\n", *session)
+			return 1
+		}
+		if ls.State == logicalStopped {
+			fmt.Fprintf(os.Stderr, "worker-loop refused: logical session %s is stopped\n", *session)
+			return 1
+		}
+		if h == "" {
+			h = ls.Harness
+		}
 	}
 	if h == "" {
 		fmt.Fprintln(os.Stderr, "worker-loop needs --harness or a harness-bound session")

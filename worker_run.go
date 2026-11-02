@@ -137,9 +137,12 @@ func reconcileLoopRestart(session string, req OperationRequest) (int, error) {
 	if err := requireRequest(req); err != nil {
 		return 0, err
 	}
-	reg := loadRegistry()
-	if _, ok := reg[session]; !ok {
-		return 0, fmt.Errorf("no such session: %s", session)
+	// Shell-backed sessions resolve through the live registry;
+	// a name with no shell backing resolves through its active
+	// native-only logical record (workerSessionBase). Unknown,
+	// stopped, and non-native-without-shell names are refused.
+	if _, _, _, berr := workerSessionBase(session); berr != nil {
+		return 0, berr
 	}
 	db, err := openTasksDB()
 	if err != nil {

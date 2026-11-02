@@ -40,17 +40,40 @@ type workerAssignment struct {
 // workerResolveAssignment finds the task the ledger committed to
 // session and validates its attempt. It executes nothing. It
 // reports idle=true when the ledger holds no work for the session.
+// workerSessionBase resolves the execution base for assignment
+// pickup: workdir, model, and bound harness. Shell-backed sessions
+// use the live registry entry (today's behavior, errors included);
+// a name with no shell backing resolves through its active
+// native-only logical record. Unknown, stopped, or non-native
+// rows without shell backing are refused exactly as before, so a
+// vanished shell session is never masked by a stale record.
+func workerSessionBase(session string) (workdir, model, harness string, err error) {
+	if entry, ok := loadRegistry()[session]; ok {
+		return entry.Workdir, entry.Model, entry.Harness, nil
+	}
+	ls, found, lerr := loadLogicalSession(session)
+	if lerr != nil || !found {
+		return "", "", "", fmt.Errorf("no such session: %s", session)
+	}
+	if ls.State == logicalStopped {
+		return "", "", "", fmt.Errorf("worker refused: logical session %s is stopped", session)
+	}
+	if ls.Backend != TargetMuseNative {
+		return "", "", "", fmt.Errorf("no such session: %s", session)
+	}
+	return ls.Workspace, ls.Model, ls.Harness, nil
+}
+
 func workerResolveAssignment(session string, a Adapter, req OperationRequest) (asn workerAssignment, idle bool, err error) {
 	defer func() { observeOps(opsPhaseClaim, req.RequestID, "", 0, session, err) }()
-	reg := loadRegistry()
-	entry, ok := reg[session]
-	if !ok {
-		return asn, false, fmt.Errorf("no such session: %s", session)
+	workdir, model, harness, berr := workerSessionBase(session)
+	if berr != nil {
+		return asn, false, berr
 	}
-	if entry.Harness != "" && a.Harness != "" && entry.Harness != a.Harness {
-		return asn, false, fmt.Errorf("session %s is bound to harness %q, not %q", session, entry.Harness, a.Harness)
+	if harness != "" && a.Harness != "" && harness != a.Harness {
+		return asn, false, fmt.Errorf("session %s is bound to harness %q, not %q", session, harness, a.Harness)
 	}
-	root := entry.Workdir
+	root := workdir
 	if fi, serr := os.Stat(root); serr != nil || !fi.IsDir() {
 		return asn, false, fmt.Errorf("session %s workdir unusable: %v", session, serr)
 	}
@@ -95,7 +118,7 @@ func workerResolveAssignment(session string, a Adapter, req OperationRequest) (a
 		task:    t,
 		prompt:  string(promptRaw),
 		root:    root,
-		model:   entry.Model,
+		model:   model,
 		loopID:  loopID,
 		loopReq: loopReq,
 	}, false, nil

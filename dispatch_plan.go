@@ -51,6 +51,62 @@ type DispatchAdmission struct {
 	TeamPreCount int
 }
 
+// dispatchSessionScope resolves the execution scope for one dispatch
+// target: canonical root, harness, commander profile. Shell-backed
+// sessions resolve through the live stores (today's behavior,
+// errors included); a name with no shell backing resolves through
+// its active logical record, which is what lets a bound native-only
+// session receive dispatched work. Stopped records and unknown names
+// are refused, never treated as ambient shell sessions. Scoped to
+// dispatch so retry/terminate/input guidance keep their own
+// shell-backing semantics.
+func dispatchSessionScope(session string) (root, harness, profile string, err error) {
+	if isPtySession(session) {
+		if _, perr := ptyGet(ptyBare(session)); perr == nil {
+			return dispatchShellScope(session)
+		}
+	} else if _, ok := loadRegistry()[session]; ok {
+		return dispatchShellScope(session)
+	}
+	ls, found, lerr := loadLogicalSession(session)
+	if lerr != nil || !found {
+		return "", "", "", fmt.Errorf("no such session: %s", session)
+	}
+	if ls.State == logicalStopped {
+		return "", "", "", fmt.Errorf("dispatch refused: logical session %q is stopped", session)
+	}
+	if ls.Backend != TargetMuseNative {
+		return "", "", "", fmt.Errorf("no such session: %s", session)
+	}
+	root, rerr := canonicalRoot(ls.Workspace)
+	if rerr != nil {
+		return "", "", "", rerr
+	}
+	profile = ls.Profile
+	if b, berr := getMuseBinding(session); berr == nil {
+		profile = b.Profile
+	}
+	return root, ls.Harness, profile, nil
+}
+
+// dispatchShellScope is the established shell-backed resolution:
+// live registry/PTY stores, with their exact errors preserved.
+func dispatchShellScope(session string) (root, harness, profile string, err error) {
+	root, err = sessionRoot(session)
+	if err != nil {
+		return "", "", "", err
+	}
+	harness, err = sessionHarness(session)
+	if err != nil {
+		return "", "", "", err
+	}
+	profile, err = sessionProfile(session)
+	if err != nil {
+		return "", "", "", err
+	}
+	return root, harness, profile, nil
+}
+
 // AdmitDispatch validates every authoritative admission requirement
 // BEFORE any externally visible side effect: request identity,
 // session bindability, dependencies, execution root, advisory
@@ -106,7 +162,10 @@ func AdmitDispatch(id, session string, req OperationRequest) (DispatchAdmission,
 	// Execution-root correctness (TD-050): the task executes in the
 	// session's canonical workspace. A pre-authorized root is
 	// enforced; otherwise the first dispatch binds it immutably.
-	root, rerr := sessionRoot(session)
+	// Scope resolves dispatch-wide (shell stores, else the active
+	// logical record) so bound native-only sessions are
+	// dispatchable; harness/profile come along from the same scope.
+	root, harness, profile, rerr := dispatchSessionScope(session)
 	if rerr != nil {
 		return adm, rerr
 	}
@@ -128,14 +187,6 @@ func AdmitDispatch(id, session string, req OperationRequest) (DispatchAdmission,
 	// admission, the (harness, profile) pair must be an eligible
 	// worker and live usage must sit under the project-wide budget.
 	// Runs with no pinned policy skip this gate.
-	harness, herr := sessionHarness(session)
-	if herr != nil {
-		return adm, herr
-	}
-	profile, perr := sessionProfile(session)
-	if perr != nil {
-		return adm, perr
-	}
 	adm.Harness, adm.Profile = harness, profile
 	pol, pre, ver, perr := admitTeamPolicy(pending.Run, harness, profile)
 	if perr != nil {
