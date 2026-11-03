@@ -32,6 +32,16 @@ func renderLivePane(m model, sel string, lay renderLayout) []string {
 	}
 	title := fmt.Sprintf("Text snapshot: %s (%s/%s; F5 opens full terminal)", sel,
 		orDash(provider), orDash(model))
+	if isPtySession(sel) {
+		// Deliberately NOT "Live PTY": this pane is a sanitized
+		// log snapshot, not a virtual-terminal emulator. No
+		// escape-sequence interpretation, no resize forwarding to
+		// the PTY master (use pty-resize / session_resize for
+		// explicit resizes); live keystrokes still reach the
+		// worker through the input lane.
+		title = fmt.Sprintf("PTY snapshot: %s (%s/%s; text view, keys go to worker; F5 n/a)", sel,
+			orDash(provider), orDash(model))
+	}
 	if m.isNativeSelection(sel) {
 		title = "Native activity: " + sel + " (i=structured steering)"
 	}
@@ -121,19 +131,4 @@ func renderInfoPane(m model, sel string, lay renderLayout) []string {
 		lines = append(lines, selectedEvents[start:]...)
 	}
 	return boxLines("Info · F6 closes", sliceLines(lines, lay.contentH, 0), lay.infoW, lay.contentH)
-}
-
-// renderGitPane renders the lower right box: either the MD path
-// banner (same height, same layout math, graph lineage instead of
-// workdir state; lines are pre-sanitized markdown) or the Git pane.
-func renderGitPane(m model, sel string, lay renderLayout) []string {
-	if m.graphPanel {
-		title := "Path"
-		if m.panelRun != "" {
-			title = "Path: " + m.panelRun
-		}
-		return boxLines(title, sliceLines(m.panel, lay.gitH, 0), lay.rightW, lay.gitH)
-	}
-	entry := boundEntry(m, sel)
-	return boxLines(fmt.Sprintf("Git: %s", entry.Workdir), sliceLines(boundLines(m, sel, m.gitLines), lay.gitH, 0), lay.rightW, lay.gitH)
 }

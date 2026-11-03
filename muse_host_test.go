@@ -116,7 +116,7 @@ func TestMuseHostFraming(t *testing.T) {
 		}
 		return nil, &museError{Code: -32601, Kind: "methodNotFound", Message: "stub: " + method}
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatalf("handshake: %v", err)
 	}
@@ -174,7 +174,7 @@ func TestMuseHostLateReplyDropped(t *testing.T) {
 			"schema":     map[string]any{"fingerprint": "test", "version": 1},
 		}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatalf("handshake: %v", err)
 	}

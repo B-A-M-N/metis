@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -128,7 +129,51 @@ func stampSessionOwner(target, owner string) error {
 	return err
 }
 
+// splitStopIdentity parses a backend-qualified session identity.
+// "pty:foo" selects the PTY backend, "tmux:foo" selects the tmux
+// registry, and a bare name selects whichever backend owns it —
+// which must be exactly one (see stopSession).
+func splitStopIdentity(name string) (backend, bare string) {
+	if rest, ok := strings.CutPrefix(name, ptyPrefix); ok {
+		return "pty", rest
+	}
+	if rest, ok := strings.CutPrefix(name, "tmux:"); ok {
+		return "tmux", rest
+	}
+	return "", name
+}
+
 func stopSession(name string) error {
+	// Backend-qualified identities route exactly: "pty:foo" stops
+	// only the PTY session, "tmux:foo" only the registry session.
+	// A bare name that exists on both backends is ambiguous and is
+	// refused instead of stopping the wrong session — registry
+	// precedence would silently kill the tmux twin when the
+	// operator meant the PTY one.
+	if backend, bare := splitStopIdentity(name); backend != "" {
+		switch backend {
+		case "pty":
+			if _, perr := ptyGet(bare); perr != nil {
+				return fmt.Errorf("no such PTY session: %s", name)
+			}
+			return ptyStop(bare)
+		default:
+			if _, ok := loadRegistry()[bare]; !ok {
+				return fmt.Errorf("no such session: %s", name)
+			}
+			name = bare
+		}
+	} else if _, ok := loadRegistry()[name]; ok {
+		if _, perr := ptyGet(name); perr == nil {
+			return fmt.Errorf("ambiguous session %q: exists as both a tmux session and a PTY session; stop %q or %q",
+				name, "tmux:"+name, ptyDisplay(name))
+		}
+	} else if _, perr := ptyGet(name); perr == nil {
+		// PTY-backed sessions have no registry row: route them to
+		// the generation-fenced PTY stop instead of reporting
+		// absence.
+		return ptyStop(name)
+	}
 	reg := loadRegistry()
 	if !sessionRunning(name) {
 		// Already dead: nothing to terminate. Confirm the absence

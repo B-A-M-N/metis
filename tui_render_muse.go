@@ -91,25 +91,81 @@ func renderFeedRow(e OrchEvent, cursor string, innerW int) string {
 	return sanitizeLine(pad(truncW(line, innerW), innerW))
 }
 
+// renderControllersRow formats one presence lease as an honest
+// recently-seen row: verified transport identity plus source and
+// age. A lease proves recent authentication, never a persistent
+// live connection, and the label says so.
+func renderControllersRow(p musePresence, now int64) string {
+	age := now - p.LastSeen
+	if age < 0 {
+		age = 0
+	}
+	seen := fmt.Sprintf("%ds", age/int64(time.Second))
+	if age >= int64(time.Minute) {
+		seen = fmt.Sprintf("%dm", age/int64(time.Minute))
+	}
+	who := p.Principal
+	if who == "" {
+		who = "unknown"
+	}
+	src := p.Source
+	if src == "" {
+		src = "unknown-transport"
+	}
+	return fmt.Sprintf("  ● %s via %s · recently seen %s ago (not a live connection)", who, src, seen)
+}
+
 // renderMusePane renders the orchestration feed box that replaces
 // the terminal and Git panes on the Muse tab.
 func renderMusePane(m model, lay renderLayout) []string {
 	feedTitle := fmt.Sprintf("Meta.ai Orchestrator · activity feed, not a chat · %s — open: %d · blocked: %d (up/down=event, enter=jump to worker)",
 		m.museState, m.museOpen, m.museBlocked)
-	var feedLines []string
+	var head []string
+	now := time.Now().UnixNano()
+	if len(m.controllers) == 0 {
+		head = append(head, pad(truncW(sanitizeLine("Controllers: (none recently seen)"), lay.mainW-4), lay.mainW-4))
+	} else {
+		head = append(head, pad(truncW(sanitizeLine("Controllers (verified identities, recently seen — not live connections):"), lay.mainW-4), lay.mainW-4))
+		for _, c := range m.controllers {
+			head = append(head, pad(truncW(sanitizeLine(renderControllersRow(c, now)), lay.mainW-4), lay.mainW-4))
+		}
+	}
+	head = append(head, pad(truncW(sanitizeLine("—"), lay.mainW-4), lay.mainW-4))
+	var rows []string
 	feedCursor := m.nav.FeedCursor
 	for i, e := range m.feed {
 		cursor := "  "
 		if i == feedCursor {
 			cursor = "> "
 		}
-		feedLines = append(feedLines, renderFeedRow(e, cursor, lay.mainW-4))
+		rows = append(rows, renderFeedRow(e, cursor, lay.mainW-4))
 	}
-	if len(feedLines) == 0 {
-		feedLines = []string{"(no controller events yet)", "", "This tab is a dedicated MCP controller slot.", "It does not mirror a Meta.ai web conversation."}
+	if len(rows) == 0 {
+		rows = []string{"(no controller events yet)", "", "This tab is a dedicated MCP controller slot.", "It does not mirror a Meta.ai web conversation."}
 	}
-	if len(feedLines) > lay.feedH-2 {
-		feedLines = feedLines[len(feedLines)-(lay.feedH-2):]
+	// Window the event rows around the cursor instead of trimming
+	// to the bottom: the selected event stays visible while
+	// scrolling through retained history.
+	avail := lay.feedH - 2 - len(head)
+	if avail < 1 {
+		avail = 1
 	}
+	start := 0
+	if len(rows) > avail {
+		start = feedCursor - avail/2
+		if start < 0 {
+			start = 0
+		}
+		if start+avail > len(rows) {
+			start = len(rows) - avail
+		}
+		if feedCursor < start {
+			start = feedCursor
+		}
+		if feedCursor >= start+avail {
+			start = feedCursor - avail + 1
+		}
+	}
+	feedLines := append(head, rows[start:min(start+avail, len(rows))]...)
 	return boxLines(feedTitle, feedLines, lay.mainW, lay.contentH)
 }

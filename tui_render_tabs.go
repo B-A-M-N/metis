@@ -59,13 +59,21 @@ func providerModelBG(provider, model string) string {
 }
 
 // tabLabel builds one rail row: connection mark, session id, model,
-// and title — background-colored by harness.
+// and title — background-colored by provider/model first (Muse
+// identity: same harness, different backends), harness second,
+// plain when neither resolves.
 func tabLabel(prefix, mark, name string, detail tabDetail, innerW int) string {
 	displayName := detail.Label
 	if displayName == "" {
 		displayName = name
 	}
 	plain := prefix + mark + " " + displayName
+	if displayName != name {
+		// Ordinal labels ("Locus · 01") shift as the population
+		// changes; the session name is the persistent instance
+		// identity and always rides along.
+		plain += " · " + name
+	}
 	if detail.Model != "" {
 		plain += " [" + detail.Model + "]"
 	}
@@ -74,6 +82,9 @@ func tabLabel(prefix, mark, name string, detail tabDetail, innerW int) string {
 	}
 	plain = pad(truncW(sanitizeLine(plain), innerW), innerW)
 	bg := providerModelBG(detail.Provider, detail.Model)
+	if bg == "" {
+		bg = harnessBG(detail.Harness)
+	}
 	if bg != "" {
 		return bg + plain + "\x1b[0m"
 	}

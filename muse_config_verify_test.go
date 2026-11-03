@@ -157,7 +157,7 @@ func TestStartRefusesLyingServer(t *testing.T) {
 		}
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}

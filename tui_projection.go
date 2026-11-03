@@ -52,6 +52,10 @@ type refreshData struct {
 	museState   string
 	museOpen    int
 	museBlocked int
+	// controllers carries the unexpired controller presence
+	// leases with the feed projection (same staleness rule: a
+	// failed collection keeps last-known rows).
+	controllers []musePresence
 	// panelRun/panel carry the MD path-traversal banner: the graph
 	// lineage projection for the selected session's run (or the
 	// newest run when nothing resolves). Collected with the feed so

@@ -95,7 +95,7 @@ func bindTestHost(t *testing.T, starts *atomic.Int32, lastRoot *string, mu *sync
 	t.Helper()
 	client, server := net.Pipe()
 	bindCountingStub(t, server, starts, lastRoot, mu)
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}

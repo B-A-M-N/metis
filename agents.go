@@ -256,11 +256,27 @@ func museCodeArgv(workdir, provider, model, profile string) ([]string, error) {
 		return nil, fmt.Errorf("muse executable is not on PATH")
 	}
 	argv := []string{program, "--provider", provider, "--workspace", workdir}
-	if model != "" {
+	// muse 1.4.14 refuses --model with the echo provider ("--model
+	// requires --provider meta or local"): passing it produces a
+	// stillborn worker that exits before serving. The requested
+	// model is still recorded on the Metis session row; only the
+	// providers that accept the flag receive it.
+	if model != "" && provider != "echo" {
 		argv = append(argv, "--model", model)
 	}
 	if profile != "" {
 		argv = append(argv, "--permission-profile", profile)
+	}
+	// The echo provider is the no-inference test double: it must
+	// boot to an interactive prompt in a disposable root so
+	// steering is exercisable. The interactive TUI gates every
+	// fresh workspace behind a trust prompt that ignores
+	// supervisor keystrokes, so the automated path answers it
+	// with the documented run-scoped flag (trust is not saved).
+	// Real providers (meta/local) keep the explicit human trust
+	// decision: nothing here auto-trusts a real project.
+	if provider == "echo" {
+		argv = append(argv, "--trust-workspace")
 	}
 	return argv, nil
 }

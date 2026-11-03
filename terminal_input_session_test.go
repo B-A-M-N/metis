@@ -71,3 +71,28 @@ func TestTerminalInputResultCarriesSessionIdentity(t *testing.T) {
 		t.Fatalf("bad receipt envelope for sess-b: %+v", rb)
 	}
 }
+
+// TestTerminalInputResultSurvivesTabSwitch pins the P1-E
+// selection-change rule: a job queued while attached to A, then a
+// tab switch to B, then A's receipt — the receipt parks under A
+// and the status line never presents A's outcome as B's.
+func TestTerminalInputResultSurvivesTabSwitch(t *testing.T) {
+	m := newModel("w")
+	m.names = []string{"a", "b"}
+	m.running = map[string]bool{"a": true, "b": true}
+	m.nav.Selected = 0
+	m.nav = m.nav.EnterAttach()
+	m.status = ""
+	// Switch tabs while A's job is in flight.
+	m.nav.Selected = 1
+	m = applyInputResult(m, inputResultMsg{session: "a", opID: "op-7", disposition: DispositionConfirmed})
+	if m.status != "" {
+		t.Fatalf("switched-away result must not touch status, got %q", m.status)
+	}
+	if got := m.inputPending["a"]; got == "" {
+		t.Fatal("A's receipt must park under A's identity, not the viewed tab")
+	}
+	if _, ok := m.inputPending["b"]; ok {
+		t.Fatalf("B must gain no receipt from A's job: %+v", m.inputPending)
+	}
+}

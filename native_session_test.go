@@ -245,7 +245,7 @@ func newNativeStubHost(t *testing.T, st *nativeStub) *museHost {
 	t.Helper()
 	client, server := net.Pipe()
 	serveNativeStub(t, server, st)
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatalf("stub host handshake: %v", err)
 	}

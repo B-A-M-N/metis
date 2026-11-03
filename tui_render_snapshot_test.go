@@ -45,14 +45,16 @@ func viewLines(t *testing.T, m model) []string {
 }
 
 // The frame invariant: every row is exactly one terminal width wide
-// and the frame holds header + content + three footer rows.
+// and the frame holds header + content + two footer rows (prompt,
+// status). The orchestration feed and session events live in the
+// Muse tab and the F6 info drawer, not in footer rows.
 func TestRenderFrameGeometrySnapshot(t *testing.T) {
 	for _, wh := range [][2]int{{80, 24}, {100, 30}, {160, 50}} {
 		m := snapshotModel()
 		m.width, m.height = wh[0], wh[1]
 		rows := viewLines(t, m)
-		if len(rows) != wh[1]-1 {
-			t.Fatalf("%dx%d: got %d rows, want %d", wh[0], wh[1], len(rows), wh[1]-1)
+		if len(rows) != wh[1]-2 {
+			t.Fatalf("%dx%d: got %d rows, want %d", wh[0], wh[1], len(rows), wh[1]-2)
 		}
 		for i, r := range rows {
 			if got := strWidth(r); got != wh[0] {
@@ -67,7 +69,10 @@ func TestLayoutGeometrySnapshot(t *testing.T) {
 	if lay.leftW != 25 || lay.rightW != 75 {
 		t.Fatalf("pane widths wrong: %+v", lay)
 	}
-	if lay.liveH != 14 || lay.gitH != 11 {
+	// Single-pane contract: the live pane owns the whole content
+	// height; there is no split Git pane (gitH pins zero) and the
+	// feed pane matches content height.
+	if lay.liveH != 25 || lay.gitH != 0 {
 		t.Fatalf("pane heights wrong: %+v", lay)
 	}
 	if lay.tabH != 23 || lay.workerH != 22 {
@@ -81,7 +86,7 @@ func TestLayoutGeometrySnapshot(t *testing.T) {
 	if small.leftW != 24 || small.rightW != 56 {
 		t.Fatalf("narrow clamp wrong: %+v", small)
 	}
-	if small.liveH != 10 || small.gitH != 9 {
+	if small.liveH != 19 || small.gitH != 0 {
 		t.Fatalf("narrow heights wrong: %+v", small)
 	}
 }
@@ -121,7 +126,7 @@ func TestRenderLongSessionListSnapshot(t *testing.T) {
 	if !strings.Contains(first, want) {
 		t.Fatalf("selected worker row must stay visible: %q", want)
 	}
-	if !strings.Contains(first, "MUSE") {
+	if !strings.Contains(first, "META.AI") {
 		t.Fatal("pinned Muse row must stay visible on long lists")
 	}
 	// The scroll window clips: not every worker row fits.
@@ -207,30 +212,24 @@ func TestRenderSelectionChangeHidesPreviousSession(t *testing.T) {
 	m.nav.Selected = 1
 	out := m.View()
 	lines := strings.Split(out, "\n")
-	var header, liveTitle, gitTitle, eventsLine string
+	var header, liveTitle string
 	for _, l := range lines {
 		switch {
 		case strings.Contains(l, "Metis"):
 			header = l
-		case strings.Contains(l, "Live:"):
+		case strings.Contains(l, "Text snapshot:"):
 			liveTitle = l
-		case strings.Contains(l, "Git:"):
-			gitTitle = l
-		case strings.Contains(l, "Events:"):
-			eventsLine = l
+		case strings.Contains(l, "Git:"), strings.Contains(l, "Events:"):
+			t.Fatalf("retired chrome must not render, got %q", l)
 		}
 	}
 	if !strings.Contains(header, "session=w1") || strings.Contains(header, "muse") || strings.Contains(header, "opus") {
 		t.Fatalf("header must bind metadata to w1, got %q", header)
 	}
-	if !strings.Contains(liveTitle, "Live: w1 (-/-") {
-		t.Fatalf("live pane must not carry w0's harness/model, got %q", liveTitle)
-	}
-	if !strings.Contains(gitTitle, "Git:") || strings.Contains(gitTitle, "/w/w0") {
-		t.Fatalf("git pane must not carry w0's workdir, got %q", gitTitle)
-	}
-	if !strings.Contains(eventsLine, "Events: (no events)") {
-		t.Fatalf("events line must not carry w0's events, got %q", eventsLine)
+	if !strings.Contains(liveTitle, "Text snapshot: w1 (") ||
+		strings.Contains(liveTitle, "muse") || strings.Contains(liveTitle, "opus") ||
+		strings.Contains(liveTitle, "fix login") {
+		t.Fatalf("live pane must bind w1's own chrome, never w0's harness/model, got %q", liveTitle)
 	}
 	for _, leaked := range []string{"hello", "world", "* main abc123", "/w/w0", "ev-a", "ev-b"} {
 		if strings.Contains(out, leaked) {
@@ -268,7 +267,7 @@ func TestMuseFeedRenderSnapshot(t *testing.T) {
 	if first != m.View() {
 		t.Fatal("muse feed View must be deterministic")
 	}
-	if !strings.Contains(first, "MUSE Orchestrator") {
+	if !strings.Contains(first, "Meta.ai Orchestrator") {
 		t.Fatal("muse tab must show the feed title")
 	}
 	if !strings.Contains(first, "do it") {
@@ -302,5 +301,27 @@ func TestTabLabelRenderSnapshot(t *testing.T) {
 	plain := tabLabel("  ", "○", "w0", tabDetail{}, 10)
 	if strWidth(plain) != 10 {
 		t.Fatalf("plain label width %d, want 10", strWidth(plain))
+	}
+}
+
+// TestRenderPTYPaneIsLabeledSnapshot pins the P1-E label: the PTY
+// pane is a text snapshot, never a "Live PTY" emulator claim, and
+// the F5 limitation rides in the title itself.
+func TestRenderPTYPaneIsLabeledSnapshot(t *testing.T) {
+	m := snapshotModel()
+	m.names = []string{"pty:w"}
+	m.running = map[string]bool{"pty:w": true}
+	m.paneSel = "pty:w"
+	m.entry = Session{Name: "pty:w", Workdir: "/w", Harness: "muse", Model: "opus"}
+	m.live = []string{"hello"}
+	m.tabInfo = map[string]tabDetail{"pty:w": {Harness: "muse", Model: "opus"}}
+	lay := renderLayout{mainW: 100, contentH: 5}
+	rows := renderLivePane(m, "pty:w", lay)
+	joined := strings.Join(rows, "\n")
+	if strings.Contains(joined, "Live PTY") {
+		t.Fatalf("PTY pane must not claim to be a live terminal emulator:\n%s", joined)
+	}
+	if !strings.Contains(joined, "PTY snapshot") || !strings.Contains(joined, "F5 n/a") {
+		t.Fatalf("PTY pane must label the snapshot view and the F5 limit:\n%s", joined)
 	}
 }

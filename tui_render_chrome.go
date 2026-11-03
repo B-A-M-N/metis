@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	tuistate "metis/internal/tui"
 )
@@ -76,24 +75,6 @@ func renderHeaderLine(m model, sel string, running bool, mode string, w int) str
 	return pad(top, w)
 }
 
-// renderEventsLine renders the footer events summary (last two,
-// sanitized).
-func renderEventsLine(m model, sel string, w int) string {
-	ev := "(no events)"
-	if evLines := boundLines(m, sel, m.events); len(evLines) > 0 {
-		tail := evLines
-		if len(tail) > 2 {
-			tail = tail[len(tail)-2:]
-		}
-		clean := make([]string, len(tail))
-		for i, e := range tail {
-			clean[i] = sanitizeLine(e)
-		}
-		ev = strings.Join(clean, " | ")
-	}
-	return pad("Events: "+ev, w)
-}
-
 // renderPromptLine renders the guidance/attach prompt row.
 func renderPromptLine(m model, w int) string {
 	if m.nav.OnMuse {
@@ -106,6 +87,9 @@ func renderPromptLine(m model, w int) string {
 	prompt := fmt.Sprintf("[%s] prompt> %s", kind, m.guideCtl.Buf)
 	if m.nav.Mode == tuistate.ModeAttach {
 		prompt = "[LIMITED INPUT] keys go to session  (text snapshot only; F5 opens full terminal; esc detaches)"
+		if sel := m.selName(); isPtySession(sel) {
+			prompt = "[LIVE PTY INPUT] keys go to session  (F5 n/a for PTY; esc detaches)"
+		}
 	}
 	return pad(prompt, w)
 }

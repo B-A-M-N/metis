@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -70,6 +71,10 @@ type feedSnapshot struct {
 	ok            bool
 	state         string
 	open, blocked int
+	// controllers lists unexpired controller presence leases
+	// (verified transport identities, newest first). Recently
+	// seen only — never proof of a live connection.
+	controllers []musePresence
 }
 
 // panelSnapshot is the MD path-traversal banner projection.
@@ -140,6 +145,11 @@ func (liveRefreshSource) snapshots(ctx context.Context, sel string, everyGit boo
 		out.content = liveNativeContentSnapshot(nativeRows, strings.TrimPrefix(sel, nativePrefix))
 	}
 	out.feed = liveFeedSnapshot()
+	// The path projection is a pure graph snapshot collected with
+	// every refresh; the installer keeps last-known on miss. The
+	// toggle state and its status text read it; the primary worker
+	// view carries no banner (drawer contract).
+	out.panel = livePanelSnapshot(strings.HasPrefix(sel, nativePrefix), sel)
 	if ctx.Err() != nil {
 		return refreshSnapshots{sessionsOk: false}
 	}
@@ -276,6 +286,7 @@ func liveNativeContentSnapshot(rows []logicalSession, name string) contentSnapsh
 			"Updated: " + orDash(ls.Updated),
 			"Current task: " + nativeTaskSummary(ls.Name, ls.Workspace),
 			"Turn record: " + nativeTurnSummary(ls.Name),
+			"Direct message: " + nativeMessageSummary(ls.Name),
 		}
 		return contentSnapshot{found: true, entry: Session{Name: ls.Name, Workdir: ls.Workspace,
 			Harness: ls.Harness, Model: ls.Model}, live: lines}
@@ -314,6 +325,41 @@ func nativeTurnSummary(name string) string {
 		return "submission " + state + "; terminal outcome not recorded here"
 	}
 	return "turn " + turn + " submission " + state + "; terminal outcome not recorded here"
+}
+
+// nativeMessageSummary surfaces the latest direct-message outcome
+// (metis_muse_message) for one session: request ID, turn ID, and
+// the durable terminal — or the unresolved state with the recovery
+// pointer. Read-only and bounded (one row) against the persisted
+// intents; it never contacts Muse, and the refresh path already
+// polls on its own cadence, so this adds no new polling. Storage
+// failure reads as unavailable, never as an invented state: only
+// sql.ErrNoRows means none recorded. Completed and failed resolve
+// through the same terminal=value shape so the disposition stays
+// exact.
+func nativeMessageSummary(name string) string {
+	// A store that was never created holds nothing: "none
+	// recorded" is the accurate observation, not a failure.
+	if _, serr := os.Stat(tasksDBPath()); serr != nil {
+		return "none recorded"
+	}
+	// The row read goes through the read-model seam (which owns
+	// the driver import); only the found/failed distinction
+	// crosses into the projection.
+	req, turn, terminal, found, err := latestMuseMessageRow(name)
+	if err != nil {
+		return "unavailable"
+	}
+	if !found {
+		return "none recorded"
+	}
+	if terminal != "" {
+		return "req " + req + " turn " + turn + " terminal=" + terminal
+	}
+	if turn != "" {
+		return "req " + req + " turn " + turn + " admitted; terminal unresolved (poll metis_muse_message_status)"
+	}
+	return "req " + req + " submitted; not yet admitted"
 }
 
 // liveContentSnapshot reads the selected session's terminal content.
@@ -359,6 +405,21 @@ func liveContentSnapshotContext(ctx context.Context, reg map[string]Session, met
 	if e, ok := reg[sel]; ok {
 		out := contentSnapshot{found: true, entry: e}
 		out.live = capturePaneSnapshot(ctx, sel, sessionTmuxTarget(sel, e.Tmux), 500)
+		// Read-path retention backstop (TD-066/TD-106, CB-10): one
+		// stat when within cap, a locked bound only when over, so a
+		// high-output worker is capped on every refresh even when
+		// the pane preview comes from the screen buffer.
+		maintainSessionStream(sel)
+		// A blank screen buffer must not hide retained history: when
+		// capture-pane is empty but the stream file survived (notably
+		// the rotation gap marker, TD-067), show the stream tail so
+		// reopening after a headless rotation reports the discarded
+		// history instead of a silent discontinuity.
+		if len(out.live) == 1 && out.live[0] == "(no output yet)" {
+			if ls, ok := streamTail(sel, 500); ok {
+				out.live = ls
+			}
+		}
 		if everyGit {
 			out.git = gitInfo(e.Workdir)
 			out.hasGit = true
@@ -383,10 +444,11 @@ func liveContentSnapshotContext(ctx context.Context, reg map[string]Session, met
 // instead of painting a miss as an empty feed.
 func liveFeedSnapshot() feedSnapshot {
 	var out feedSnapshot
-	if feed, ferr := listLatestOrchEvents(30); ferr == nil {
+	if feed, ferr := listLatestOrchEvents(maxOrchPage); ferr == nil {
 		out.feed = feed
 		out.ok = true
 	}
+	out.controllers = activeMusePresence()
 	out.state, out.open, out.blocked = museActivity()
 	if out.state == "" {
 		out.state = MuseDisconnected
@@ -440,6 +502,7 @@ func assembleRefresh(s refreshSnapshots, gen int, sel string) refreshData {
 	// empty.
 	if s.feed.ok {
 		out.feed = s.feed.feed
+		out.controllers = s.feed.controllers
 	}
 	out.feedOk = s.feed.ok
 	out.museState = s.feed.state

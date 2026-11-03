@@ -31,7 +31,7 @@ func TestMuseServerRequestsSurfaced(t *testing.T) {
 		}
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestMuseDecideApproval(t *testing.T) {
 		}
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +252,7 @@ func TestMuseApprovalObserverReceipt(t *testing.T) {
 		}
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +331,7 @@ func TestMuseListPendingPassthrough(t *testing.T) {
 		}
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +373,7 @@ func TestDecideBindsCommandIDToPayload(t *testing.T) {
 		}
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}

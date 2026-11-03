@@ -42,7 +42,7 @@ func TestChainedTurnObserver(t *testing.T) {
 	stubMuseServer(t, server, func(id int64, method string, params json.RawMessage) (any, *museError) {
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestHostCloseUnblocksWait(t *testing.T) {
 	stubMuseServer(t, server, func(id int64, method string, params json.RawMessage) (any, *museError) {
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestWaitTurnNoticesOverflowGap(t *testing.T) {
 		}
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func turnCancelStub(t *testing.T, conn net.Conn, terminal bool) {
 func TestStopNativeTurnConfirmedOnTerminal(t *testing.T) {
 	client, server := net.Pipe()
 	turnCancelStub(t, server, true)
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestStopNativeTurnConfirmedOnTerminal(t *testing.T) {
 func TestStopNativeTurnUncertainWhenWithheld(t *testing.T) {
 	client, server := net.Pipe()
 	turnCancelStub(t, server, false)
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,7 +303,7 @@ func TestWaitTurnAcceptsUnqueued(t *testing.T) {
 		}
 		return map[string]any{}, nil
 	})
-	h, err := newMuseHostIO(client, client)
+	h, err := newMuseHostIO(context.Background(), client, client)
 	if err != nil {
 		t.Fatal(err)
 	}

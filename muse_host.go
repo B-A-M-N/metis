@@ -103,7 +103,12 @@ type museHost struct {
 // newMuseHostIO runs the MSP handshake over an already-open
 // transport. Production passes a child process's pipes; tests pass
 // an in-memory pipe pair against a canned server.
-func newMuseHostIO(r io.Reader, w io.WriteCloser) (*museHost, error) {
+// newMuseHostIO runs the initialize handshake under ctx: a hung
+// binary fails the handshake when the caller's RPC budget expires
+// instead of wedging the connection forever. Production passes its
+// bounded submit/status context; tests pass Background over pipes
+// that answer immediately.
+func newMuseHostIO(ctx context.Context, r io.Reader, w io.WriteCloser) (*museHost, error) {
 	h := &museHost{
 		stdin:   w,
 		pending: map[int64]chan museResult{},
@@ -123,7 +128,7 @@ func newMuseHostIO(r io.Reader, w io.WriteCloser) (*museHost, error) {
 		} `json:"schema"`
 		GrantedCapabilities []string `json:"grantedCapabilities"`
 	}
-	raw, err := h.call(context.Background(), "initialize", map[string]any{
+	raw, err := h.call(ctx, "initialize", map[string]any{
 		"clientInfo": map[string]string{"name": metisMuseClientName, "version": metisMuseClientVersion},
 	})
 	if err != nil {
@@ -226,7 +231,7 @@ func startMuseHost(ctx context.Context, binary, provider string, env []string, e
 		_ = stdin.Close()
 		return nil, fmt.Errorf("muse serve start: %w", err)
 	}
-	h, err := newMuseHostIO(stdout, stdin)
+	h, err := newMuseHostIO(ctx, stdout, stdin)
 	if err != nil {
 		_ = stdin.Close()
 		_ = cmd.Wait()
@@ -397,10 +402,18 @@ func (h *museHost) sendResult(id int64, result any) error {
 	return nil
 }
 
-// abort tears down a host that failed its handshake.
+// abort tears down a host that failed its handshake. The reader
+// may outlive the handshake when an orphaned grandchild holds a
+// pipe open after the direct child dies: wait briefly, reap the
+// direct child, and return — the read loop exits on its own when
+// the last pipe writer goes away. An unbounded wait here would
+// defeat the caller's RPC budget (the wedged-handshake case).
 func (h *museHost) abort() {
 	_ = h.stdin.Close()
-	<-h.doneCh
+	select {
+	case <-h.doneCh:
+	case <-time.After(2 * time.Second):
+	}
 	if h.cmd != nil {
 		_ = h.cmd.Wait()
 	}

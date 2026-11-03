@@ -142,27 +142,3 @@ func sliceLines(lines []string, h int, scroll int) []string {
 	}
 	return lines[start:end]
 }
-
-// joinPanes zips the left rail with the right stack (live rows then
-// git rows) into contentH terminal rows.
-func joinPanes(left, live, git []string, lay renderLayout) []string {
-	rows := make([]string, 0, lay.contentH)
-	for i := 0; i < lay.contentH; i++ {
-		l := ""
-		if i < len(left) {
-			l = left[i]
-		} else {
-			l = strings.Repeat(" ", lay.leftW)
-		}
-		r := ""
-		if i < len(live) {
-			r = live[i]
-		} else if i-lay.liveH < len(git) {
-			r = git[i-lay.liveH]
-		} else {
-			r = strings.Repeat(" ", lay.rightW)
-		}
-		rows = append(rows, pad(l, lay.leftW)+pad(r, lay.rightW))
-	}
-	return rows
-}

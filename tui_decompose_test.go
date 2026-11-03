@@ -22,6 +22,7 @@ import (
 // and lose exactly the last character.
 func TestInputBackspaceRuneAware(t *testing.T) {
 	m := newModel("")
+	m.nav.OnMuse = false // rune editing is guidance-input behavior, not controller behavior
 	m.nav = m.nav.EnterInput()
 	m.guideCtl.Buf = "abé👍"
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
@@ -468,6 +469,10 @@ func TestAttachStaleRefusalCannotClobberNewerAttach(t *testing.T) {
 // the model does not already hold (no tmux/registry contact).
 func TestViewRendersFromCacheOnly(t *testing.T) {
 	m := newModel("")
+	// The empty-preselect default opens the Muse tab; rendering the
+	// cached worker selection requires leaving it, exactly as the
+	// snapshot fixtures do.
+	m.nav.OnMuse = false
 	m.names = []string{"a"}
 	m.nav.Selected = 0
 	m.running = map[string]bool{"a": true}
@@ -488,6 +493,7 @@ func TestViewRendersFromCacheOnly(t *testing.T) {
 // panicking (finding F).
 func TestSelectedSummaryClampsInvalidIndex(t *testing.T) {
 	m := newModel("")
+	m.nav.OnMuse = false // worker-tab selection semantics, not the controller summary
 	m.names = nil
 	m.running = map[string]bool{}
 	m.nav.Selected = 5

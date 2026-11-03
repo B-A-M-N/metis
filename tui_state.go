@@ -60,8 +60,18 @@ func (m *model) attachTarget() (string, bool) {
 }
 
 func (m model) canonicalSession(display string) string {
-	if id, ok := m.identities[display]; ok && id.Canonical != "" {
-		return id.Canonical
+	if id, ok := m.identities[display]; ok {
+		// PTY identities are already backend-qualified: the pty:
+		// display key is the address injectGuidance and the PTY
+		// input lane resolve. Stripping it to the bare name would
+		// route prompt-bar input into the tmux registry lookup,
+		// which fails — typed input would reach no worker.
+		if id.Backend == TargetPTY {
+			return display
+		}
+		if id.Canonical != "" {
+			return id.Canonical
+		}
 	}
 	if strings.HasPrefix(display, nativePrefix) {
 		return strings.TrimPrefix(display, nativePrefix)

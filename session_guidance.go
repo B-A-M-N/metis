@@ -40,8 +40,17 @@ func injectGuidance(name, text string, direct bool) error {
 	if err != nil {
 		return err
 	}
-	_, _ = fmt.Fprintf(f, "\n## %s\n\n%s\n", stamp, text)
-	_ = f.Close()
+	// P1-F: a durable filing is only durable when the bytes and
+	// the close both succeed. A full filesystem, permission
+	// failure, or interrupted write must surface as a failure
+	// receipt, never as a success.
+	if _, err := fmt.Fprintf(f, "\n## %s\n\n%s\n", stamp, text); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("guidance file write failed: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("guidance file close failed: %w", err)
+	}
 	kind := "guidance"
 	if direct {
 		kind = "guidance_direct"
@@ -49,8 +58,20 @@ func injectGuidance(name, text string, direct bool) error {
 	appendEvent(workdir, kind, text)
 	if direct {
 		if isPtySession(name) {
-			if _, err := ptyInput(ptyBare(name), controllerID(), text+"\n"); err != nil {
+			// Submit with Enter (\r), matching the tmux path's
+			// literal-then-Enter: raw-mode TUIs read Enter as
+			// \r, while \n arrives as Ctrl-J and never submits
+			// the line the caller just typed.
+			id, err := ptyInput(ptyBare(name), controllerID(), text+"\r")
+			if err != nil {
 				return fmt.Errorf("guidance saved to file, but direct send refused: %w", err)
+			}
+			// A queued input id proves nothing about delivery:
+			// await the supervisor's typed receipt and report
+			// its verdict — written, refused, or unknown —
+			// instead of marking delivery at queue time.
+			if derr := awaitPTYDeliveryReceipt(id); derr != nil {
+				return fmt.Errorf("guidance saved to file, but live delivery %s", derr)
 			}
 			return nil
 		}
@@ -85,6 +106,36 @@ func injectGuidance(name, text string, direct bool) error {
 		return err
 	}
 	return nil
+}
+
+// ptyDeliveryReceiptTimeout bounds how long a direct PTY send
+// waits for the supervisor's typed receipt. The supervisor is
+// local and consumes fifo frames promptly; a receipt that never
+// arrives is reported as unknown, never as delivered.
+const ptyDeliveryReceiptTimeout = 10 * time.Second
+
+// awaitPTYDeliveryReceipt polls the supervisor's disposition of a
+// queued input id until it is written to the PTY, refused with a
+// reason, or the wait expires. Only written_to_pty counts as
+// delivered; an expired wait is unknown, not delivered.
+func awaitPTYDeliveryReceipt(id string) error {
+	deadline := time.Now().Add(ptyDeliveryReceiptTimeout)
+	for {
+		status, detail, err := ptyInputStatus(id)
+		if err != nil {
+			return fmt.Errorf("unverifiable (receipt lookup failed: %v; outcome unknown)", err)
+		}
+		switch status {
+		case "written_to_pty":
+			return nil
+		case "error":
+			return fmt.Errorf("refused by supervisor: %s", detail)
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("unacknowledged (id %s still %s; outcome unknown)", id, status)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 }
 
 // sendTerminalInput delivers keystrokes to an owned, running session.

@@ -57,6 +57,14 @@ func (m *model) attachKey(msg tea.KeyMsg) (model, tea.Cmd) {
 	switch msg.String() {
 	case "f5":
 		m.nav = m.nav.ToNav()
+		if isPtySession(sel) {
+			// PTY workers have no external terminal to open: keys
+			// already reach the worker through live in-TUI input,
+			// so F5 is a no-op with an explanatory status rather
+			// than a failed external attach round trip.
+			m.status = "pty sessions take live input here (keys already go to " + sel + "); no external terminal to open"
+			return *m, nil
+		}
 		m.status = "checking owned tmux session " + sel
 		return *m, externalAttachPrepareCmd(sel, m.canonicalSession(sel))
 	case "enter":

@@ -61,6 +61,8 @@ func TestGuidanceSubmitOffUpdatePath(t *testing.T) {
 	installFakeTmux(t, "p4c")
 	seedOwnedSession(t, "w", "p4c")
 	m := newModel("")
+	m.nav.OnMuse = false // guidance submit is worker-tab behavior
+	m.direct = false      // this case pins the file-filing path and its copy
 	m.names = []string{"w"}
 	m.nav.Selected = 0
 	m.running = map[string]bool{"w": true}
@@ -95,6 +97,7 @@ func TestGuidanceDoubleEnterSerializes(t *testing.T) {
 	installFakeTmux(t, "p4d")
 	seedOwnedSession(t, "w", "p4d")
 	m := newModel("")
+	m.nav.OnMuse = false // guidance submit is worker-tab behavior
 	m.names = []string{"w"}
 	m.nav.Selected = 0
 	m.running = map[string]bool{"w": true}

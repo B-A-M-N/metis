@@ -10,6 +10,9 @@ import (
 // live workers stay independently addressable — distinct processes,
 // distinct fleet execution owners, distinct tabs, and independent
 // input leases — under one controller and one node capacity budget.
+// NOTE: the twelve processes run `sleep 30` under fleet claims; this
+// qualifies the concurrency/isolation shape, NOT twelve simultaneously
+// inferring Muse agents.
 func TestTwelveWorkerFleet(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration gate (fleet scale); run without -short")

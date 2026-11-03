@@ -48,6 +48,9 @@ const (
 	OrchCorrectionRequested   = "correction.requested"
 	OrchApprovalRequired      = "approval.required"
 	OrchTransportDisconnected = "transport.disconnected"
+	OrchProvisionRequested    = "provision.requested"
+	OrchTerminalInput         = "terminal.input"
+	OrchSessionStop           = "session.stop"
 )
 
 var orchEventTypes = map[string]bool{
@@ -56,6 +59,8 @@ var orchEventTypes = map[string]bool{
 	OrchMessageAcknowledged: true, OrchWorkerReported: true,
 	OrchVerificationRecorded: true, OrchCorrectionRequested: true,
 	OrchApprovalRequired: true, OrchTransportDisconnected: true,
+	OrchProvisionRequested: true,
+	OrchTerminalInput: true, OrchSessionStop: true,
 }
 
 // maxOrchPayload bounds one event payload for bounded MCP responses.

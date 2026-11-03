@@ -36,6 +36,7 @@ func (m *model) applySessionsRefresh(d refreshData) {
 func (m *model) applyFeedRefresh(d refreshData) {
 	if d.feedOk {
 		m.feed = d.feed
+		m.controllers = d.controllers
 	}
 	m.museState = d.museState
 	m.museOpen = d.museOpen

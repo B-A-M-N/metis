@@ -74,18 +74,18 @@ func TestMuseTabPinnedFirst(t *testing.T) {
 	selectedName := m.selName()
 	museLine := -1
 	for i, line := range strings.Split(v, "\n") {
-		if strings.Contains(line, "MUSE") && museLine < 0 {
+		if strings.Contains(line, "META.AI") && museLine < 0 {
 			museLine = i
 		}
 	}
 	if museLine < 0 {
-		t.Fatal("MUSE row missing from rail")
+		t.Fatal("META.AI row missing from rail")
 	}
-	// Every rendered worker row must come after the MUSE row.
+	// Every rendered worker row must come after the META.AI row.
 	prefix := selectedName[:2]
 	for i, line := range strings.Split(v, "\n") {
 		if strings.Contains(line, prefix) && strings.Contains(line, "○") && i < museLine {
-			t.Fatalf("worker row above the pinned MUSE row: %q", line)
+			t.Fatalf("worker row above the pinned META.AI row: %q", line)
 		}
 	}
 	if !strings.Contains(v, selectedName) {
@@ -121,7 +121,7 @@ func TestMuseFeedShowsDelegationAndReply(t *testing.T) {
 		t.Fatalf("feed must carry delegation + reply, got %d", len(m.feed))
 	}
 	v := m.View()
-	if !strings.Contains(v, "MUSE Orchestrator") {
+	if !strings.Contains(v, "Meta.ai Orchestrator") {
 		t.Fatal("Muse pane missing when Muse tab selected")
 	}
 	if !strings.Contains(v, "inspect authentication") {

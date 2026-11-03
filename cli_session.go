@@ -104,6 +104,7 @@ func cliLaunch(args []string) int {
 	name := fs.String("name", "", "Metis session name")
 	workdir := fs.String("workdir", "", "existing project directory")
 	provider := fs.String("provider", "meta", "Muse Code provider: meta, local, or echo")
+	backend := fs.String("backend", "pty", "session backend: pty or tmux (pty default; tmux keeps F5 full-terminal attach)")
 	model := fs.String("model", "", "Muse Code model ID (uses Muse Code default when omitted)")
 	profile := fs.String("profile", "", "Muse Code permission profile ID")
 	if err := fs.Parse(args); err != nil {
@@ -130,23 +131,53 @@ func cliLaunch(args []string) int {
 		fmt.Fprintln(os.Stderr, "workdir must be an existing directory:", work)
 		return 2
 	}
-	result, err := DefaultProvisionService().Provision(ProvisionRequest{
+	be, err := resolveLaunchBackend(*backend)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	result, err := cliProvisionService().Provision(ProvisionRequest{
 		Actor: "local-cli", RequestID: newRequestID(), Session: *name,
-		Workdir: work, Backend: provisionBackendTMUX, Harness: "muse-code",
+		Workdir: work, Backend: be, Harness: "muse-code",
 		Model: *model, Provider: *provider, Profile: *profile,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+	fmt.Printf("Muse Code running: session=%s backend=%s provider=%s model=%s workdir=%s\n", result.SessionID, result.Backend, *provider, orDash(*model), work)
+	if result.Backend == provisionBackendPTY {
+		fmt.Printf("Watch output: metis watch (TUI text snapshot) or MCP metis_terminal for %s\n", result.SessionID)
+		return 0
+	}
 	entry := loadRegistry()[result.SessionID]
 	target := entry.Tmux
 	if target == "" {
 		target = tmuxName(result.SessionID)
 	}
-	fmt.Printf("Muse Code running: session=%s provider=%s model=%s workdir=%s\n", result.SessionID, *provider, orDash(*model), work)
 	fmt.Printf("External terminal: tmux attach -t %s\n", target)
 	return 0
+}
+
+// cliProvisionService owns the ProvisionService used by CLI session
+// commands. A package variable (not a parameter thread) so focused
+// CLI tests can substitute the stub launcher without spawning
+// processes; production always uses DefaultProvisionService.
+var cliProvisionService = DefaultProvisionService
+
+// resolveLaunchBackend maps the launch --backend flag to the
+// provision backend. Empty means the PTY default; pty and tmux pass
+// through; anything else (including muse-native, which has no shell
+// launch path) is refused before any provisioning side effect.
+func resolveLaunchBackend(flag string) (string, error) {
+	switch strings.TrimSpace(flag) {
+	case "", provisionBackendPTY:
+		return provisionBackendPTY, nil
+	case provisionBackendTMUX:
+		return provisionBackendTMUX, nil
+	default:
+		return "", fmt.Errorf("launch --backend must be pty or tmux, got %q", flag)
+	}
 }
 
 // cliStop handles the 'stop' command.
@@ -175,6 +206,35 @@ func cliAdopt(args []string) int {
 	return 0
 }
 
+// publicRegistrySession projects a registry (tmux) session with
+// observed — not merely recorded — liveness. The stored Stopped
+// flag says what the last control action did; sessionRunning asks
+// the multiplexer what exists now. A row never marked stopped
+// whose tmux session is gone reports "gone", never "running":
+// recorded history must not masquerade as a live worker. A row
+// marked stopped stays "stopped" — stopped is stopped, whether or
+// not a stray live session lingers under the name.
+func publicRegistrySession(s Session) PublicSession {
+	out := s.Public()
+	if !s.Stopped && !sessionRunning(s.Name) {
+		out.Status = "gone"
+	}
+	return out
+}
+
+// publicPTYSession projects a PTY-backed session into the same
+// machine-readable shape as a registry session. The name carries
+// the pty: prefix so it matches the text list and the TUI
+// selection keys, and it round-trips through stopSession's
+// backend-qualified identities.
+func publicPTYSession(m ptyMeta) PublicSession {
+	return PublicSession{
+		Name: ptyDisplay(m.Name), Backend: "pty", Status: ptyClassify(m),
+		Workdir: m.Workdir, Command: m.Command,
+		Harness: m.Harness, Model: m.Model,
+	}
+}
+
 // cliList handles the 'list' command.
 func cliList(args []string) int {
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
@@ -182,15 +242,26 @@ func cliList(args []string) int {
 	_ = fs.Parse(args)
 	reg := loadRegistry()
 	names := sortedNames(reg)
+	metas, err := ptyListAll()
+	if err != nil {
+		// An unreadable PTY registry is unavailable, not empty:
+		// listing a partial universe as complete would hide
+		// workers from the operator. Fail loudly instead.
+		fmt.Fprintf(os.Stderr, "list: PTY registry unavailable: %v\n", err)
+		return 1
+	}
 	if *asJSON {
-		out := make([]PublicSession, 0, len(names))
+		out := make([]PublicSession, 0, len(names)+len(metas))
 		for _, n := range names {
-			out = append(out, reg[n].Public())
+			out = append(out, publicRegistrySession(reg[n]))
+		}
+		for _, mt := range metas {
+			out = append(out, publicPTYSession(mt))
 		}
 		emitJSON(out)
 		return 0
 	}
-	if len(reg) == 0 {
+	if len(reg) == 0 && len(metas) == 0 {
 		fmt.Println("(no sessions)")
 		return 0
 	}
@@ -198,6 +269,10 @@ func cliList(args []string) int {
 		e := reg[n]
 		fmt.Printf("%s  harness=%s  model=%s  tmux=%s  running=%v  workdir=%s\n",
 			n, orDash(e.Harness), orDash(e.Model), e.Tmux, sessionRunning(n), e.Workdir)
+	}
+	for _, mt := range metas {
+		fmt.Printf("%s  backend=pty  status=%s  workdir=%s\n",
+			ptyDisplay(mt.Name), ptyClassify(mt), mt.Workdir)
 	}
 	return 0
 }

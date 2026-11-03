@@ -337,6 +337,7 @@ func TestRefreshMsgStaleIgnored(t *testing.T) {
 
 func TestRefreshMsgAppliesPreservesSelectionAndGit(t *testing.T) {
 	m := newModel("")
+	m.nav.OnMuse = false // rail selection renders in worker view
 	m.refreshCtl.Gen = 5
 	m.names = []string{"a", "b"}
 	m.nav.Selected = 1 // "b"

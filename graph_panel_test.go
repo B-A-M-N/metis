@@ -70,7 +70,7 @@ func TestResolvePanelRun(t *testing.T) {
 // on the second `g`: same height, same layout math, lineage in
 // place of workdir state.
 func TestGraphPanelToggle(t *testing.T) {
-	run, ids := seedGraphRun(t)
+	run, _ := seedGraphRun(t)
 	m := newModel("w")
 	// Tall enough that the Git-slot pane fits the whole banner;
 	// narrow panes slice to their tail by design (see sliceLines).
@@ -82,31 +82,30 @@ func TestGraphPanelToggle(t *testing.T) {
 	if m.panelRun != run {
 		t.Fatalf("refresh must collect the worker's run, got %q", m.panelRun)
 	}
-	// Panel off: Git pane, no lineage.
+	// Panel off: primary view carries no banner (drawer contract:
+	// lineage lives outside the worker view).
 	if v := m.View(); strings.Contains(v, "waits on") || strings.Contains(v, "Path:") {
 		t.Fatalf("banner must be off by default:\n%s", v)
 	}
-	// Panel on: banner with the blocked task and its gate.
+	// Panel on: the toggle state flips and the status names the
+	// collected run, while the primary view still carries no
+	// banner.
 	um, _ := m.Update(museKeyMsg("g"))
 	m = um.(model)
 	if !m.graphPanel {
 		t.Fatal("g must open the path panel")
 	}
-	v := m.View()
-	if !strings.Contains(v, "Path: "+run) {
-		t.Fatalf("banner title must name the run:\n%s", v)
+	if v := m.View(); strings.Contains(v, "waits on") || strings.Contains(v, "Path:") {
+		t.Fatalf("primary view must carry no banner even when open:\n%s", v)
 	}
-	if !strings.Contains(v, shortID(ids["c"])) || !strings.Contains(v, "waits on") {
-		t.Fatalf("banner must show the blocked task and its gate:\n%s", v)
-	}
-	// Panel off again: Git pane returns, lineage leaves.
+	// Panel off again: state flips back, still no banner.
 	um, _ = m.Update(museKeyMsg("g"))
 	m = um.(model)
 	if m.graphPanel {
 		t.Fatal("second g must close the path panel")
 	}
 	if v := m.View(); strings.Contains(v, "waits on") || strings.Contains(v, "Path:") {
-		t.Fatalf("banner must be gone after toggle-off:\n%s", v)
+		t.Fatalf("banner must stay out of the primary view:\n%s", v)
 	}
 }
 

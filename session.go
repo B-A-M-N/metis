@@ -50,8 +50,17 @@ type Session struct {
 // persistence (loadRegistry/saveRegistry round-trip the full
 // Session) but must never cross the machine-readable boundary.
 // Use Public() at every CLI/JSON emission point.
+//
+// Command sensitivity (reviewed): the launcher command stays in
+// the projection — operators need it to identify workers — but a
+// launcher command must never carry secrets. Secrets travel on
+// stdin, never argv, per the transport rule; a command line with
+// an embedded token is an operator error, and this projection
+// will faithfully (and visibly) repeat it.
 type PublicSession struct {
 	Name     string `json:"name"`
+	Backend  string `json:"backend,omitempty"`
+	Status   string `json:"status,omitempty"`
 	Tmux     string `json:"tmux"`
 	Workdir  string `json:"workdir"`
 	Command  string `json:"command"`
@@ -65,8 +74,12 @@ type PublicSession struct {
 
 // Public strips control credentials for external display.
 func (s Session) Public() PublicSession {
+	status := "running"
+	if s.Stopped {
+		status = "stopped"
+	}
 	return PublicSession{
-		Name: s.Name, Tmux: s.Tmux, Workdir: s.Workdir,
+		Name: s.Name, Backend: "tmux", Status: status, Tmux: s.Tmux, Workdir: s.Workdir,
 		Command: s.Command, Created: s.Created, Stopped: s.Stopped,
 		Harness: s.Harness, Model: s.Model, Provider: s.Provider, Profile: s.Profile,
 	}

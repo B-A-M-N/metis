@@ -48,6 +48,10 @@ type model struct {
 	museState   string
 	museOpen    int
 	museBlocked int
+	// controllers lists unexpired controller presence leases for
+	// the Muse pane. Installed only through applyFeedRefresh, so a
+	// failed collection keeps last-known rows, never blanks them.
+	controllers []musePresence
 	// logGen remembers the last seen output generation per session.
 	logGen map[string]int
 	// tabInfo holds the current rail identity blocks by session name.
@@ -122,6 +126,10 @@ func (m model) Init() tea.Cmd { return tickCmd() }
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		// Dashboard resize re-flows the snapshot layout only.
+		// Dimensions are never forwarded to a PTY master: the
+		// panes are text views, not terminal emulators, so a
+		// resize cannot confuse a worker's line discipline.
 		m.width, m.height = msg.Width, msg.Height
 		return m, nil
 	case tickMsg:
@@ -313,6 +321,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.status = "session info drawer closed"
 			}
+		case "g":
+			if m.nav.OnMuse {
+				m.status = "select a worker tab to open its path panel"
+				break
+			}
+			m.toggleGraphPanel()
 		case "r":
 			m.scroll = 0
 		case "pgup":
