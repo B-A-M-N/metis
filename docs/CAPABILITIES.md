@@ -167,9 +167,16 @@ evidence row states.
   inference). meta/local providers and prompt-bearing turns on PTY
   workers are not qualified (paid quota / operator approval needed).
 - Ocliv publication of the Metis MCP and the M2M relay behind
-  Ocliv (routes, TLS pinning, public ingress): Ocliv checkout and
-  M2M relay both unreachable from here; Metis-side gates are pinned
-  (`TestUnauthorizedMetisWriteRefused`, bridge policy tests).
+  Ocliv (routes, TLS pinning, public ingress): the composed
+  Ocliv-to-Metis MCP path is now qualified in isolation — a real
+  `mcp serve-http` Metis was published through Ocliv's
+  `upstream-oauth` profile and reached by an authenticated client
+  through the relay (discovery resource matched the published route
+  URL exactly; `initialize`, `tools/list` (15 tools) and a read-only
+  call succeeded; 7 token negatives refused at Metis, the scope
+  negative refused without executing, and unpublish tombstoned the
+  route). Public Funnel ingress for that same chain and the M2M
+  relay behind Ocliv remain unqualified here.
 - Twelve-worker fleet (3 per project across Locus/Jeverb/Ocliv/
   Metis) under real workloads, faults, and recovery (audit step 6).
 - Cross-machine identity/state and recovery qualification.

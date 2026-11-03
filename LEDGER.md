@@ -3257,3 +3257,37 @@ projection; commits on master (no reproducible baseline yet).
   inventory check match 807; race subset green 36s; vet/build/
   quick green; HTTP/owner/provision/repo/steering/M2M suites
   green. No flakes this pass.
+
+## Slice 7 — remote HTTP MCP worker lifecycle qualification (2026-11-03)
+
+- **Question.** Can a remote principal, over the authenticated HTTP
+  MCP transport, drive a real worker lifecycle, and is every
+  authorization layer enforced independently?
+- **Verdict.** YES. The remote lifecycle was already correctly
+  implemented; this slice closed the *qualification* gap and added the
+  missing negative coverage. No production defect was found, so no
+  product code changed.
+- **Evidence (new test, real execution).**
+  `remote_lifecycle_qual_test.go` drives the real `mcpHTTPMux` over
+  real HTTP with RS256 tokens against a REAL `muse-code` echo worker
+  process under the managed-PTY supervisor: provision -> stable
+  session identity -> process confirmed started in the requested
+  workdir -> owner binding committed together with the intent ->
+  instruction delivered to that session only -> output observed ->
+  the intended session stopped and no other.
+- **Negative matrix now pinned.** `metis:provision` never implies
+  `metis:input` or `metis:stop`; the local `admin` capability never
+  substitutes for a missing scope; `approve`/`verify` stay unreachable
+  from the remote transport; a second principal cannot read, steer,
+  stop, or collide with another principal's session (including a
+  self-declared actor label); an identical `request_id` converges
+  instead of duplicating; a stopped worker refuses further input.
+- **Gates (this tree).** `make build` and `go vet .` clean;
+  `make test-domain AREA=transport` and `AREA=provision` green; the
+  four new tests green together; supervisor reaped, zero leaked
+  processes.
+- **Environment note.** The transport domain gate fails under a deep
+  `TMPDIR` (a Hermes scratch path) because the unix socket path
+  exceeds the 108-byte bound; with a short `TMPDIR` it is green. That
+  is an environment artifact, not a product defect — the same tests
+  pass with `TMPDIR=/tmp`.
