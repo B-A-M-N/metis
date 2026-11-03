@@ -2780,3 +2780,480 @@ projection; commits on master (no reproducible baseline yet).
   legacy `TUI_DASH_OWNER`; new sessions stamp both during transition.
   Refresh liveness is keyed by each record's concrete tmux name. Build,
   vet, inventory, shell syntax, and diff checks pass; tests not run.
+
+## 2026-11-02 — Direct Muse message operation (P0)
+
+- **FIXED.** New `muse_message_service.go`: `MuseMessageRequest/Result`
+  contract; resolves the active binding, enforces
+  `requireNativeUseScope` (workspace/profile/provider/binding),
+  authorizes via the authenticated `OperationRequest` principal
+  (never the self-declared actor), persists `RequestID` + payload
+  digest before submit (`muse_message_intents`), submits through
+  `museSubmitTurnWithID` with a stable command ID, and returns
+  `refused` / `accepted` / `unknown` / observed terminal — never
+  completion-on-ack. Retries reconcile the stored command and known
+  turn instead of submitting again. Exposed as authenticated
+  `metis_muse_message` (`mcp_muse_message.go`, tasks capability,
+  listed in `tools/list`). Evidence: `TestMuseMessageWithoutTerminal`,
+  `TestMuseMessageExactSession`, `TestDuplicateMessageSubmitsOnce`,
+  `TestStoppedSessionRefused`,
+  `TestDisconnectAfterSubmissionReconciles` green; boundary tests
+  green; `go vet` clean.
+
+## 2026-11-02 — Managed PTY default for muse-code (P0)
+
+- **FIXED.** `provision_service.go` admits unspecified-backend
+  muse-code to `pty` (explicit `tmux` still honored, other backends
+  refused); PTY liveness/launch verification refuses rows recorded
+  for a different curated launcher
+  (`provisionPtyCommandMatches`); `launch` CLI uses the default and
+  prints backend-appropriate follow-up; `list` shows `pty:` rows;
+  `stop` routes PTY-only names to the generation-fenced `ptyStop`
+  (registry names keep the tmux path). Evidence: 5 focused
+  provision tests + 2 stop-routing tests green; live smoke on echo
+  provider in isolated state (no prompt, no inference): one
+  `muse --provider echo --workspace <dir>` process under its
+  supervisor (PPID match, correct cwd, 51s stable), `list` shows
+  `pty:smoke01 running`, `stop` killed the worker and recorded
+  `exited`; `make build`, `go vet` clean.
+
+## 2026-11-02 — M2M bridge seam (P0, transport stays Python)
+
+- **IMPLEMENTED (seam-qualified).** `muse_m2m_bridge.go`: exact
+  `muse_inbox_dispatch` schema from the plan; claim-or-reconcile by
+  message ID (crash recovery resumes the same command ID);
+  fail-closed `authorizeInboxTurn` (expiry, registered sender,
+  allowed type; empty policy authorizes nobody); `runM2MBridge`
+  invokes the configured Python client with secrets on stdin only
+  (argv carries subcommand + opaque refs); transport states
+  replayed verbatim, only `TURN_ADMITTED`/`TURN_COMPLETED` added.
+  No crypto ported. Evidence: 11 hermetic tests green (incl.
+  `TestRelayReconnectPreservesQueue`,
+  `TestM2MBridgeKeepsSecretsOffArgv`,
+  `TestRevokedSenderRefusedTurn`,
+  `TestTrustedInboxItemBecomesOneTurn`,
+  `TestUntrustedInboxItemSubmitsNothing`). The single choke point
+  `dispatchInboxToTurnOnHost` claims the dispatch identity,
+  enforces the fail-closed policy, then submits exactly one
+  correlated native turn (TURN_ADMITTED/TURN_COMPLETED recorded;
+  refused envelopes submit nothing). Live relay qualification
+  BLOCKED: no M2M checkout/relay available in this environment.
+
+## 2026-11-02 — Ocliv exposure, Metis side (P0)
+
+- **PARTIAL.** Metis side ready: `metis_muse_message` enforces the
+  remote gate like every tasks-capability tool. Evidence:
+  `TestUnauthorizedMetisWriteRefused` (ungranted remote refused
+  with no intent persisted; granted remote reaches the domain).
+  Ocliv checkout edits (publication service, route registry, HTTP
+  ingress, auth middleware), relay-behind-Ocliv routing, TLS
+  pinning procedure, and `TestOclivM2MRoute` /
+  `TestWrongCertificateRejected` remain BLOCKED: Ocliv checkout
+  unreachable (devdesktop error, remote desktop maintenance) and no
+  M2M relay to publish. Metis-side analogues delivered:
+  `TestExpiredEnvelopeRejected`, `TestUnregisteredSenderRejected`,
+  `TestRelayReconnectPreservesQueue`.
+
+## 2026-11-02 — Pre-existing TUI suite breakage (not a regression)
+
+- **VERIFIED NON-ISSUE (for this change).** 17 TUI/render/feed
+  snapshot tests fail identically on pristine HEAD (`c3fa461`) and
+  on this tree, e.g. `TestMuseTabPinnedFirst` ("MUSE row missing
+  from rail"), `TestRenderSelectionChangeHidesPreviousSession`,
+  `TestGuidanceSubmitOffUpdatePath`. Evidence: same 17-test
+  `-run` selection fails 17/17 in a clean `git worktree` at HEAD.
+  Cause area: rail/render output at HEAD vs recorded snapshots;
+  fixing belongs to a TUI-focused follow-up, not this change.
+  Consequence: `make test-quick` / `test-fast` /
+  `test-inventory-refresh` stay red at base, so
+  `test-inventory.json` cannot be refreshed (refresh refuses to
+  write on suite failure); 21 new tests are committed but pending
+  inventory sync.
+
+## 2026-11-02 — Ocliv loopback leg qualified with real binaries
+
+- **FIXED (loopback leg).** `ocliv mcp expose` over `metis mcp
+  serve` verified end to end with real binaries: adapter up on
+  loopback, `initialize` answers metis 0.1.0, `tools/list`
+  advertises 26 tools including `metis_muse_message`, and
+  `tools/call metis_muse_message` for an unbound session returns
+  `{"state":"refused",...}` from the Metis domain through Ocliv's
+  stdio adapter. Committed as skip-gated
+  `TestOclivLoopbackExposeServesMetisTools` (runs only with
+  METIS_OCLIV_BIN set; skips in normal gates). Remote `--stdio`
+  publish stays disabled per Ocliv's own P0-1/P0-2, so the public
+  leg still needs either an HTTP MCP mode or upstream-OAuth
+  validation in Metis — recorded, not built.
+
+## 2026-11-02 — M2M relay cannot ride Ocliv's current ingress
+
+- **VERIFIED NON-ISSUE (for this change) / external prerequisite.**
+  Ocliv's relay ingress admits only route-shaped
+  `/r/<route-id>/mcp` paths plus OAuth well-known documents
+  (`relay_mcp_ingress.go`: fixed backend path `/mcp`); there is no
+  generic HTTPS/TCP route publication in the CLI surface. So the
+  "M2M relay behind Ocliv" step needs either an Ocliv feature
+  (generic HTTPS route) or separate ingress — it is not a Metis
+  edit. Metis-side bridge tracking, policy, and recovery stay as
+  implemented; live relay qualification remains BLOCKED (no M2M
+  project on disk; the mandate zip is a skill doc, not transport).
+
+## 2026-11-02 — Second-review remediation: TUI-17 + full gates green
+
+- **FIXED (TUI-17 remainder + 7 pre-existing test-fast failures).**
+  All 7 `test-fast` failures reproduced on pristine HEAD and were
+  fixed with product changes, no test weakening:
+  - `g` keybinding: restored in `tui.go` nav switch (dropped in
+    `a55002d`); `TestGraphPanelToggle` green.
+  - Stream cap + sweep gap shared one root cause: `a55002d`
+    switched the tmux live pane from stream-first
+    `captureOutputContext` to pane-only `capturePaneSnapshot`,
+    dropping the read-path retention backstop and hiding the
+    rotation gap marker. `tui_source.go` now runs
+    `maintainSessionStream(sel)` on every tmux refresh (one stat
+    in-cap, locked bound only when over — the documented design)
+    and falls back to `streamTail` when capture-pane is blank, so
+    the TD-067 gap marker surfaces after headless rotation while
+    a live screen still wins. Renderer already sanitizes every
+    line via `termview.SanitizeLine`, so the pane-only ANSI
+    rationale did not hold. `TestStreamCapEnforced`,
+    `TestSweepReportsGenerationGap`,
+    `TestRetentionBoundedWithoutRefresh` green.
+  - Guide-copy/off-update-path + 3 stale `MUSE` labels fixed
+    earlier (copy pinned to file path, `Meta.ai` labels).
+- **Gates (final tree).** `make test-fast` green 354s
+  (`ok metis` + musewire/termview/tui); `make test-full` green
+  (`go test ./...` 240.807s all packages ok + race subset
+  13.657s); `go vet ./...` clean; `gofmt` clean;
+  `test-inventory-check` matches 752 source tests (refreshed
+  post-qualification). Uncommitted tree (51 files), same as review
+  baseline posture.
+- **Still NOT qualified (unchanged, needs authorization/backends):**
+  public OAuth/Ocliv publication, real-provider messaging,
+  production M2M delivery (no M2M project on disk).
+
+## 2026-11-02 — P0-E/P1-G qualified against the real M2M client
+
+- **FIXED (P1-G contract).** `/home/bamn/Downloads/muse-to-muse`
+  exists: audited `src/m2m.py` (Ed25519/X25519/HKDF/AES-GCM,
+  file-relay + HTTPS relay). Its real protocol is
+  `init/export/add-contact/send/poll/ack-status/inbox` — there are
+  no `receive`/`ack` subcommands, `poll` prints
+  `{msg_id,from,plaintext}` lines (no sender_fp/type/expiry), and
+  acks are posted automatically at poll (signed, audit A4) with
+  `ack-status` read-only. The bridge's documented `receive`/`ack`
+  protocol did not match any of that. New committed
+  `scripts/m2m_drive.py` (the METIS_M2M_CLIENT entry point) adapts
+  without duplicating crypto/transport: it imports the real client
+  module, snapshots queue headers (metadata only), runs real
+  `relay_poll` (signature-vs-enrolled-key, expiry prune, replay
+  dedup, unenrolled drop all inside m2m.py), cross-checks header
+  sender_fp against the enrolled contact, and emits the bridge
+  array with adapter-assigned type `m2m.turn` and the verified
+  header expiry. `ack` confirms the sender-visible signed ack with
+  the client's own `verify_ack` before echoing the state; forged
+  and tampered ack files are refused. Mid-run arrivals are never
+  given a fabricated expiry: they stay in the client inbox and are
+  reported, not emitted.
+- **FIXED (P0-E live).** Real end-to-end over loopback (identical
+  client/relay binaries, file relay, $0 echo, isolated state):
+  alice→metisbox `send` queued `15cafcea`; real
+  `metis m2m receive --session mrx` (bound echo session, live
+  daemon) returned Received 1, `dispatched`, TURN_COMPLETED,
+  unacked 0, exit 0; dispatch row
+  `(15cafcea, TURN_COMPLETED, completed)`; sender `ack-status`
+  `acked: true`; redelivery Received 0 with no second turn and
+  session idle. Enrolled-but-unregistered mallory's message was
+  refused (`not registered for turn requests`), reserved no row,
+  submitted no turn, acked REFUSED. Evidence under /tmp/m2m-qual
+  (state DB, relay, homes, daemon.log).
+- **Tests.** New `TestM2MDriveAdapterLiveClient` (env-gated on
+  METIS_M2M_LIB, same pattern as the Ocliv loopback test; skips
+  in normal gates): real init/enroll/send/poll/ack-status cycle,
+  adapter receive fields, replay empty, ack echo, forged-ack
+  refusal — PASS (3.5s). M2M group green, vet clean. Inventory
+  re-synced after the new test.
+- **NOT qualified (needs user).** joker3 (10.9.66.20) was not
+  touched: no relay URL, pinned cert, or mailbox token on hand,
+  and the local loopback already exercises the identical
+  adapter/client/bridge code. To probe it I need the HTTPS relay
+  URL, the pinned relay-cert file, and a mailbox token handle
+  (read-only inbox check first, explicit approval before more).
+
+## 2026-11-02 — Evidence-Driven Completion Directive (A–H)
+
+- **A: launch backend selection FIXED.** `cliLaunch`
+  hardcoded the provision backend (worktree already carried `""`
+  → PTY-default-for-muse-code, but no user selection existed).
+  Added explicit `--backend pty|tmux` (`cli_session.go`:
+  `resolveLaunchBackend`, forwarded to `ProvisionService`;
+  `muse-native` refused), PTY default preserved, `main.go`
+  help updated. Also fixed a stale hint the PTY path printed
+  (`metis terminal --session ...` — no such command exists):
+  now points at `metis watch` / MCP `metis_terminal`.
+  `launch_backend_test.go`: 3 focused tests (resolve table incl.
+  strict refusals, CLI→service forwarding with stub launcher,
+  F5 attach-path for tmux vs refusal status for PTY) — PASS;
+  `go vet` clean; test-quick green.
+- **B: shared contract corrected** (`/home/bamn/INTEGRATION_CONTRACTS.md`):
+  MCP tools 26→27 (counted from source); `metis_muse_message`
+  arg/response shapes (state accepted/refused/unknown, optional
+  turn_id, actor attributed-never-authoritative); `metis provision`
+  CLI example replaced with real `metis launch` (+ backend note);
+  guidance vs terminal-input vs native-turn lanes distinguished;
+  Ocliv stdio-first flow (`expose`→`publish --local`) documented;
+  Locus rows corrected (checkout absent, port 18769 silent, PID
+  claim stale — NOT TESTED); Jeverb hook-test counts marked
+  unverifiable (checkout absent); stale "For Immediate Use"
+  items corrected. `AUDIT_2026-11-02.md` "production-ready"
+  verdict annotated SUPERSEDED with pointer to this ledger.
+- **C: native messaging VERIFIED, no repair.** 20 focused tests
+  fresh green (exact targeting, durable intent, identical replay,
+  bind+message conflict refusal, uncertain-submission recovery,
+  delivery/terminal separation, principal isolation, allowlist,
+  storage-failure observability).
+- **D: M2M VERIFIED against the real client.** Adapter +
+  dispatch suites fresh green incl.
+  `TestM2MDriveAdapterLiveClient` (real crypto/poll/ack-status).
+- **E: seams qualified separately.** E1 live PTY launch
+  (`pty:e2 running`, supervisor alive) + E2 live echo turn
+  (completed, cursor advanced) with isolated state; E3 Ocliv
+  loopback test fresh PASS; E6 M2M live done earlier.
+  Vertical slice over real HTTP (Ocliv expose →
+  `metis_muse_message` → echo turn → `accepted` + turn_id →
+  status `completed`): PASS; replay over HTTP reconciled with no
+  duplicate. E4 (Locus) BLOCKED: checkout absent, zero seam
+  references in Metis. E5 (Jeverb) BLOCKED: checkout absent.
+  Slice driver was a /tmp throwaway, not repo collateral.
+  Expose-child env lesson recorded: MCP grandchild needs
+  HOME + daemon XDG + muse-on-PATH or the host exits on
+  initialize (observed `host closed`, fixed by env, not code).
+- **F: scale qualified.** Fleet domain green incl. live
+  `TestSixWorkersFleet` + `TestTwelveWorkerFleet` (12 real PTYs,
+  no skips); terminal/dispatch/tui/sessions/muse/transport/
+  provision domains green.
+- **Gates (final tree).** `make test-fast` PASS 189.3s all
+  packages; `make test-full` PASS (full 226.2s + race 14.3s);
+  `go vet ./...` clean; inventory re-synced to 756.
+- **Remaining operator blockers (unchanged):** public Ocliv /
+  real providers (needs authorization + upstream OAuth);
+  live M2M relay joker3 (needs relay URL, pinned cert, mailbox
+  token); paid inference (never attempted). Tree uncommitted.
+
+## 2026-11-02 late — Targeted remediation (P1 M2M loss window, P2 E4/E5, P3 claim corrections)
+
+- **Provenance.** Baseline HEAD `c3fa461`; operator advanced tree mid-session to `bdfe1e4` ("authenticated HTTP MCP endpoint (serve-http) for Ocliv publish": `mcp_http.go` 718 lines + `mcp_http_test.go` 366 lines/12 tests committed, `cli_misc.go`/`main.go` wiring). All remediation files below remain working-tree UNTRACKED (`?? cli_m2m.go muse_m2m_bridge.go muse_message_service.go mcp_muse_message.go scripts/m2m_drive.py m2m_bridge_test.go muse_message_service_test.go …`, 52 dirty entries at write time). Do not cite the adapter or bridge as committed.
+- **P1 VERIFIED defect + fix.** Real client (`/home/bamn/Downloads/muse-to-muse/src/m2m.py:223-308`) durably writes + acks + deletes the relay entry before Metis claims the message; the adapter only swept its pre-poll header snapshot, so mid-run arrivals could vanish between transport ack and Metis dispatch. Fix uses existing durable inbox + dispatch idempotency (no new transport/crypto): `muse_m2m_bridge.go` gains `museReceiptTTL()` (`METIS_M2M_RECEIPT_TTL`, default 1h) with receipt-bounded `expires_at` on empty-expiry envelopes; `scripts/m2m_drive.py` relabels `m2m.turn`→`m2m.message`, keeps an emitted-set cursor (`metis_emit.json`), adds a crash hook (`_M2M_DRIVE_CRASH_AFTER_POLL`) and an inbox-sweep recovery path, acks bound to exact `msg_id`, transport ack explicitly NOT execution completion. Tests: `TestReceiptBoundedExpiry`, `TestM2MDriveAdapterCrashRecovery`, `TestM2MDriveAdapterAckBindsExactMessage` PASS (M2M group 27s green).
+- **P2 E4 QUALIFIED (isolated).** Metis-managed worker (`agent start --cmd` curl, isolated `METIS_STATE=/tmp/e4state`, workdir `/tmp/e4work`) POSTed through a throwaway OpenAI-compatible mock (127.0.0.1:18081, stub Bearer) and wrote the stub reply to its workdir; mock auth log shows Bearer presented + accepted. No inference spent, live gateway untouched. Live-gateway routing + paid inference NOT TESTED (operator-gated).
+- **P2 E5 QUALIFIED (isolated, command-hook path).** Metis-managed worker invoked `/home/bamn/Jeverb/plugin/dist/hook.mjs SessionStart` with `HOME=/tmp/e5home`, `JEV_DAEMON_DISABLE=1`: exit 0, empty stdout/stderr, zero `permissionDecision: allow` emissions (can-never-allow invariant holds), no daemon spawned (no 10522 listener), no state outside isolated dirs. Daemon-mediated allow/deny/advise + evidence ledger NOT TESTED (needs loopback daemon + keys); Jeverb itself NOT release-qualified. Workers stopped, mock killed after.
+- **P3 corrections applied.** `AUDIT_2026-11-02.md` Status → "NOT release-qualified", original verdict WITHDRAWN, exec summary rewritten to local-echo + isolated-seam standing with operator blockers listed. `/home/bamn/INTEGRATION_CONTRACTS.md`: E4/E5 sections → isolated-qualified wording; stale "checkout absent" line fixed; M2M `m2m.turn`→`m2m.message`; serve-http "open question" reconciled (10 tools counted from committed `mcp_http.go`, stdio 27-tool surface unchanged — two transports by design).
+- **12-agent wording.** `TestTwelveWorkerFleet` spawns 12× `sleep 30` under fleet claims (verified in `twelve_worker_test.go:43`): concurrency/isolation shape only. Comment annotated; ledger's "12 real PTYs" stands as processes, never as inferring agents.
+- **Remaining:** backend/fleet regression greens + one coordinated full gate + consolidated report.
+
+## 2026-11-03 — Feature review P1-P4 (remote provision, controller tab, worker pane, harness qual)
+
+- **Provenance.** HEAD `bdfe1e4` (operator's authenticated serve-http commit). All P1-P4 work is working-tree-uncommitted (64 dirty entries at gate time, incl. peer's in-progress serve-http hardening + my files below). Nothing pushed; no live services touched.
+- **P1 VERIFIED: remote provision over authenticated HTTP.** `metis_provision` added to the serve-http surface (11th tool) behind BOTH the new `metis:provision` JWT scope and the local admin capability (`mcpToolCapability` already maps provision→admin). Handler `mcpHTTPProvision` reuses `DefaultProvisionService` + `provisionResultToMCP`; refuses explicit command/cmd args before any side effect (harness-curated only); registered-root, idempotency, conflict, backend rules are the domain's. Tests (`mcp_http_provision_test.go`, new): scope separation (message-scope token refused, names the missing scope), round-trip (parked provision admitted running, visible in `metis_agents`, replay converges, conflict refused as domain isError, explicit command refused, unregistered root refused), timeline entries. Pre-existing `TestMCPHTTPToolsListIsRemoteSubset` updated: it encoded the pre-P1 design (provision forbidden remotely); now asserts provision present, terminal/send/approve/verify still absent.
+- **P2 VERIFIED: controller tab reflects verified activity.** (a) HTTP handler records presence under verified `jwt:<sub>` (advisory; refused calls record nothing — proven by test). (b) Muse pane lists each controller identity + source + age, labeled recently-seen, never live (`renderControllersRow`, controllers ride the feed snapshot/projection/model chain; empty state says so explicitly). (c) `provision.requested` events (origin = server principal; admitted/replayed/reconciled/conflict/refused) emitted from both local and HTTP provision paths. (d) `message.sent` (admission: accepted/refused) + `message.delivered` (terminal) emitted at the service entries via named-return defers; status-path refusals (stranger polls) deliberately NOT recorded — they are auth noise and tripped the presence blocking signal in testing. (e) Feed loads 500 retained events (was 30) and windows around the cursor instead of bottom-trimming. Tests: presence recording, render rows, provision timeline entries + replay-dedup, message lifecycle, cursor windowing.
+- **P2 defect found + fixed (test-hygiene, no product change).** New `message.sent/refused` rows use disposition `refused`, which the presence scanner treats as blocking — correct for submit admissions, but unisolated HTTP tests (`TestMCPHTTPAuthArgIgnored`, mine included) wrote them to the ambient dev DB and flipped `TestMusePresenceLeaseHoldsConnected` to Attention. Fixed: status path skips refused emits; the two polluting tests now set isolated METIS_STATE (F-20 convention); removed the single test-artifact row (`r-authstrip`) from the ambient DB. Also fixed the peer's just-landed stall-test setup the same way (claim under the remote-token principal).
+- **P3 VERIFIED (chat level).** Worker pane switches show the newly selected session only (render-level pin: previous output never paints); rail labels carry the persistent session id beside the ordinal (`Locus · 01 · qw3`); scrollback + lease-gated prompt lane + single-writer routing already existed and stay. Full inline terminal emulation explicitly NOT built: review sequences chat-first, and the no-emulator boundary stands.
+- **P4 VERIFIED (muse-code/echo) + BLOCKED (others documented).** `TestMuseCodeEchoLifecycle`: real `muse --provider echo` PTY worker provisions, stays alive, carries model/launcher identity, accepts live direct input (delivered receipt + marker in PTY log), lists under `pty:mc1`, stops with supervisor reaped (cleanup-guaranteed). No spend, no auth, isolated state. claude/codex interactive REPLs exist but need login/subscription; hermes chat needs provider+API key — persistent-interactive qual for those three is BLOCKED on operator credentials/spend. Adapters stay honestly OneShot (`TestLookupAdapter` pins this).
+- **Defers (Lead decisions, not omissions).** Remote steering (send/terminal-input over HTTP) NOT exposed — needs the P2 approval story first; arbitrary shell execution stays local-only. Live cloud acceptance (ChatGPT→Ocliv→provision in /home/bamn/Locus, Muse-Code worker, tab appears) needs a real issuer + published route: operator-gated. Top-tab local-operator approval interaction: existing approvals already local-only and models can't self-approve; no new UI added.
+- **Gates.** Combined P1-P4 domain gate green (45s). Full `make test-inventory-refresh` green: 788 tests inventoried, check matches. `go vet` clean. Full suite incl. race subset ran under refresh. Concurrent-peer note: a second agent edited mcp_http*.go/mcp_adapter_test.go in the same checkout during this pass; disjoint files, no conflicts; their stall-test principal fix and mine converged independently.
+
+## 2026-11-03 late — Final Product Actualization P0-A..P1 (cloud control, echo reality, M2M, steering)
+
+- **Provenance.** Same checkout, HEAD still `bdfe1e4`. 67 dirty entries at gate time: prior-pass layers (serve-http hardening, Ocliv expose test, mcp_muse_message service, TUI worker pane) plus this pass's files below. No push/commit/service touch. No active writers at gate (all files idle 7+ min).
+- **CORRECTION of the 2026-11-03 P1-P4 entry above (two claims).**
+  (1) "Remote steering (send/terminal-input over HTTP) NOT exposed" is
+  superseded: P0-A exposes `metis_terminal`, `metis_terminal_input`,
+  `metis_send`, `metis_session_stop` under new JWT scopes
+  `metis:input`/`:stop` + admin/tasks capabilities, reusing domain
+  lease/generation/idempotency authority (shared cores in
+  `mcp_terminal_tools.go`/`mcp_write_tools.go`). Scoped, tested, live.
+  (2) "TestMuseCodeEchoLifecycle ... stays alive ... accepts live
+  direct input" was VACUOUS: `museCodeArgv` passed `--model spark`
+  with `--provider echo`, which muse 1.4.14 refuses (exit 2, instant).
+  The worker was stillborn; passes raced the launcher window and read
+  line-discipline echo, never a comprehending process. Fixed in
+  `agents.go`: `--model` only for meta/local; `--trust-workspace`
+  (run-scoped, unsaved) for echo-only so the test double boots to its
+  interactive prompt. Verified at raw PTY level (keys render,
+  `\r`=Enter submits, echo reply renders) and via
+  `TestMCPHTTPControlRoundTrip` (prompt gate + escape-stripped
+  observation, 9.4s) and the rewritten lifecycle test (readiness gate).
+- **P0-B.** Remote provision gated to `harness=muse-code` + explicit
+  workdir (empty/unsupported harness, explicit command, unregistered
+  root refused). Round-trip test upgraded to a real PTY echo worker
+  (alive + curated command asserted).
+- **P0-C.** No Muse ACP extension exists (no `muse acp`; `acp` crashes;
+  `vibe-acp` dangling; `hermes-acp` needs auth). `muse serve --provider
+  echo` speaks MSP (70 methods + 45 notifications, schema fingerprint
+  `sha256:c94c3d1f…`); live probe captured session/turn/item/streaming/
+  completion events (see `docs/CAPABILITIES.md` ACP/MSP verdict). No
+  Metis MSP client built (new subsystem — refused); PTY authoritative.
+- **P0-D.** New `terminal.input` + `session.stop` timeline events from
+  shared cores (all transports), metadata-only payloads; the round-trip
+  test pins the provision→input→stop chronology under the verified JWT
+  principal with honest dispositions.
+- **P1 M2M.** `scripts/m2m_drive.py` reordered print+flush BEFORE the
+  cursor (at-least-once; redelivery converges via dispatch
+  idempotency). Old-order strand PROVEN (recovery `[]`, message in
+  inbox). `TestM2MDriveAdapterCrashBeforeRecord` pins fix + convergence.
+  No `m2m.turn` type; signed ack ≠ execution (documented).
+- **P1 steering.** PTY-direct guidance now submits with Enter (`\r`,
+  tmux parity). `TestSameDirTwoEchoWorkersIsolatedSteering`: two live
+  echo workers, one directory, isolated delivery, rival cloud lease
+  serializes, both survive to stop (9.3s).
+- **Contract deltas for the operator** (`/home/bamn/INTEGRATION_CONTRACTS.md`,
+  unwritable from this checkout): the → Ocliv section still says remote
+  steering is unexposed — replace with the four new tools + scopes;
+  add the drive print-before-record order to the M2M section.
+- **Gates.** `make test-integration` green (382.5s full suite + internal
+  pkgs), race subset green (26s), `go vet ./...` clean,
+  `go build -buildvcs=false ./...` clean, `make test-quick` green,
+  inventory refreshed to 793 and check green. Four contract tests updated
+  to the new intended surface (subset list, unknown-tool, auth-token
+  descriptions, discovery scopes); three RT/contract tests updated for
+  the real echo path.
+- **Verdict: LOCAL QUALIFIED.** All of the above proven locally with no
+  spend and no live touch. LIVE (Ocliv publish, real issuer, ChatGPT
+  app, M2M HTTPS relay, paid providers) NOT QUALIFIED — operator-gated.
+
+## 2026-11-03 late — Release Closure: principal-scoped controller policy (item 3)
+
+- **Policy decided.** Worker access is principal-scoped, not
+  co-administrator: a provision binds its worker to the verified JWT
+  subject; remote terminal/input/send/stop admit only that owner.
+  Fleet-visible discovery (status, agents list) stays unscoped.
+  Local transport bypasses; a lease is arbitration, never
+  authorization.
+- **Mechanism.** `provision_owner.go` (`provision_owner` table:
+  ensure/record/lookup, PTY-prefix normalization); `Provision`
+  records on fresh admission only (replays/reconciliations never
+  rebind); `mcpHTTPCheckSessionOwner` fences the four HTTP
+  wrappers after capability precedence
+  (gate → owner → lease/generation); reads via the
+  `provisionOwnerForSession` read-model seam (boundary_test
+  caught a direct `openTasksDB` in transport — fixed, quick gate
+  green). Descriptions updated.
+- **Tests.** `TestProvisionOwnerRecordLookup` (missing/normalize/
+  rebind); `TestMCPHTTPOwnerPolicy` (owner reads/inputs/stops,
+  foreign refused on all four, no-row fail-closed, local bypass);
+  `TestMCPHTTPControlGuards` updated (cross-controller now refused
+  at the fence; lease conflict kept via same-owner/different-actor;
+  g1/g2 seeded as owned — assertions otherwise unchanged).
+  Evidence: pre-fix run showed foreign input reaching the lease
+  layer; post-fix run names the ownership refusal.
+- **Gates this pass.** HTTP+owner+M2M suites green (M2M with
+  `METIS_M2M_LIB`, 22.4s); `make test-quick` green; `go vet` clean.
+- **Contract.** `/home/bamn/INTEGRATION_CONTRACTS.md` updated:
+  15 remote tools + scopes, owner policy, M2M durable ack-file
+  semantics — supersedes the "unwritable" note in the prior entry.
+- **Verdict: LOCAL QUALIFIED (policy).** LIVE legs unchanged:
+  NOT QUALIFIED, operator-gated.
+
+## 2026-11-03 late — Release Closure: M2M cycle fix + full gates green
+
+- **M2M cycle fix.** `TestProductionReceiveDispatchAckCycle` failed
+  deterministically (isolated, 0.6s): the parent-confirmed cursor
+  write requires `METIS_M2M_HOME` and the test never set it. Prior
+  "M2M suite green" runs used `-run TestM2M`, which never matches
+  this test name — the gap was real, not a flake. Fix is test-side
+  per established convention (every other receive test sets the
+  home): set `METIS_M2M_HOME` to a temp dir and pin the cursor
+  (dispatched ID present after the durable claim). Production
+  fail-safe unchanged: unset HOME → item stays unacked, redelivery
+  converges on the dispatch claim, nothing lost or double-executed.
+  Test passes (0.82s).
+- **Steering flake note.** First refresh run failed
+  `TestSameDirTwoEchoWorkersIsolatedSteering` at 19.21s (in-suite
+  load); 4/4 isolated passes (9.5–11.9s) before and green in the
+  final full run. No code change; local paths untouched by the
+  owner policy (HTTP-only fence). Recorded as transient timing
+  flake under parallel load.
+- **Final gates (this tree).** `make test-inventory-refresh` exit 0
+  (full `go test ./...`, ~395s) → 796 tests; `make
+  test-inventory-check` match 796; `go vet ./...` clean; `go build
+  -buildvcs=false ./...` clean; `make test-quick` green earlier on
+  this tree; race subset
+  (dispatch/depend/provision/coverage) green 33s. M2M drive tests
+  green with `METIS_M2M_LIB` (22.4s); `TestM2MDriveAdapterLiveClient`
+  still skip-gated without the lib in default runs.
+- **Tree state.** Release candidate uncommitted by operator order:
+  prior layers + `provision_owner.go` + `provision_owner_test.go`,
+  owner fence in `mcp_http.go`, read seam in `task_readmodel.go`,
+  M2M HOME setup in `m2m_bridge_test.go`, Guards ownership update,
+  contract + ledger updates. No push/commit/reset; no live touch.
+
+## 2026-11-04 — Final Release Correction: atomic pre-launch owner binding
+
+- **Confirmed defect.** `Provision()` launched the worker, then called
+  `recordProvisionOwner()`; an owner-write failure recorded a
+  receipt but still returned success — a remote controller could
+  receive `running` for a worker the ownership fence then refused.
+- **Fix (no new framework/service).** Binding moved BEFORE launch on
+  the intent's own handle: pre-launch authorization
+  (`checkSessionOwnership`: foreign-owned refuses, live-unowned
+  refuses remote adoption), intent insert, same-handle
+  `ClaimOwner` (insert-if-absent; loser refuses, never rebinds),
+  compensation (`DeleteIfReserved`) on any binding failure, and
+  replay-side owner convergence (same principal proceeds without
+  rewrite; cross-principal replay conflicts; remote replay of an
+  unowned intent refused; local replay grandfathers pre-policy rows).
+  Post-launch record path removed. Empty-principal callers
+  (incl. `metis launch` CLI) skip the policy exactly as before.
+- **Files.** `provision_owner.go` (claim replaces overwrite),
+  `provision_repository.go` (`OwnerOf`/`ClaimOwner`/
+  `DeleteIfReserved`), `provision_service.go` (pre-launch gates +
+  `BindOwner` seam, replay owner convergence), `*_test.go`
+  (claim migration + 8 new binding proofs), contract (Jeverb
+  invocation-only correction, 15-tool count), this entry.
+- **Proofs.** 8/8 `TestProvisionOwnerBinding*` green: fresh JWT
+  persisted, injected outage fails loudly with zero launches and
+  compensated reservation, retry converges to one launch, replay
+  preserves owner without rewrite, cross-principal replay and
+  conflicting admission conflict without rebind/relaunch,
+  live-unowned remote refused, local adopt grandfathered.
+- **Gates (this tree).** Full suite exit 0 → 804 tests (796 + 8);
+  inventory check match 804; race subset green 19.8s; `go vet`,
+  `go build -buildvcs=false`, `test-quick` green. HTTP/owner/
+  provision/steering/M2M suites green incl. live-client M2M with
+  `METIS_M2M_LIB`. No intermittent failures this pass.
+
+## 2026-11-04 — Correction: real reservation transaction (retracts handle-sharing claim)
+
+- **Correction accepted.** The prior pass called sequential
+  `InsertReserved` + `ClaimOwner` on one handle "atomic". It was
+  not: two `Exec`s without a shared `BEGIN`/`COMMIT` can strand a
+  reserved intent with no owner on a mid-unit crash. Retry
+  converged (proven), but the atomicity wording was false and is
+  retracted here.
+- **Fix.** `ProvisionReservation`: `BeginReserve` opens a real
+  SQLite tx (intent DDL pre-tx via idempotent `Ensure`, owner
+  DDL inside the tx), `InsertReserved` + owner claim run on the
+  tx, single `Commit` point; every failure path rolls back before
+  any launch, duplicate-key rolls back then converges on the
+  committed winner via `Load`. `OwnerStore` interface lets
+  `*sql.DB` and `*sql.Tx` share the claim; replay grandfathering
+  stays a single-statement claim via `Store()`. Removed the now
+  obsolete `DeleteIfReserved` compensation. No new subsystem;
+  local behavior unchanged.
+- **Caution found while testing.** `openTasksDB` uses
+  `MaxOpenConns(1)`: reading through the tx's own handle
+  mid-unit deadlocks. The boundary test uses a second WAL handle
+  for outside reads; production never reads mid-unit (rollback
+  precedes every `Load`).
+- **Proofs (new, all green).**
+  `TestProvisionOwnerBindingCrashBetweenReserveAndCommit` (no
+  intent row, no owner row, no launch; retry converges once;
+  cross-principal refused), `TestProvisionOwnerBindingCommitWithoutLaunchReconciles`
+  (manually committed unit + no launch → retry launches exactly
+  once, owner intact), `TestProvisionReservationTransactionBoundary`
+  (uncommitted rows invisible cross-handle in WAL, rollback
+  leaves nothing, commit persists both; 0.27s after removing a
+  DDL-collision artifact that burned the 5s busy timeout).
+- **Gates (this tree).** Full suite exit 0 → 807 tests;
+  inventory check match 807; race subset green 36s; vet/build/
+  quick green; HTTP/owner/provision/repo/steering/M2M suites
+  green. No flakes this pass.

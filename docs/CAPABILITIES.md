@@ -32,6 +32,37 @@ evidence row states.
   `TestDispatch*` (ledger P0-C, R-0, D-01, F-07).
 - Retention sweeper (`StartRetentionSweeper` in worker-loop),
   pickup/recovery/resource metrics (observe-only). (F-09, P3-a/b/c)
+- Direct Muse message operation (`metis_muse_message`): bound
+  native session only, scope-verified, idempotent by request_id,
+  delivery-vs-execution states (refused/accepted/unknown/terminal).
+  Evidence: `TestMuseMessage*`, `TestDuplicateMessageSubmitsOnce`,
+  `TestStoppedSessionRefused`,
+  `TestDisconnectAfterSubmissionReconciles`.
+- Managed-PTY default for new muse-code workers (explicit tmux
+  still supported); PTY-aware `list`/`stop`; command-coherent PTY
+  replay. Evidence: `TestProvisionMuseCode*`,
+  `TestProvisionPtyCommandMatches`, `TestStopSession*`.
+- M2M bridge seam: `muse_inbox_dispatch` claim/recovery,
+  fail-closed sender/type/expiry policy, stdin-only subprocess
+  invocation of the existing Python client (no crypto port).
+  Evidence: `TestInboxDispatch*`, `TestRelayReconnectPreservesQueue`,
+  `TestExpiredEnvelopeRejected`, `TestUnregisteredSenderRejected`,
+  `TestRevokedSenderRefusedTurn`,
+  `TestTrustedInboxItemBecomesOneTurn`,
+  `TestUntrustedInboxItemSubmitsNothing`,
+  `TestM2MBridgeKeepsSecretsOffArgv`.
+- Remote gate for `metis_muse_message` (ungranted remote refused
+  with no intent persisted; granted remote reaches the domain).
+  Evidence: `TestUnauthorizedMetisWriteRefused`.
+- Ocliv loopback leg: `ocliv mcp expose` over `metis mcp serve`
+  verified with real binaries (initialize, 26-tool list incl.
+  `metis_muse_message`, refused-domain call). Evidence:
+  `TestOclivLoopbackExposeServesMetisTools` (skip-gated on
+  METIS_OCLIV_BIN).
+- Ocliv ingress serves MCP path routes only (`/r/<id>/mcp`); no
+  generic HTTPS publication exists, so an M2M relay cannot ride it
+  without an Ocliv feature or separate ingress. Metis-side bridge
+  stands alone.
 
 ## Live qualified
 
@@ -97,8 +128,48 @@ evidence row states.
 - `TestCmdStatusLeavesCursor` PASS against a live echo daemon
   (SKIP without one).
 
+## ACP/MSP verdict (P0-C inspected; CORRECTED 2026-11-03 — native ACP exists)
+
+- Host baseline: Muse Code 1.4.14 (`muse-bin-1.4.14-R7309.1`).
+  CORRECTION: the earlier claim "no `muse acp`" is FALSE — native
+  ACP exists but is env-gated:
+  `MUSE_EXPERIMENTAL_ACP=on muse acp --help` serves ACP v1 over
+  stdio (`--provider echo|meta|local`, `--no-session-log`).
+  `initialize` against `--provider echo` returns protocolVersion 1
+  with agent caps (loadSession false, prompt audio false, image +
+  embedded-context true) — no auth needed for echo. Separately,
+  `muse serve` is the MSP session host over stdio (70 methods +
+  45 notifications in the embedded v1 schema, fingerprint
+  `sha256:c94c3d1f…`). The unrelated `acp` Python launcher crashes
+  on `--help` (broken typer app, not a Muse extension); `vibe-acp`
+  is a dangling symlink; `hermes-acp --check` passes but needs
+  provider auth for anything live.
+- Live no-spend MSP probe (`muse serve --provider echo`,
+  `--no-session-log`): `initialize` → `initialized` →
+  `session/start` (UUIDv7 `commandId`, `workspaceRoot`) →
+  `session/started` + `turn/start` → `turn/started`,
+  `item/started` ×11, `item/delta` (`echo: …`), `item/completed`
+  ×12, `turn/foregroundCompleted`, `turn/completed`
+  (`terminal: completed`, `durationMs`), `session/statusChanged`,
+  `session/tokenUsage`, `session/contextUsage`, `session/closed`.
+- Decision (unchanged): PTY stays the authoritative worker session.
+  No Metis ACP/MSP client is built — deferred, not a release
+  prerequisite. TUI-backed processes expose no structured
+  turn/tool/permission events (only PTY bytes); ACP/MSP-owned
+  sessions would need an explicitly supervised child bound to a
+  worker identity — recorded here as unbuilt, not as present.
+
 ## NOT live qualified (blocked, not attempted)
 
+- Managed-PTY muse-code launch beyond echo: one `muse --provider
+  echo` worker ran 51s stable under its supervisor with correct
+  cwd, then stopped cleanly (isolated state, no prompt, no
+  inference). meta/local providers and prompt-bearing turns on PTY
+  workers are not qualified (paid quota / operator approval needed).
+- Ocliv publication of the Metis MCP and the M2M relay behind
+  Ocliv (routes, TLS pinning, public ingress): Ocliv checkout and
+  M2M relay both unreachable from here; Metis-side gates are pinned
+  (`TestUnauthorizedMetisWriteRefused`, bridge policy tests).
 - Twelve-worker fleet (3 per project across Locus/Jeverb/Ocliv/
   Metis) under real workloads, faults, and recovery (audit step 6).
 - Cross-machine identity/state and recovery qualification.
