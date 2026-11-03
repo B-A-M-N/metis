@@ -32,6 +32,19 @@ type taskStatusSnapshot struct {
 	artifacts []Artifact
 }
 
+// provisionOwnerForSession is the read-model seam behind the
+// principal-scoped controller policy: transports ask who owns a
+// session without opening the database themselves. Unknown
+// sessions report found=false; the caller decides the refusal.
+func provisionOwnerForSession(session string) (owner string, found bool, err error) {
+	db, err := openTasksDB()
+	if err != nil {
+		return "", false, err
+	}
+	defer db.Close()
+	return lookupProvisionOwner(db, session)
+}
+
 // taskStatusDetailProbe is a test-only hook invoked once per
 // taskStatusDetail call after the snapshot transaction commits and
 // before the projection returns. Tests arm it with a concurrent
@@ -487,4 +500,30 @@ func projectTaskDispatchState(t Task) TaskDispatchState {
 		st.State = DispatchStateExecutionClaimed
 		return st
 	}
+}
+
+// latestMuseMessageRow returns the newest direct-message intent for
+// one session. Read-only and bounded to a single row; it never
+// contacts Muse. found=false with err==nil means no row was ever
+// recorded; err!=nil means storage itself failed. UI projections
+// must render those two cases differently: absent history is
+// "none recorded", a store that cannot answer is "unavailable".
+// The sql.ErrNoRows distinction lives here so UI files never
+// import the database driver (boundary: read/UI adapters render
+// projections, never query persistence).
+func latestMuseMessageRow(name string) (req, turn, terminal string, found bool, err error) {
+	db, err := openReadOnlyDB()
+	if err != nil {
+		return "", "", "", false, err
+	}
+	defer db.Close()
+	err = db.QueryRow(`SELECT request_id, turn_id, terminal FROM muse_message_intents
+		WHERE session = ? ORDER BY updated DESC LIMIT 1`, name).Scan(&req, &turn, &terminal)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", "", "", false, nil
+		}
+		return "", "", "", false, err
+	}
+	return req, turn, terminal, true, nil
 }

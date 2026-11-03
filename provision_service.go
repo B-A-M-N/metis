@@ -184,6 +184,14 @@ type ProvisionService struct {
 	Launcher ProvisionLauncher
 	Liveness ProvisionLiveness
 	MkdirAll func(string, os.FileMode) error
+	// BindOwner persists the pre-launch owner binding on the
+	// given store; nil uses the claim. On the fresh path the
+	// store is the reservation transaction (binding commits with
+	// the intent or rolls back with it); on the replay path it
+	// is the repository handle (single-statement claim). Tests
+	// inject persistence failures here to prove a failed binding
+	// never reports success. Production never overrides it.
+	BindOwner func(store OwnerStore, session, principal string) (bool, error)
 }
 
 // DefaultProvisionService wires the service to the real backends.
@@ -215,20 +223,86 @@ func (s *ProvisionService) Provision(req ProvisionRequest) (ProvisionResult, err
 		return ProvisionResult{}, provisionFailure("provision: %v", err)
 	}
 	if prior, gen, found := repo.Load(req.RequestID); found {
-		return s.replay(repo, req.RequestID, run, want, prior, gen)
+		return s.replay(repo, req, run, want, prior, gen)
 	}
-	if _, err := repo.InsertReserved(req.RequestID, want); err != nil {
-		// A concurrent replay won the key: converge on the
-		// winner when it carries the same payload, conflict
-		// when it does not.
+	// Authorization before persistence: a session owned by
+	// another controller refuses here, and a live-but-unowned
+	// session refuses remote adoption. Both checks are read-only;
+	// the binding claim below serializes in-protocol races
+	// first-writer-wins.
+	if err := s.checkSessionOwnership(repo, req, want); err != nil {
+		return ProvisionResult{}, err
+	}
+	// Atomic reserve-and-bind: the intent insert and the owner
+	// claim share one transaction. Both commit together or roll
+	// back together; no worker starts until Commit succeeds, so
+	// a crash mid-unit replays from zero, never from a
+	// half-written reservation.
+	resv, rerr := repo.BeginReserve()
+	if rerr != nil {
+		return ProvisionResult{}, provisionFailure("provision: reservation failed: %v", rerr)
+	}
+	if ierr := resv.InsertReserved(req.RequestID, want); ierr != nil {
+		// A concurrent replay won the key: abandon our unit
+		// and converge on the committed winner when it
+		// carries the same payload, conflict when it does not.
+		_ = resv.Rollback()
 		if prior, gen, found := repo.Load(req.RequestID); found {
-			return s.replay(repo, req.RequestID, run, want, prior, gen)
+			return s.replay(repo, req, run, want, prior, gen)
 		}
-		return ProvisionResult{}, provisionFailure("provision: %v", err)
+		return ProvisionResult{}, provisionFailure("provision: %v", ierr)
+	}
+	// Durable owner binding BEFORE worker launch, inside the
+	// reservation transaction. A binding failure rolls the whole
+	// unit back and fails loudly: no worker starts, no false
+	// success, no partial row. A lost claim race refuses without
+	// rebinding the winner's worker.
+	if other, berr := s.bindOwner(resv, want.Session, req.Principal); berr != nil {
+		_ = resv.Rollback()
+		return ProvisionResult{}, provisionFailure("provision: owner binding failed: %v", berr)
+	} else if other {
+		_ = resv.Rollback()
+		return ProvisionResult{}, provisionConflict("provision: session %q is owned by another controller; a conflicting admission cannot rebind it", want.Session)
+	}
+	if cerr := resv.Commit(); cerr != nil {
+		return ProvisionResult{}, provisionFailure("provision: reservation commit failed: %v", cerr)
 	}
 	prior := want
 	prior.State = provisionReserved
 	return s.launch(repo, req.RequestID, run, want, prior, 0)
+}
+
+// checkSessionOwnership refuses adoptions the caller must never
+// make: sessions owned by another principal, and live-but-unowned
+// sessions for remote callers (pre-policy or operator-owned: only
+// the machine operator may adopt those, locally). Empty-principal
+// callers skip the policy exactly as before.
+func (s *ProvisionService) checkSessionOwnership(repo *ProvisionRepository, req ProvisionRequest, want mcpProvisionRecord) error {
+	principal := strings.TrimSpace(req.Principal)
+	if principal == "" {
+		return nil
+	}
+	owner, found, err := repo.OwnerOf(want.Session)
+	if err != nil {
+		return provisionFailure("provision: owner lookup failed: %v", err)
+	}
+	if found && owner != principal {
+		return provisionConflict("provision: session %q is owned by another controller; a conflicting admission cannot rebind it", want.Session)
+	}
+	if !found && req.Remote && s.Liveness.ProvisionSessionLive(want) {
+		return provisionConflict("provision: session %q is live without a recorded owner; its operator must stop it before a remote controller may claim the name", want.Session)
+	}
+	return nil
+}
+
+// bindOwner persists the pre-launch binding on the given store.
+// Production always uses the claim; the seam exists so tests can
+// fail the binding and prove the provision fails with it.
+func (s *ProvisionService) bindOwner(store OwnerStore, session, principal string) (bool, error) {
+	if s.BindOwner != nil {
+		return s.BindOwner(store, session, principal)
+	}
+	return claimProvisionOwner(store, session, principal)
 }
 
 // admit validates without side effects: unknown backends,
@@ -253,8 +327,16 @@ func (s *ProvisionService) admit(req ProvisionRequest) (want mcpProvisionRecord,
 		if !nameRe.MatchString(req.Session) {
 			return mcpProvisionRecord{}, "", provisionFailure("provision: name must match [A-Za-z0-9_-]{1,64}")
 		}
-		if backend != provisionBackendTMUX {
-			return mcpProvisionRecord{}, "", provisionFailure("provision: muse-code requires the tmux backend")
+		// New interactive Muse Code workers default to the managed
+		// PTY backend: the supervisor owns the process identity and
+		// the TUI renders a bounded view, never a tmux
+		// capture-pane. An explicit tmux backend stays supported
+		// for existing sessions; anything else is refused.
+		if strings.TrimSpace(req.Backend) == "" {
+			backend = provisionBackendPTY
+		}
+		if backend != provisionBackendTMUX && backend != provisionBackendPTY {
+			return mcpProvisionRecord{}, "", provisionFailure("provision: muse-code runs on the pty or tmux backend (want pty|tmux)")
 		}
 		if req.ExplicitCommand || strings.TrimSpace(req.Command) != "" {
 			return mcpProvisionRecord{}, "", provisionFailure("provision: muse-code uses its curated interactive launcher; custom commands are refused")
@@ -360,15 +442,41 @@ func admitNativeProvision(req ProvisionRequest) (mcpProvisionRecord, string, err
 // session exists); any differing field — session, root, backend,
 // harness, or command — is an idempotency conflict and creates
 // nothing: no directory, no session, no row change.
-func (s *ProvisionService) replay(repo *ProvisionRepository, requestID, run string, want, prior mcpProvisionRecord, generation int64) (ProvisionResult, error) {
+func (s *ProvisionService) replay(repo *ProvisionRepository, req ProvisionRequest, run string, want, prior mcpProvisionRecord, generation int64) (ProvisionResult, error) {
 	if !prior.samePayload(want) {
 		return ProvisionResult{}, provisionConflict("provision conflict: request_id %q already provisioned session %q via backend %q (run %q); a reused key with different arguments is rejected, never converged",
-			requestID, prior.Session, prior.Backend, prior.Run)
+			req.RequestID, prior.Session, prior.Backend, prior.Run)
+	}
+	// Owner convergence on replay: the recorded binding stands. A
+	// different principal replaying the key cannot claim the
+	// worker; a remote replay of an unowned intent cannot adopt
+	// it; a local replay binds a missing row to its own principal
+	// (grandfathering pre-policy intents). Empty-principal
+	// callers skip the policy exactly as before.
+	if principal := strings.TrimSpace(req.Principal); principal != "" {
+		owner, found, oerr := repo.OwnerOf(prior.Session)
+		if oerr != nil {
+			return ProvisionResult{}, provisionFailure("provision: owner lookup failed: %v", oerr)
+		}
+		if found && owner != principal {
+			return ProvisionResult{}, provisionConflict("provision: request_id %q is owned by another controller; replaying it cannot claim session %q",
+				req.RequestID, prior.Session)
+		}
+		if !found {
+			if req.Remote {
+				return ProvisionResult{}, provisionConflict("provision: session %q has no recorded owner; a remote replay cannot adopt it", prior.Session)
+			}
+			if other, berr := s.bindOwner(repo.Store(), prior.Session, principal); berr != nil {
+				return ProvisionResult{}, provisionFailure("provision: owner binding failed: %v", berr)
+			} else if other {
+				return ProvisionResult{}, provisionConflict("provision: session %q is owned by another controller; a conflicting admission cannot rebind it", prior.Session)
+			}
+		}
 	}
 	if prior.State == provisionRunning {
 		return ProvisionResult{SessionID: prior.Session, Run: run, Backend: prior.Backend, Disposition: ProvisionDispositionRunning, Replay: true}, nil
 	}
-	return s.launch(repo, requestID, run, want, prior, generation)
+	return s.launch(repo, req.RequestID, run, want, prior, generation)
 }
 
 // launch performs at most one verified launch for the recorded
