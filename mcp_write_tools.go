@@ -28,7 +28,8 @@ const (
 // Scoped MCP capabilities. Task management, native approval,
 // verification, rejection, and host-level administration are
 // distinct: holding one never implies another. The remote-token
-// principal only ever holds granted subsets of tasks/admin/reject;
+// principal only ever holds granted subsets of
+// tasks/admin/reject/message;
 // approve and verify are local-operator-only (their domain gates
 // deny remote principals regardless, and the boundary check below
 // refuses first). Rejection (pass=false) is severable from
@@ -42,6 +43,12 @@ const (
 	mcpCapVerify  = "verify"
 	mcpCapReject  = "reject"
 	mcpCapAdmin   = "admin"
+	// mcpCapMessage is the message-only capability for direct
+	// muse messaging (metis_muse_message + status). It is
+	// narrower than tasks: a remote caller granted message can
+	// reach bound, in-scope sessions but cannot mutate tasks,
+	// and a tasks grant confers no messaging authority.
+	mcpCapMessage = "message"
 )
 
 // mcpIngressMode is the declared MCP transport posture:
@@ -98,6 +105,8 @@ func mcpToolCapability(tool string) string {
 		"metis_depend", "metis_cancel", "metis_correct",
 		"metis_attention_settle":
 		return mcpCapTasks
+	case "metis_muse_message", "metis_muse_message_status":
+		return mcpCapMessage
 	case "metis_approve":
 		return mcpCapApprove
 	case "metis_verify":
@@ -125,7 +134,7 @@ func mcpRemoteCapabilities() map[string]bool {
 	}
 	for _, c := range strings.Split(os.Getenv("METIS_MCP_REMOTE_CAPABILITIES"), ",") {
 		switch c = strings.ToLower(strings.TrimSpace(c)); c {
-		case mcpCapTasks, mcpCapAdmin, mcpCapReject:
+		case mcpCapTasks, mcpCapAdmin, mcpCapReject, mcpCapMessage:
 			caps[c] = true
 		}
 	}
@@ -220,7 +229,10 @@ func mcpAuthorize(tool string, req OperationRequest) error {
 	if !req.Remote && req.Principal == mcpPrincipalLocalOperator {
 		return nil
 	}
-	if req.Remote && (need == mcpCapTasks || need == mcpCapAdmin) && mcpRemoteCapabilities()[need] {
+	// Any explicitly granted capability except approve/verify
+	// authorizes a remote caller; approve and verify stay
+	// local-operator-only below.
+	if req.Remote && need != mcpCapApprove && need != mcpCapVerify && mcpRemoteCapabilities()[need] {
 		return nil
 	}
 	if req.Remote && (need == mcpCapApprove || need == mcpCapVerify) {
@@ -286,6 +298,14 @@ func mcpToolSend(raw json.RawMessage) (mcpToolResult, error) {
 	if err := mcpRefuseRemoteWrite("metis_send", req); err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
+	return mcpSendOp(req, args)
+}
+
+// mcpSendOp files or live-delivers one guidance message, idempotent
+// by request_id. Transport-neutral: local stdio keeps its
+// refuse-remote gate above; the HTTP transport substitutes its
+// scope plus capability check before funneling here.
+func mcpSendOp(req OperationRequest, args map[string]json.RawMessage) (mcpToolResult, error) {
 	id, err := submitGuidance(mcpStr(args, "session"), mcpStr(args, "text"), mcpBool(args, "direct"), req)
 	if err != nil {
 		return mcpToolError("send: %v", err)

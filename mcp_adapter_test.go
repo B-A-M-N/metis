@@ -6,10 +6,15 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // mcpRoundTrip feeds request lines through the serve loop and returns
@@ -179,4 +184,148 @@ func toolTextField(t *testing.T, v map[string]any, field string) string {
 	}
 	s, _ := decoded[field].(string)
 	return s
+}
+
+// TestStalledHostDoesNotBlockControlOps is the P0-F regression:
+// one submit wedged on a hung provider binary must not hold the
+// connection hostage. A live daemon socket lets the submit past
+// the daemon gate, but the fake binary never answers the
+// initialize handshake, so the call drains its own RPC budget
+// and returns unknown (retry with the same request_id). The
+// unrelated status check on the second session must answer
+// first — its reply line precedes the stalled one — proving
+// bounded dispatch, not a serial wedge.
+func TestStalledHostDoesNotBlockControlOps(t *testing.T) {
+	t.Setenv("METIS_STATE", t.TempDir())
+	xdg := t.TempDir()
+	t.Setenv("XDG_DATA_HOME", xdg)
+	// A real daemon socket with nothing behind it.
+	sockDir := filepath.Join(xdg, "muse", "session-server")
+	if err := os.MkdirAll(sockDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ln, err := net.Listen("unix", filepath.Join(sockDir, "session-server.sock"))
+	if err != nil {
+		t.Fatalf("socket: %v", err)
+	}
+	defer ln.Close()
+	// A provider binary that never speaks: exec succeeds, the
+	// handshake hangs until the submit budget fires.
+	bindir := t.TempDir()
+	fake := filepath.Join(bindir, "muse")
+	if err := os.WriteFile(fake, []byte("#!/bin/sh\nsleep 45\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bindir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	// Remote credentials go up only after local-operator setup
+	// (provision, bind, stub completion) is done: with a token
+	// configured every write op — setup included — demands it.
+
+	bindEcho := func(name string) *museHost {
+		work := t.TempDir()
+		mustRegisterRoot(t, work, true)
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		res, err := mcpCallTool("metis_provision", mustJSON(t, map[string]any{
+			"run": "rmsg", "session": name, "objective": "receive messages",
+			"actor": "orch", "request_id": name + "-prov-1", "backend": "muse-native",
+			"workdir": work, "provider": "echo",
+		}))
+		if err != nil {
+			t.Fatalf("native provision %s: %v", name, err)
+		}
+		if res.IsError {
+			t.Fatalf("native provision %s isError: %s", name, res.Content[0].Text)
+		}
+		st := newNativeStub()
+		h := newNativeStubHost(t, st)
+		wsRoot, err := canonicalRoot(work)
+		if err != nil {
+			t.Fatal(err)
+		}
+		model, err := resolveSessionModel(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req := OperationRequest{Actor: "orch", RequestID: name + "-bind-1", Principal: "tester"}
+		cmdID, err := claimBindIntent(req, name, "echo", "", "metis:"+name, wsRoot, model)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := bindMuseNativeSessionOnHost(ctx, h, name, "echo", "", "metis:"+name, wsRoot, model, cmdID, req); err != nil {
+			t.Fatalf("bind %s: %v", name, err)
+		}
+		return h
+	}
+	bindEcho("stallA")
+	hB := bindEcho("quickB")
+
+	// quickB completes through the stub host, so its terminal is
+	// durable before the loop test: the status poll answers from
+	// the cache without touching any host.
+	bB, err := getMuseBinding("quickB")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bmsg := MuseMessageRequest{SessionID: "quickB", Text: "fast", RequestID: "quickB-m1", Actor: "orch"}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	// Claim as the same principal the stdio loop will present for
+	// the token-authed status poll below (mcpPrincipalRemoteToken):
+	// one operator, one label. A different label would be a
+	// different principal and is rightly refused.
+	quickCmd, _, _, err := claimMuseMessageIntent(bmsg, bB, mcpPrincipalRemoteToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	done, err := sendMuseMessageOnHost(ctx, hB, bmsg, bB, quickCmd, "", 10*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if done.State != "completed" {
+		t.Fatalf("stub submit must complete, got %+v", done)
+	}
+
+	t.Setenv("METIS_MCP_REMOTE_INGRESS", "1")
+	t.Setenv("METIS_MCP_WRITE_TOKEN", "tok-stall")
+	t.Setenv("METIS_MCP_REMOTE_CAPABILITIES", "message")
+	t.Setenv("METIS_MUSE_MESSAGE_TARGETS", "stallA,quickB")
+
+	call := func(id int, tool string, args map[string]any) string {
+		args["auth"] = "tok-stall"
+		return fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"method":"tools/call","params":{"name":%q,"arguments":%s}}`,
+			id, tool, string(mustJSON(t, args)))
+	}
+	var in bytes.Buffer
+	in.WriteString(call(1, "metis_muse_message", map[string]any{
+		"session": "stallA", "text": "wedged hello", "actor": "orch", "request_id": "stallA-m1"}) + "\n")
+	in.WriteString(call(2, "metis_muse_message_status", map[string]any{
+		"request_id": "quickB-m1", "actor": "orch"}) + "\n")
+	var out bytes.Buffer
+	start := time.Now()
+	mcpServeLoop(&in, &out)
+	elapsed := time.Since(start)
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("two exchanges, two replies: %q", out.String())
+	}
+	first := mcpDecode(t, lines[0])
+	second := mcpDecode(t, lines[1])
+	// The fast control op answers first despite being second on
+	// the wire: bounded dispatch, not a serial wedge.
+	if id, _ := first["id"].(float64); id != 2 {
+		t.Fatalf("quick status reply must precede the stalled one, got order %v then %v", first["id"], second["id"])
+	}
+	if got := toolTextField(t, first, "state"); got != "completed" {
+		t.Fatalf("quick status must replay its durable terminal, got %q", toolText(first))
+	}
+	if got := toolTextField(t, second, "state"); got != "unknown" {
+		t.Fatalf("stalled submit must be honest unknown, got %q", toolText(second))
+	}
+	if text := toolText(second); !strings.Contains(text, "retry") {
+		t.Fatalf("stalled submit must stay recoverable, got %q", text)
+	}
+	if elapsed >= 30*time.Second {
+		t.Fatalf("bounded RPC must stay under the exchange budget, took %v", elapsed)
+	}
 }

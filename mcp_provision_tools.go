@@ -21,6 +21,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -232,6 +233,9 @@ func provisionPtyLive(want mcpProvisionRecord) bool {
 	if !ptySupervisorAlive(m) || !ptyWorkerAlive(m) {
 		return false
 	}
+	if !provisionPtyCommandMatches(m, want) {
+		return false
+	}
 	return provisionWorkspaceMatches(m.Workdir, want.Workdir)
 }
 
@@ -250,7 +254,22 @@ func provisionPtyLaunched(want mcpProvisionRecord) bool {
 	if m.Status == "starting" {
 		return false
 	}
+	if !provisionPtyCommandMatches(m, want) {
+		return false
+	}
 	return provisionWorkspaceMatches(m.Workdir, want.Workdir)
+}
+
+// provisionPtyCommandMatches keeps muse-code replays exact: the
+// curated launcher embeds provider, model, and permission profile,
+// so a row recorded for another configuration is never adopted as
+// this intent's launch. Other harnesses keep existing behavior —
+// their rows carry no comparable curated identity.
+func provisionPtyCommandMatches(m ptyMeta, want mcpProvisionRecord) bool {
+	if want.Harness != "muse-code" {
+		return true
+	}
+	return m.Command == want.Command
 }
 
 // provisionNativeEstablished reports whether the wanted native
@@ -400,6 +419,7 @@ func mcpToolProvision(raw json.RawMessage) (mcpToolResult, error) {
 	}
 	req := OperationRequest{Actor: mcpStr(args, "actor"), RequestID: mcpStr(args, "request_id"), Principal: principal, Remote: remote}
 	if err := mcpRefuseRemoteWrite("metis_provision", req); err != nil {
+		emitProvisionOutcome(req, ProvisionResult{}, err)
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
 	command := mcpStr(args, "command")
@@ -416,10 +436,49 @@ func mcpToolProvision(raw json.RawMessage) (mcpToolResult, error) {
 		Provider: mcpStr(args, "provider"), Profile: mcpStr(args, "profile"),
 		ExplicitCommand: explicitCommand,
 	})
+	emitProvisionOutcome(req, result, perr)
 	if perr != nil {
 		return mcpToolError("%s", perr.Error())
 	}
 	return provisionResultToMCP(result)
+}
+
+// emitProvisionOutcome records one controller-originated provision
+// call as a provision.requested feed event with its ACTUAL terminal
+// disposition (admitted, replayed, reconciled, conflict, refused).
+// Origin is the server-established principal, never the asserted
+// actor label — the timeline distinguishes controllers by verified
+// transport identity. Best-effort like other feed emitters: a
+// feed-write failure is recorded as a gap receipt and never fails
+// the provision itself.
+func emitProvisionOutcome(req OperationRequest, res ProvisionResult, perr error) {
+	e := OrchEvent{
+		OriginPrincipal: req.Principal,
+		TargetAgent:     res.SessionID,
+		EventType:       OrchProvisionRequested,
+		RequestID:       req.RequestID,
+	}
+	if perr != nil {
+		e.Disposition = "refused"
+		var pe *ProvisionError
+		if errors.As(perr, &pe) && pe.Conflict {
+			e.Disposition = "conflict"
+		}
+		e.Payload = perr.Error()
+	} else {
+		e.Disposition = string(res.Disposition)
+		if res.Reconciled {
+			e.Disposition = "reconciled"
+		} else if res.Replay {
+			e.Disposition = "replayed"
+		} else if res.Disposition == "" {
+			e.Disposition = "admitted"
+		}
+		e.Payload = "session=" + res.SessionID + " backend=" + res.Backend + " run=" + res.Run
+	}
+	if _, err := recordOrchEvent(e); err != nil {
+		recordReceipt("", "orch_gap", "provision feed write failed: "+err.Error())
+	}
 }
 
 // provisionResultToMCP translates the transport-independent domain

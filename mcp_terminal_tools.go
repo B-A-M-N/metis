@@ -13,11 +13,76 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 )
+
+// emitTerminalInputOutcome records one terminal-input attempt in
+// the controller timeline under its request ID: who (the verified
+// transport principal), which worker session, and the actual
+// disposition — refused, conflict, queued, confirmed, blocked, or
+// rejected. The payload carries delivery metadata only (backend,
+// op id, detail head), never the input text: the feed is bounded
+// and must not retain caller content or secrets. Replays converge
+// on the original row via (request_id, event_type) idempotency,
+// so a retried call never duplicates its timeline entry.
+func emitTerminalInputOutcome(req OperationRequest, session, disp, detail string, rerr error) {
+	e := OrchEvent{
+		OriginPrincipal: req.Principal,
+		TargetAgent:     session,
+		EventType:       OrchTerminalInput,
+		RequestID:       req.RequestID,
+	}
+	if rerr != nil {
+		e.Disposition = "refused"
+		var tc *mcpTerminalConflict
+		if errors.As(rerr, &tc) {
+			e.Disposition = "conflict"
+		}
+		if isTerminalBlocked(rerr) {
+			e.Disposition = string(DispositionBlocked)
+		}
+		e.Payload = rerr.Error()
+	} else {
+		e.Disposition = disp
+		e.Payload = detail
+	}
+	if _, err := recordOrchEvent(e); err != nil {
+		recordReceipt("", "orch_gap", "terminal input feed write failed: "+err.Error())
+	}
+}
+
+// emitSessionStopOutcome records one session-stop attempt the same
+// way: verified principal, worker session, request ID, and the
+// actual outcome — refused, conflict, or stopped.
+func emitSessionStopOutcome(req OperationRequest, session, detail string, stopped bool, rerr error) {
+	e := OrchEvent{
+		OriginPrincipal: req.Principal,
+		TargetAgent:     session,
+		EventType:       OrchSessionStop,
+		RequestID:       req.RequestID,
+	}
+	if rerr != nil {
+		e.Disposition = "refused"
+		var tc *mcpTerminalConflict
+		if errors.As(rerr, &tc) {
+			e.Disposition = "conflict"
+		}
+		e.Payload = rerr.Error()
+	} else if stopped {
+		e.Disposition = "stopped"
+		e.Payload = detail
+	} else {
+		e.Disposition = "admitted"
+		e.Payload = detail
+	}
+	if _, err := recordOrchEvent(e); err != nil {
+		recordReceipt("", "orch_gap", "session stop feed write failed: "+err.Error())
+	}
+}
 
 // terminalMaxLines caps one output read: a high-output worker must
 // not force an unbounded read per call.
@@ -28,6 +93,15 @@ func mcpToolTerminal(raw json.RawMessage) (mcpToolResult, error) {
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
+	return mcpTerminalRun(args)
+}
+
+// mcpTerminalRun executes a bounded terminal observation. Read-only
+// and transport-neutral: both the local stdio tool and the
+// authenticated HTTP transport share it. Lines are capped, unknown
+// or dead sessions are refused, and the tail is labeled with its
+// source — a snapshot, never a complete event stream.
+func mcpTerminalRun(args map[string]json.RawMessage) (mcpToolResult, error) {
 	session := mcpStr(args, "session")
 	op := mcpStr(args, "op")
 	if op == "" {
@@ -293,37 +367,59 @@ func mcpToolTerminalInput(raw json.RawMessage) (mcpToolResult, error) {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
 	req := OperationRequest{Actor: mcpStr(args, "actor"), RequestID: mcpStr(args, "request_id"), Principal: principal, Remote: remote}
+	return mcpTerminalInputOp(req, args)
+}
+
+// mcpTerminalInputOp delivers one input payload through the
+// single-writer lease authority with generation fencing and
+// request-ID idempotency. Transport-neutral: the local tool
+// authenticates via stdio, the HTTP transport via JWT, and both
+// funnel here so leases arbitrate rival writers identically.
+func mcpTerminalInputOp(req OperationRequest, args map[string]json.RawMessage) (mcpToolResult, error) {
+	session := mcpStr(args, "session")
 	if err := mcpTerminalGate("metis_terminal_input", req); err != nil {
+		emitTerminalInputOutcome(req, session, "", "", err)
 		return mcpToolError("%s", err.Error())
 	}
-	session := mcpStr(args, "session")
 	text := mcpStr(args, "text")
 	hasGen, gen, gerr := mcpTerminalGeneration(args)
 	if gerr != nil {
+		emitTerminalInputOutcome(req, session, "", "", gerr)
 		return mcpToolResult{}, &mcpParamError{gerr.Error()}
 	}
 	if len(text) > terminalInputMaxBytes {
-		return mcpToolError("terminal input: text too large (%d bytes, cap 256KB)", len(text))
+		err := fmt.Errorf("terminal input: text too large (%d bytes, cap 256KB)", len(text))
+		emitTerminalInputOutcome(req, session, "", "", err)
+		return mcpToolError("%s", err.Error())
 	}
 	backend, bare, alive, rerr := mcpTerminalResolve(session)
 	if rerr != nil {
+		emitTerminalInputOutcome(req, session, "", "", rerr)
 		return mcpToolError("%v", rerr)
 	}
 	if !alive {
-		return mcpToolError("terminal input: session %q is not running; refusing stale input", session)
+		err := fmt.Errorf("terminal input: session %q is not running; refusing stale input", session)
+		emitTerminalInputOutcome(req, session, "", "", err)
+		return mcpToolError("%s", err.Error())
 	}
 	var meta ptyMeta
 	if backend == TargetPTY {
-		if meta, err = ptyCheckGeneration(bare, hasGen, gen); err != nil {
-			return mcpToolError("%v", err)
+		if m, gerr := ptyCheckGeneration(bare, hasGen, gen); gerr != nil {
+			emitTerminalInputOutcome(req, session, "", "", gerr)
+			return mcpToolError("%v", gerr)
+		} else {
+			meta = m
 		}
 	}
 	payload := terminalInputPayload(session, text, hasGen, gen)
 	stored, replay, cerr := mcpTerminalClaim(req.RequestID, "metis_terminal_input", session, payload)
 	if cerr != nil {
+		emitTerminalInputOutcome(req, session, "", "", cerr)
 		return mcpToolError("%v", cerr)
 	}
 	if replay {
+		// The original attempt's timeline row stands: the
+		// (request_id, terminal.input) key already recorded it.
 		return mcpTerminalReplayResult(stored)
 	}
 	owner := mcpTerminalOwner(req)
@@ -332,11 +428,14 @@ func mcpToolTerminalInput(raw json.RawMessage) (mcpToolResult, error) {
 		var terr error
 		if opID, disp, detail, terr = mcpTerminalPtyInput(bare, owner, text); terr != nil {
 			mcpTerminalRelease(req.RequestID)
+			emitTerminalInputOutcome(req, session, "", "", terr)
 			return mcpToolError("terminal input: %v", terr)
 		}
 	} else {
 		if terr := sendTerminalInputAsOwner(bare, owner, text); terr != nil {
 			if isTerminalBlocked(terr) {
+				emitTerminalInputOutcome(req, session, string(DispositionBlocked),
+					fmt.Sprintf("backend=%s %s", backend, terr.Error()), nil)
 				return mcpTerminalRecorded(req.RequestID, map[string]any{
 					"session": session, "backend": backend, "op": "input",
 					"op_id": mcpTerminalOpID(), "disposition": DispositionBlocked,
@@ -344,6 +443,7 @@ func mcpToolTerminalInput(raw json.RawMessage) (mcpToolResult, error) {
 				})
 			}
 			mcpTerminalRelease(req.RequestID)
+			emitTerminalInputOutcome(req, session, "", "", terr)
 			return mcpToolError("terminal input: %v", terr)
 		}
 		opID, disp = mcpTerminalOpID(), DispositionConfirmed
@@ -355,7 +455,11 @@ func mcpToolTerminalInput(raw json.RawMessage) (mcpToolResult, error) {
 	}
 	if backend == TargetPTY {
 		out["generation"] = meta.Generation
+		detail = fmt.Sprintf("backend=%s op=%s gen=%d", backend, opID, meta.Generation)
+	} else {
+		detail = fmt.Sprintf("backend=%s op=%s", backend, opID)
 	}
+	emitTerminalInputOutcome(req, session, disp, detail, nil)
 	return mcpTerminalRecorded(req.RequestID, out)
 }
 
@@ -425,8 +529,10 @@ func mcpToolTerminalResize(raw json.RawMessage) (mcpToolResult, error) {
 	}
 	var meta ptyMeta
 	if backend == TargetPTY {
-		if meta, err = ptyCheckGeneration(bare, hasGen, gen); err != nil {
-			return mcpToolError("%v", err)
+		if m, gerr := ptyCheckGeneration(bare, hasGen, gen); gerr != nil {
+			return mcpToolError("%v", gerr)
+		} else {
+			meta = m
 		}
 	}
 	var payload string
@@ -480,22 +586,36 @@ func mcpToolSessionStop(raw json.RawMessage) (mcpToolResult, error) {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
 	req := OperationRequest{Actor: mcpStr(args, "actor"), RequestID: mcpStr(args, "request_id"), Principal: principal, Remote: remote}
+	return mcpSessionStopOp(req, args)
+}
+
+// mcpSessionStopOp stops one owned session with generation fencing
+// and request-ID idempotency, then clears its terminal leases so no
+// stale writer survives the worker. Transport-neutral like the input
+// op above.
+func mcpSessionStopOp(req OperationRequest, args map[string]json.RawMessage) (mcpToolResult, error) {
+	session := mcpStr(args, "session")
 	if err := mcpTerminalGate("metis_session_stop", req); err != nil {
+		emitSessionStopOutcome(req, session, "", false, err)
 		return mcpToolError("%s", err.Error())
 	}
-	session := mcpStr(args, "session")
 	hasGen, gen, gerr := mcpTerminalGeneration(args)
 	if gerr != nil {
+		emitSessionStopOutcome(req, session, "", false, gerr)
 		return mcpToolResult{}, &mcpParamError{gerr.Error()}
 	}
 	backend, bare, _, terr := mcpTerminalResolve(session)
 	if terr != nil {
+		emitSessionStopOutcome(req, session, "", false, terr)
 		return mcpToolError("%v", terr)
 	}
 	var meta ptyMeta
 	if backend == TargetPTY {
-		if meta, err = ptyCheckGeneration(bare, hasGen, gen); err != nil {
-			return mcpToolError("%v", err)
+		if m, gerr := ptyCheckGeneration(bare, hasGen, gen); gerr != nil {
+			emitSessionStopOutcome(req, session, "", false, gerr)
+			return mcpToolError("%v", gerr)
+		} else {
+			meta = m
 		}
 	}
 	var payload string
@@ -506,19 +626,23 @@ func mcpToolSessionStop(raw json.RawMessage) (mcpToolResult, error) {
 	}
 	stored, replay, kerr := mcpTerminalClaim(req.RequestID, "metis_session_stop", session, payload)
 	if kerr != nil {
+		emitSessionStopOutcome(req, session, "", false, kerr)
 		return mcpToolError("%v", kerr)
 	}
 	if replay {
+		// The original stop's timeline row stands.
 		return mcpTerminalReplayResult(stored)
 	}
 	if backend == TargetPTY {
 		if err := ptyStop(bare); err != nil {
 			mcpTerminalRelease(req.RequestID)
+			emitSessionStopOutcome(req, session, "", false, err)
 			return mcpToolError("session stop: %v", err)
 		}
 	} else {
 		if err := stopSession(bare); err != nil {
 			mcpTerminalRelease(req.RequestID)
+			emitSessionStopOutcome(req, session, "", false, err)
 			return mcpToolError("session stop: %v", err)
 		}
 	}
@@ -527,9 +651,12 @@ func mcpToolSessionStop(raw json.RawMessage) (mcpToolResult, error) {
 		"session": session, "backend": backend, "op": "stop",
 		"state": "stopped", "replay": false,
 	}
+	detail := fmt.Sprintf("backend=%s", backend)
 	if backend == TargetPTY {
 		out["generation"] = meta.Generation
+		detail = fmt.Sprintf("backend=%s gen=%d", backend, meta.Generation)
 	}
+	emitSessionStopOutcome(req, session, detail, true, nil)
 	return mcpTerminalRecorded(req.RequestID, out)
 }
 

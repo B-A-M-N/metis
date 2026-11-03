@@ -13,7 +13,17 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 )
+
+// mcpServeWorkers bounds how many tool calls run at once on one
+// connection. A stalled host (slow daemon, wedged startup) may
+// occupy a worker up to its RPC budget, but the remaining workers
+// keep unrelated control operations moving. Fixed pool, no
+// per-request goroutine growth: the semaphore — not the client —
+// decides how many run. Responses carry their request IDs, so a
+// fast reply may lawfully precede a slow one on the wire.
+const mcpServeWorkers = 4
 
 // mcpServeLoop speaks newline-delimited JSON-RPC on r/w: one request
 // line in, one reply line out. EOF ends the loop. It never launches
@@ -23,19 +33,31 @@ func mcpServeLoop(r io.Reader, w io.Writer) {
 	sc.Buffer(make([]byte, 64*1024), 1<<20)
 	out := bufio.NewWriter(w)
 	defer out.Flush()
+	var mu sync.Mutex
+	slots := make(chan struct{}, mcpServeWorkers)
+	var wg sync.WaitGroup
 	for sc.Scan() {
-		line := sc.Bytes()
+		line := append([]byte(nil), sc.Bytes()...)
 		if len(strings.TrimSpace(string(line))) == 0 {
 			continue
 		}
-		reply := mcpHandle(line)
-		if reply == nil {
-			continue // notification: no reply
-		}
-		out.Write(reply)
-		out.Write([]byte("\n"))
-		out.Flush()
+		slots <- struct{}{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() { <-slots }()
+			reply := mcpHandle(line)
+			if reply == nil {
+				return // notification: no reply
+			}
+			mu.Lock()
+			out.Write(reply)
+			out.Write([]byte("\n"))
+			out.Flush()
+			mu.Unlock()
+		}()
 	}
+	wg.Wait()
 }
 
 // mcpHandle routes one raw request line. It returns nil for
@@ -208,6 +230,10 @@ func mcpCallTool(name string, raw json.RawMessage) (mcpToolResult, error) {
 		return mcpToolCancel(raw)
 	case "metis_correct":
 		return mcpToolCorrect(raw)
+	case "metis_muse_message":
+		return mcpToolMuseMessage(raw)
+	case "metis_muse_message_status":
+		return mcpToolMuseMessageStatus(raw)
 	case "metis_report":
 		return mcpToolReport(raw)
 	case "metis_reconcile":
