@@ -21,35 +21,55 @@ func mcpToolEventsScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, e
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
+	// Bounded responses, normalized once for every reader
+	// (scoped, fleet, and local stdio alike): omitted/zero
+	// defaults to 100; above 500 clamps to 500.
 	limit := int(mcpNum(args, "limit"))
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > maxOrchPage {
+		limit = maxOrchPage
+	}
 	if scope != nil && !scope.FleetWide {
-		// Bounded forward scanning: pages of maxOrchPage are
-		// scanned (never the whole history per request) and
-		// the cursor advances past every scanned row —
-		// accessible or not — so a window full of foreign
-		// events cannot stall an authorized reader at 0.
-		// The visible-event limit is preserved.
+		// Bounded forward scanning with a finite page budget:
+		// at most eventsScanBudgetPages database pages per
+		// request (never the whole history). The cursor names
+		// the last RETURNED event when the visible limit is
+		// reached — authorized events beyond it in the same
+		// fetched page stay reachable — and advances past
+		// every scanned row when no visible event is returned
+		// or the budget is exhausted, so foreign windows can
+		// neither stall nor skip authorized readers.
 		cursor := int64(mcpNum(args, "after_seq"))
 		var visible []OrchEvent
-		for {
-			page, err := listOrchEvents(mcpStr(args, "run"), cursor, maxOrchPage)
+		for page := 0; page < eventsScanBudgetPages; page++ {
+			fetched, err := listOrchEvents(mcpStr(args, "run"), cursor, maxOrchPage)
 			if err != nil {
 				return mcpToolError("events: %v", err)
 			}
-			if len(page) == 0 {
+			if len(fetched) == 0 {
 				break
 			}
-			cursor = page[len(page)-1].Seq
-			for _, e := range page {
-				if scopeAllowsEvent(scope, e) {
-					visible = append(visible, e)
+			limitReached := false
+			for _, e := range fetched {
+				if !scopeAllowsEvent(scope, e) {
+					continue
 				}
+				if limit > 0 && len(visible) >= limit {
+					limitReached = true
+					break
+				}
+				visible = append(visible, e)
 			}
-			if limit > 0 && len(visible) >= limit {
-				visible = visible[:limit]
-				break
+			if limitReached {
+				// Cursor names the last RETURNED event;
+				// remaining authorized rows in this page
+				// are reachable from there.
+				return mcpTextResult(map[string]any{"events": visible, "cursor": visible[len(visible)-1].Seq})
 			}
-			if len(page) < maxOrchPage {
+			cursor = fetched[len(fetched)-1].Seq
+			if len(fetched) < maxOrchPage {
 				break
 			}
 		}

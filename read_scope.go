@@ -14,6 +14,12 @@ package main
 
 import "strings"
 
+// eventsScanBudgetPages bounds per-request forward/backward
+// event scans for scoped readers: at most this many database
+// pages (maxOrchPage rows each) per request, with an advancing
+// continuation cursor — never an unbounded history scan.
+const eventsScanBudgetPages = 10
+
 // ReadScope authorizes one remote reader's view of shared read
 // models. FleetWide requires the explicit metis:fleet JWT scope —
 // fleet observation is an authorization decision, never a

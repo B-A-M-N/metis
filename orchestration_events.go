@@ -266,6 +266,49 @@ func museActivity() (state string, open, blocked int) {
 	return deriveMuseState(f), f.Open, f.Blocked
 }
 
+// listOrchEventsBefore returns events with seq < before (or the
+// newest page when before <= 0), newest first. Bounded backward
+// scanning for latest-visible lookups.
+func listOrchEventsBefore(before int64, limit int) ([]OrchEvent, error) {
+	if limit <= 0 || limit > maxOrchPage {
+		limit = maxOrchPage
+	}
+	db, err := openTasksDB()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+	if err := ensureOrchEventsTable(db); err != nil {
+		return nil, err
+	}
+	q := `SELECT seq, run_id, origin_principal, origin_harness, muse_session, target_agent, host_id,
+		task_id, attempt_no, event_type, request_id, payload, disposition, created
+		FROM orchestration_events`
+	args := []any{}
+	if before > 0 {
+		q += ` WHERE seq < ?`
+		args = append(args, before)
+	}
+	q += ` ORDER BY seq DESC LIMIT ?`
+	args = append(args, limit)
+	rows, err := db.Query(q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []OrchEvent
+	for rows.Next() {
+		var e OrchEvent
+		if err := rows.Scan(&e.Seq, &e.RunID, &e.OriginPrincipal, &e.OriginHarness,
+			&e.MuseSession, &e.TargetAgent, &e.HostID, &e.TaskID, &e.Attempt,
+			&e.EventType, &e.RequestID, &e.Payload, &e.Disposition, &e.Created); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
 // listOrchEvents returns events after seq (exclusive), oldest first.
 // The cursor for the next page is the last returned seq; an empty
 // page means caught up. RunID scopes optionally; empty means all.

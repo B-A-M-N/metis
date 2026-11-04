@@ -56,16 +56,28 @@ func mcpToolStatusScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, e
 			blocked++
 		}
 	}
-	// Newest-first bounded scan: the latest visible event's seq,
-	// found without paging foreign history from the front.
-	latest, err := listLatestOrchEvents(maxOrchPage)
-	if err != nil {
-		return mcpToolError("status: %v", err)
-	}
+	// Bounded backward scan for the NEWEST visible event:
+	// pages newest-first by seq, at most eventsScanBudgetPages,
+	// so a latest authorized event outside the newest window
+	// still names the progress indicator correctly.
 	var seq int64
-	for _, e := range latest {
-		if scopeAllowsEvent(scope, e) {
-			seq = e.Seq
+	before := int64(0)
+	for page := 0; page < eventsScanBudgetPages && seq == 0; page++ {
+		fetched, err := listOrchEventsBefore(before, maxOrchPage)
+		if err != nil {
+			return mcpToolError("status: %v", err)
+		}
+		if len(fetched) == 0 {
+			break
+		}
+		for _, e := range fetched {
+			if scopeAllowsEvent(scope, e) {
+				seq = e.Seq
+				break
+			}
+		}
+		before = fetched[len(fetched)-1].Seq
+		if len(fetched) < maxOrchPage {
 			break
 		}
 	}
