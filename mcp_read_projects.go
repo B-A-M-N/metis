@@ -62,6 +62,10 @@ func mcpProjectInspect(workdir string) (mcpToolResult, error) {
 
 // mcpToolProjects: project inspection.
 func mcpToolProjects(raw json.RawMessage) (mcpToolResult, error) {
+	return mcpToolProjectsScope(raw, nil)
+}
+
+func mcpToolProjectsScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, error) {
 	// Projects are a read-only projection, not a registry:
 	// distinct session workdirs, sorted. With `workdir`,
 	// inspect one: its sessions plus the tasks filed through
@@ -72,7 +76,30 @@ func mcpToolProjects(raw json.RawMessage) (mcpToolResult, error) {
 			return mcpToolResult{}, &mcpParamError{"arguments must be an object"}
 		}
 		if wd := mcpStr(args, "workdir"); wd != "" {
-			return mcpProjectInspect(wd)
+			res, err := mcpProjectInspect(wd)
+			if err != nil || scope == nil || scope.FleetWide {
+				return res, err
+			}
+			// Scoped inspect: sessions/tasks limited to the
+			// reader's own; a workdir with none of its own
+			// sessions reads as an unknown workdir.
+			var payload map[string]any
+			if jerr := json.Unmarshal([]byte(res.Content[0].Text), &payload); jerr != nil {
+				return res, err
+			}
+			sessions, _ := payload["sessions"].([]any)
+			keep := []any{}
+			for _, sn := range sessions {
+				name, _ := sn.(string)
+				if scopeAllowsSession(scope, name) {
+					keep = append(keep, name)
+				}
+			}
+			if len(keep) == 0 {
+				return mcpTextResult(map[string]any{"workdir": wd, "sessions": []any{}, "tasks": []any{}, "runs": []any{}})
+			}
+			payload["sessions"] = keep
+			return mcpTextResult(payload)
 		}
 	}
 	reg := loadRegistry()
@@ -102,6 +129,18 @@ func mcpToolProjects(raw json.RawMessage) (mcpToolResult, error) {
 	for _, d := range dirs {
 		names := byDir[d]
 		sort.Strings(names)
+		if scope != nil && !scope.FleetWide {
+			keep := names[:0]
+			for _, n := range names {
+				if scopeAllowsSession(scope, n) {
+					keep = append(keep, n)
+				}
+			}
+			names = keep
+			if len(names) == 0 {
+				continue
+			}
+		}
 		projs = append(projs, map[string]any{"workdir": d, "sessions": names})
 	}
 	return mcpTextResult(map[string]any{"projects": projs, "total": len(projs)})

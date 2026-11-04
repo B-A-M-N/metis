@@ -10,11 +10,34 @@ import (
 
 // mcpToolEvents: orchestration event page.
 func mcpToolEvents(raw json.RawMessage) (mcpToolResult, error) {
+	return mcpToolEventsScope(raw, nil)
+}
+
+// mcpToolEventsScope is mcpToolEvents with a remote read scope:
+// scope is enforced over a full window BEFORE the caller's limit
+// is applied, so counts/cursors never leak other controllers.
+func mcpToolEventsScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw)
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	events, err := listOrchEvents(mcpStr(args, "run"), int64(mcpNum(args, "after_seq")), int(mcpNum(args, "limit")))
+	limit := int(mcpNum(args, "limit"))
+	if scope != nil && !scope.FleetWide {
+		events, err := listOrchEvents(mcpStr(args, "run"), int64(mcpNum(args, "after_seq")), maxOrchPage)
+		if err != nil {
+			return mcpToolError("events: %v", err)
+		}
+		events = filterScopedEvents(scope, events)
+		if limit > 0 && len(events) > limit {
+			events = events[:limit]
+		}
+		var cursor int64
+		if len(events) > 0 {
+			cursor = events[len(events)-1].Seq
+		}
+		return mcpTextResult(map[string]any{"events": events, "cursor": cursor})
+	}
+	events, err := listOrchEvents(mcpStr(args, "run"), int64(mcpNum(args, "after_seq")), limit)
 	if err != nil {
 		return mcpToolError("events: %v", err)
 	}

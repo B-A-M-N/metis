@@ -23,20 +23,60 @@ const nativePrefix = "native:"
 // local-stdio trust (behavior unchanged). Reads never require it.
 // mcpToolStatus: read-only status projection.
 func mcpToolStatus(raw json.RawMessage) (mcpToolResult, error) {
-	state, open, blocked := museActivity()
-	latest, _ := listLatestOrchEvents(1)
+	return mcpToolStatusScope(raw, nil)
+}
+
+// mcpToolStatusScope: unscoped counts state/activity as before.
+// A scoped remote reader gets counts over ITS OWN tasks/events
+// only — fleet-wide aggregates require the fleet grant.
+func mcpToolStatusScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, error) {
+	if scope == nil || scope.FleetWide {
+		state, open, blocked := museActivity()
+		latest, _ := listLatestOrchEvents(1)
+		var seq int64
+		if len(latest) > 0 {
+			seq = latest[0].Seq
+		}
+		return mcpTextResult(map[string]any{
+			"muse_state": state, "open": open, "blocked": blocked,
+			"latest_event_seq": seq, "server": mcpServerName,
+		})
+	}
+	all, err := listTasks("")
+	if err != nil {
+		return mcpToolError("status: %v", err)
+	}
+	all = filterScopedTasks(scope, all)
+	open, blocked := 0, 0
+	for _, tk := range all {
+		switch tk.Status {
+		case TaskDispatched, TaskWorking, TaskReportReady:
+			open++
+		case TaskFailed:
+			blocked++
+		}
+	}
+	evs, err := listOrchEvents("", 0, maxOrchPage)
+	if err != nil {
+		return mcpToolError("status: %v", err)
+	}
+	evs = filterScopedEvents(scope, evs)
 	var seq int64
-	if len(latest) > 0 {
-		seq = latest[0].Seq
+	if len(evs) > 0 {
+		seq = evs[len(evs)-1].Seq
 	}
 	return mcpTextResult(map[string]any{
-		"muse_state": state, "open": open, "blocked": blocked,
+		"open": open, "blocked": blocked,
 		"latest_event_seq": seq, "server": mcpServerName,
 	})
 }
 
 // mcpToolAgents: deterministic paged agent listing.
 func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
+	return mcpToolAgentsScope(raw, nil)
+}
+
+func mcpToolAgentsScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, error) {
 	// Deterministic order with cursor pagination: map
 	// iteration order would show a different fleet per
 	// call. `after` is an exclusive name cursor; `limit`
@@ -93,6 +133,18 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 		names = append(names, display)
 	}
 	sort.Strings(names)
+	// Scope is enforced over the full name list BEFORE
+	// pagination: a scoped page never spends its slots on
+	// other controllers' sessions.
+	if scope != nil && !scope.FleetWide {
+		filtered := names[:0]
+		for _, n := range names {
+			if scopeAllowsSession(scope, n) {
+				filtered = append(filtered, n)
+			}
+		}
+		names = filtered
+	}
 	type agentView struct {
 		Name              string `json:"name"`
 		Backend           string `json:"backend"`

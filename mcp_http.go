@@ -74,6 +74,11 @@ const mcpHTTPScopeInput = "metis:input"
 // (metis_session_stop), separate from input and provision.
 const mcpHTTPScopeStop = "metis:stop"
 
+// mcpHTTPScopeFleet is the explicit fleet-observation grant:
+// fleet-wide remote reads. Without it, remote reads are
+// principal-scoped (ReadScope). One scope never implies another.
+const mcpHTTPScopeFleet = "metis:fleet"
+
 // mcpHTTPConfig is the resolved remote-transport configuration. All
 // values come from explicit operator env; nothing is guessed.
 type mcpHTTPConfig struct {
@@ -607,7 +612,7 @@ func (s *mcpHTTPServer) handleDiscovery(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"resource":                 resource,
 		"authorization_servers":    []string{s.cfg.issuer},
-		"scopes_supported":         []string{mcpHTTPScopeMessage, mcpHTTPScopeProvision, mcpHTTPScopeInput, mcpHTTPScopeStop},
+		"scopes_supported":         []string{mcpHTTPScopeMessage, mcpHTTPScopeProvision, mcpHTTPScopeInput, mcpHTTPScopeStop, mcpHTTPScopeFleet},
 		"bearer_methods_supported": []string{"header"},
 	})
 }
@@ -714,10 +719,11 @@ func (s *mcpHTTPServer) handleCall(id any, claims mcpJWTClaims, params json.RawM
 	}
 	delete(args, "auth") // never honored on this transport
 	req := OperationRequest{
-		Actor:     mcpStr(args, "actor"),
-		RequestID: mcpStr(args, "request_id"),
-		Principal: "jwt:" + claims.Sub,
-		Remote:    true,
+		Actor:         mcpStr(args, "actor"),
+		RequestID:     mcpStr(args, "request_id"),
+		Principal:     "jwt:" + claims.Sub,
+		Remote:        true,
+		FleetObserver: mcpScopeHas(claims.Scope, mcpHTTPScopeFleet),
 	}
 	if !mcpHTTPReadTools[p.Name] {
 		want := mcpHTTPScopeMessage
@@ -748,23 +754,26 @@ func (s *mcpHTTPServer) handleCall(id any, claims mcpJWTClaims, params json.RawM
 // adapter, with the server-built request. Reads run as-is; the two
 // message tools run under the authorized remote principal.
 func mcpHTTPDispatch(name string, raw json.RawMessage, req OperationRequest) (mcpToolResult, error) {
+	// Remote reads are principal-scoped by default; fleet-wide
+	// observation requires the explicit metis:fleet grant.
+	scope := &ReadScope{Principal: req.Principal, FleetWide: req.FleetObserver}
 	switch name {
 	case "metis_status":
-		return mcpToolStatus(raw)
+		return mcpToolStatusScope(raw, scope)
 	case "metis_agents":
-		return mcpToolAgents(raw)
+		return mcpToolAgentsScope(raw, scope)
 	case "metis_events":
-		return mcpToolEvents(raw)
+		return mcpToolEventsScope(raw, scope)
 	case "metis_report":
-		return mcpToolReport(raw)
+		return mcpToolReportScope(raw, scope)
 	case "metis_reconcile":
-		return mcpToolReconcile(raw)
+		return mcpToolReconcileScope(raw, scope)
 	case "metis_tasks":
-		return mcpToolTasks(raw)
+		return mcpToolTasksScope(raw, scope)
 	case "metis_task_status":
-		return mcpToolTaskStatus(raw)
+		return mcpToolTaskStatusScope(raw, scope)
 	case "metis_projects":
-		return mcpToolProjects(raw)
+		return mcpToolProjectsScope(raw, scope)
 	case "metis_muse_message":
 		return mcpHTTPMuseMessage(raw, req)
 	case "metis_muse_message_status":

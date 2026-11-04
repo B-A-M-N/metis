@@ -197,6 +197,11 @@ type OperationRequest struct {
 	RequestID string
 	Principal string
 	Remote    bool
+	// FleetObserver is set only by the HTTP transport when the
+	// verified JWT carries the explicit metis:fleet scope:
+	// fleet-wide read observation. Absent otherwise — remote
+	// reads are principal-scoped.
+	FleetObserver bool
 }
 
 var requestCounter atomic.Uint64

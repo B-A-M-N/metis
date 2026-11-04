@@ -427,9 +427,20 @@ func mcpToolVerify(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) 
 
 // mcpToolReport: file a worker report.
 func mcpToolReport(raw json.RawMessage) (mcpToolResult, error) {
+	return mcpToolReportScope(raw, nil)
+}
+
+func mcpToolReportScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "task_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
+	}
+	tk, err := getTask(mcpStr(args, "task_id"))
+	if err != nil {
+		return mcpToolError("report: %v", err)
+	}
+	if !scopeAllowsTask(scope, tk) {
+		return mcpToolError("report: task %s not found", mcpStr(args, "task_id"))
 	}
 	rep, err := getFullReport(mcpStr(args, "task_id"))
 	if err != nil {
@@ -440,9 +451,20 @@ func mcpToolReport(raw json.RawMessage) (mcpToolResult, error) {
 
 // mcpToolReconcile: reconcile run state.
 func mcpToolReconcile(raw json.RawMessage) (mcpToolResult, error) {
+	return mcpToolReconcileScope(raw, nil)
+}
+
+func mcpToolReconcileScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "task_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
+	}
+	tk, terr := getTask(mcpStr(args, "task_id"))
+	if terr != nil {
+		return mcpToolError("reconcile: %v", terr)
+	}
+	if !scopeAllowsTask(scope, tk) {
+		return mcpToolError("reconcile: task %s not found", mcpStr(args, "task_id"))
 	}
 	rec, err := reconcileTask(mcpStr(args, "task_id"))
 	if err != nil {

@@ -19,6 +19,10 @@ func mcpTaskRow(tk Task) map[string]any {
 
 // mcpToolTasks: paged task listing.
 func mcpToolTasks(raw json.RawMessage) (mcpToolResult, error) {
+	return mcpToolTasksScope(raw, nil)
+}
+
+func mcpToolTasksScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, error) {
 	// Paginated task list, oldest first. `run` narrows to one
 	// run; `after` is an exclusive task-ID cursor in the same
 	// order; `limit` caps the page (default 50, hard cap 200).
@@ -44,6 +48,7 @@ func mcpToolTasks(raw json.RawMessage) (mcpToolResult, error) {
 	if err != nil {
 		return mcpToolError("tasks: %v", err)
 	}
+	all = filterScopedTasks(scope, all)
 	rows := []map[string]any{}
 	truncated := false
 	// Positional cursor: task IDs carry random suffixes, so
@@ -69,6 +74,10 @@ func mcpToolTasks(raw json.RawMessage) (mcpToolResult, error) {
 
 // mcpToolTaskStatus: single task status.
 func mcpToolTaskStatus(raw json.RawMessage) (mcpToolResult, error) {
+	return mcpToolTaskStatusScope(raw, nil)
+}
+
+func mcpToolTaskStatusScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, error) {
 	// Single-task detail: lifecycle state, attempt, gate
 	// (unsatisfied deps), criterion verdicts for the current
 	// attempt, artifact count, report presence. Read-only.
@@ -79,6 +88,11 @@ func mcpToolTaskStatus(raw json.RawMessage) (mcpToolResult, error) {
 	tk, waiting, verdictRows, artifactCount, err := taskStatusDetail(mcpStr(args, "task_id"))
 	if err != nil {
 		return mcpToolError("task_status: %v", err)
+	}
+	if !scopeAllowsTask(scope, tk) {
+		// Inaccessible ids read exactly like missing ones: no
+		// existence leak to an unscoped remote reader.
+		return mcpToolError("task_status: task %s not found", mcpStr(args, "task_id"))
 	}
 	verdicts := map[string]any{}
 	for cid, v := range verdictRows {
