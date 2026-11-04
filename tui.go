@@ -54,6 +54,9 @@ type model struct {
 	controllers []musePresence
 	// logGen remembers the last seen output generation per session.
 	logGen map[string]int
+	// ptyResizeSeq is the last issued dashboard resize sequence
+	// per PTY session (latest-wins; see ptyResizeLatest).
+	ptyResizeSeq map[string]int
 	// tabInfo holds the current rail identity blocks by session name.
 	tabInfo    map[string]tabDetail
 	identities map[string]sessionIdentity
@@ -126,11 +129,22 @@ func (m model) Init() tea.Cmd { return tickCmd() }
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		// Dashboard resize re-flows the snapshot layout only.
-		// Dimensions are never forwarded to a PTY master: the
-		// panes are text views, not terminal emulators, so a
-		// resize cannot confuse a worker's line discipline.
+		// Dashboard resize re-flows the snapshot layout and
+		// forwards the pane geometry to a selected PTY
+		// worker (lease-fenced RS frame). tmux workers size
+		// themselves through native attach; the dashboard
+		// never resizes a tmux pane out from under a client.
 		m.width, m.height = msg.Width, msg.Height
+		return m, m.ptyResizeCmd(m.selName())
+	case ptyResizeResultMsg:
+		// Stale-sequence results (a newer resize was issued
+		// since) never touch the status line.
+		if msg.seq < m.ptyResizeSeq[msg.session] {
+			return m, nil
+		}
+		if msg.err != nil && m.selName() == msg.session {
+			m.status = "pty resize: " + msg.err.Error()
+		}
 		return m, nil
 	case tickMsg:
 		// Single-flight lives in the coordinator: while a
@@ -218,7 +232,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.nav.OnMuse {
 				m.guideCtl = m.guideCtl.Clear()
 				m.nav = m.nav.ToNav()
-				m.status = "Meta.ai controller has no linked chat stream; use the existing MCP tools"
+				m.status = "Controller has no linked chat stream; use the existing MCP tools"
 				return m, nil
 			}
 			switch msg.String() {
@@ -277,7 +291,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		case "f5":
 			if m.nav.OnMuse {
-				m.status = "Meta.ai controller has no terminal; select a worker tab before full terminal attach"
+				m.status = "Controller has no terminal; select a worker tab before full terminal attach"
 				break
 			}
 			sel := m.selName()
@@ -297,13 +311,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			navCmd = m.navDown()
 		case "i", "tab":
 			if m.nav.OnMuse {
-				m.status = "Meta.ai controller is available through MCP; no web conversation is mirrored here"
+				m.status = "Controller is available through MCP; no provider web conversation is mirrored here"
 			} else {
 				m.nav = m.nav.EnterInput()
 			}
 		case "d":
 			if m.nav.OnMuse {
-				m.status = "Meta.ai controller uses MCP tools; no worker prompt is active"
+				m.status = "Controller uses MCP tools; no worker prompt is active"
 			} else {
 				m.toggleDirect()
 			}

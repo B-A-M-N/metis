@@ -81,6 +81,30 @@ func (m *model) attachKey(msg tea.KeyMsg) (model, tea.Cmd) {
 		keys = []string{"Left"}
 	case "right":
 		keys = []string{"Right"}
+	case "home":
+		keys = []string{"Home"}
+	case "end":
+		keys = []string{"End"}
+	case "insert":
+		keys = []string{"IC"}
+	case "delete":
+		keys = []string{"DC"}
+	case "ctrl+a":
+		keys = []string{"C-a"}
+	case "ctrl+e":
+		keys = []string{"C-e"}
+	case "ctrl+k":
+		keys = []string{"C-k"}
+	case "ctrl+u":
+		keys = []string{"C-u"}
+	case "ctrl+w":
+		keys = []string{"C-w"}
+	case "ctrl+l":
+		keys = []string{"C-l"}
+	case "ctrl+d":
+		keys = []string{"C-d"}
+	case "ctrl+z":
+		keys = []string{"C-z"}
 	case "pgup":
 		m.scroll += 10
 		local = true

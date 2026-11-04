@@ -97,10 +97,11 @@ func readTailLines(path string, n int, maxBytes int64) ([]string, bool) {
 	}
 	if truncated {
 		// Drop the partial head line created by the mid-line seek.
+		// A segment with no newline at all is one huge line whose
+		// tail is real content, not a partial head to discard:
+		// dropping it would misreport live output as empty.
 		if i := bytes.IndexByte(data, '\n'); i >= 0 {
 			data = data[i+1:]
-		} else {
-			data = nil
 		}
 	}
 	text := strings.TrimRight(string(data), "\n")

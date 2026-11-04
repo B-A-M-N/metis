@@ -265,6 +265,81 @@ func ptyResizeAsOwner(name, owner string, rows, cols int) error {
 	return ptyFifoWrite(name, fmt.Sprintf("RS %s %d %d", owner, rows, cols))
 }
 
+// Ordered, latest-wins resize for dashboard-driven resizes (Q-pass).
+//
+// Dashboard resizes arrive as concurrent tea.Cmds: without
+// ordering, a slow older resize can land after a newer one and the
+// worker ends at a stale size. ptyResizeLatest serializes per
+// session and drops any request whose sequence is not newer than
+// the last applied one, so rapid resize/reselection storms
+// converge on the latest geometry. The supervisor identity
+// (pid+starttime) is captured and re-verified around the write:
+// a session replaced mid-resize refuses instead of resizing the
+// replacement under a stale size. Note the generation counter is
+// NOT the fence here — it also bumps on log rotation, which would
+// make ordinary resizes spuriously stale; supervisor identity is
+// the replacement fence, sequence is the ordering fence.
+var (
+	resizeSeqMu    sync.Mutex
+	resizeLastSeq  = map[string]int{}
+	resizeLocksMu  sync.Mutex
+	resizeLocks    = map[string]*sync.Mutex{}
+)
+
+func resizeLock(name string) func() {
+	resizeLocksMu.Lock()
+	mu, ok := resizeLocks[name]
+	if !ok {
+		mu = &sync.Mutex{}
+		resizeLocks[name] = mu
+	}
+	resizeLocksMu.Unlock()
+	mu.Lock()
+	return mu.Unlock
+}
+
+// resizeSeqAdvance records seq as the latest issued sequence for
+// name; false means seq is stale (a newer one already applied).
+func resizeSeqAdvance(name string, seq int) bool {
+	resizeSeqMu.Lock()
+	defer resizeSeqMu.Unlock()
+	if seq <= resizeLastSeq[name] {
+		return false
+	}
+	resizeLastSeq[name] = seq
+	return true
+}
+
+func ptyResizeLatest(name string, seq int, rows, cols int) error {
+	unlock := resizeLock(name)
+	defer unlock()
+	if seq > 0 && !resizeSeqAdvance(name, seq) {
+		// Superseded by a newer resize that already applied:
+		// success without touching the worker (latest wins).
+		return nil
+	}
+	m, err := ptyGet(name)
+	if err != nil {
+		return err
+	}
+	if !ptySupervisorAlive(m) {
+		return fmt.Errorf("supervisor for %q is not running", name)
+	}
+	if err := ptyResizeAsOwner(name, controllerID(), rows, cols); err != nil {
+		return err
+	}
+	// Identity fence: if the supervisor was replaced while the
+	// resize was in flight, the size landed on the replacement —
+	// surface it as a refusal so callers do not believe the
+	// geometry is current. (The supervisor's own frameAuth
+	// already refuses foreign frames; this closes the read/write
+	// window for the owning controller.)
+	if cur, cerr := ptyGet(name); cerr != nil || cur.SupervisorPid != m.SupervisorPid || cur.SupervisorStart != m.SupervisorStart {
+		return fmt.Errorf("session %q supervisor changed during resize; refusing stale resize", name)
+	}
+	return nil
+}
+
 // ptyCheckGeneration fences a control request against the session's
 // generation counter: a caller naming a stale generation (its view
 // predates a restart/recovery that bumped the counter) is refused

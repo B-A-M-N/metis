@@ -86,6 +86,55 @@ func attachCmd(sel string, gen int) tea.Cmd {
 	}
 }
 
+// ptyResizeResultMsg carries one dashboard-driven PTY resize
+// outcome back to Update. Resize failures are status-only: they
+// never detach or block input, and a late result for a session
+// that is no longer selected is ignored.
+type ptyResizeResultMsg struct {
+	session string
+	seq     int
+	err     error
+}
+
+// ptyResizeCmd forwards the dashboard pane geometry to the
+// selected PTY worker's master (lease-fenced RS frame, same
+// authority as pty-resize / metis_terminal_resize). Nil when
+// the selection is not a running PTY or no geometry is known.
+// The worker that is not selected keeps its last size: two
+// agents in one directory resize independently, never jointly.
+func (m *model) ptyResizeCmd(sel string) tea.Cmd {
+	if sel == "" || !isPtySession(sel) || !m.running[sel] || m.width < 80 || m.height < 24 {
+		return nil
+	}
+	lay := computeLayoutWithInfo(m.width, m.height, m.infoOpen && !m.nav.OnMuse)
+	cols, rows := lay.mainW-2, lay.contentH-2
+	if cols < 10 {
+		cols = 10
+	}
+	if cols > 500 {
+		cols = 500
+	}
+	if rows < 3 {
+		rows = 3
+	}
+	if rows > 200 {
+		rows = 200
+	}
+	bare := ptyBare(sel)
+	// Latest-wins sequencing: each issued resize takes the next
+	// per-session sequence; ptyResizeLatest drops any command
+	// that executes after a newer one applied, so rapid
+	// resize/reselection storms converge on the latest geometry.
+	if m.ptyResizeSeq == nil {
+		m.ptyResizeSeq = map[string]int{}
+	}
+	m.ptyResizeSeq[sel]++
+	seq := m.ptyResizeSeq[sel]
+	return func() tea.Msg {
+		return ptyResizeResultMsg{session: sel, seq: seq, err: ptyResizeLatest(bare, seq, rows, cols)}
+	}
+}
+
 // requestAttach is the Update-path half of attachment: it validates
 // against the cached (pure) view, flips the local UI mode, and
 // returns the command that heals the stream off-path. It performs no
@@ -109,6 +158,11 @@ func (m *model) requestAttach() tea.Cmd {
 	m.attachCtl, gen = m.attachCtl.Request(sel)
 	m.nav = m.nav.EnterAttach()
 	m.status = attachedStatusLine(sel)
+	if isPtySession(sel) {
+		// Size the worker to the pane it is viewed through;
+		// batch with the (trivial) PTY attach outcome.
+		return tea.Batch(attachCmd(sel, gen), m.ptyResizeCmd(sel))
+	}
 	return attachCmd(sel, gen)
 }
 

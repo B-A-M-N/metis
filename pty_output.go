@@ -58,6 +58,8 @@ func ptyKeyBytes(key string, runes []rune) (string, bool) {
 		return "\x7f", true
 	case "tab":
 		return "\t", true
+	case "shift+tab":
+		return "\x1b[Z", true
 	case "up":
 		return "\x1b[A", true
 	case "down":
@@ -66,13 +68,54 @@ func ptyKeyBytes(key string, runes []rune) (string, bool) {
 		return "\x1b[C", true
 	case "left":
 		return "\x1b[D", true
+	case "home":
+		return "\x1b[H", true
+	case "end":
+		return "\x1b[F", true
+	case "insert":
+		return "\x1b[2~", true
+	case "delete":
+		return "\x1b[3~", true
 	case "ctrl+c":
 		return "\x03", true
+	case "ctrl+d":
+		return "\x04", true
+	case "ctrl+a":
+		return "\x01", true
+	case "ctrl+e":
+		return "\x05", true
+	case "ctrl+k":
+		return "\x0b", true
+	case "ctrl+u":
+		return "\x15", true
+	case "ctrl+w":
+		return "\x17", true
+	case "ctrl+l":
+		return "\x0c", true
+	case "ctrl+z":
+		return "\x1a", true
+	case "ctrl+left":
+		return "\x1b[1;5D", true
+	case "ctrl+right":
+		return "\x1b[1;5C", true
+	case "ctrl+up":
+		return "\x1b[1;5A", true
+	case "ctrl+down":
+		return "\x1b[1;5B", true
 	case "esc", "pgup", "pgdn":
 		return "", false
 	default:
+		// Alt+<rune> is ESC + rune (Meta); Bubble Tea names
+		// it "alt+x" with the rune in Runes. Dropping the
+		// prefix would deliver a plain rune instead.
+		if strings.HasPrefix(key, "alt+") && len(runes) > 0 {
+			return "\x1b" + string(runes), true
+		}
 		if len(runes) > 0 {
 			return string(runes), true
+		}
+		if key == "space" {
+			return " ", true
 		}
 		return "", false
 	}

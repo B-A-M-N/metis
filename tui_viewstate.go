@@ -26,10 +26,11 @@ func (m *model) navReselect() tea.Cmd {
 	wasPending := m.refreshCtl.Pending
 	var gen int
 	m.refreshCtl, gen = m.refreshCtl.Reselect()
+	sel := m.selName()
 	if wasPending {
-		return nil
+		return m.ptyResizeCmd(sel)
 	}
-	return m.refreshCmd(gen, m.selName(), false)
+	return tea.Batch(m.refreshCmd(gen, sel, false), m.ptyResizeCmd(sel))
 }
 
 // navUp moves the selection or feed cursor up (Nav.Up); a changed
