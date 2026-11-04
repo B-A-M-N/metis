@@ -76,6 +76,10 @@ type feedSnapshot struct {
 	ok            bool
 	state         string
 	open, blocked int
+	// facts are the separated presence axes (connection, lease,
+	// operation, progress, blocking) the CONTROLLER pane shows
+	// verbatim — never folded into the derived state word.
+	facts MuseFacts
 	// controllers lists unexpired controller presence leases
 	// (verified transport identities, newest first). Recently
 	// seen only — never proof of a live connection.
@@ -475,7 +479,8 @@ func liveFeedSnapshot() feedSnapshot {
 		out.ok = true
 	}
 	out.controllers = activeMusePresence()
-	out.state, out.open, out.blocked = museActivity()
+	out.facts = collectMuseFacts()
+	out.state, out.open, out.blocked = deriveMuseState(out.facts), out.facts.Open, out.facts.Blocked
 	if out.state == "" {
 		out.state = MuseDisconnected
 	}
@@ -534,6 +539,7 @@ func assembleRefresh(s refreshSnapshots, gen int, sel string) refreshData {
 	out.museState = s.feed.state
 	out.museOpen = s.feed.open
 	out.museBlocked = s.feed.blocked
+	out.museFacts = s.feed.facts
 	// The path banner is a pure graph projection: same lineage in,
 	// same markdown out.
 	out.panelRun = s.panel.run

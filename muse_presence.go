@@ -394,3 +394,67 @@ func deriveMuseState(f MuseFacts) string {
 	}
 	return MuseIdle
 }
+
+// String renders one presence fact for the CONTROLLER pane: the
+// separated axes are shown verbatim so connection, lease, and
+// operation are never conflated into the derived state word.
+func (c MuseConnection) String() string {
+	switch c {
+	case MuseConnDown:
+		return "down"
+	case MuseConnUp:
+		return "up"
+	default:
+		return "unknown"
+	}
+}
+
+func (l MuseLease) String() string {
+	switch l {
+	case MuseLeaseLive:
+		return "live"
+	case MuseLeaseAbsent:
+		return "absent"
+	default:
+		return "unknown"
+	}
+}
+
+func (o MuseOperation) String() string {
+	switch o {
+	case MuseOpInFlight:
+		return "in-flight"
+	case MuseOpNone:
+		return "none"
+	default:
+		return "unknown"
+	}
+}
+
+func (p MuseProgress) String() string {
+	switch p {
+	case MuseProgressFresh:
+		return "fresh"
+	case MuseProgressStale:
+		return "stale"
+	case MuseProgressNone:
+		return "none"
+	default:
+		return "unknown"
+	}
+}
+
+func (b MuseBlocking) String() string {
+	switch b {
+	case MuseBlockingTransport:
+		return "transport"
+	case MuseBlockingApproval:
+		return "approval"
+	case MuseBlockingRefused:
+		return "refused"
+	case MuseBlockingNone:
+		return "none"
+	default:
+		return "unknown"
+	}
+}

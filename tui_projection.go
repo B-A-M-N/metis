@@ -52,6 +52,9 @@ type refreshData struct {
 	museState   string
 	museOpen    int
 	museBlocked int
+	// museFacts is the separated presence projection behind the
+	// derived museState (same staleness rule as the feed).
+	museFacts MuseFacts
 	// controllers carries the unexpired controller presence
 	// leases with the feed projection (same staleness rule: a
 	// failed collection keeps last-known rows).
