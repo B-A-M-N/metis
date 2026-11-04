@@ -8,7 +8,7 @@ Linux, Go 1.25+, `tmux`, `muse` on PATH for `metis launch`, terminal
 ## From a clean checkout
 
 ```bash
-cd <checkout>       # this repository's root
+git clone https://github.com/B-A-M-N/metis.git && cd metis
 make build          # ./metis + ./tui-dash symlink; -buildvcs=false required on some hosts
 ./metis doctor      # read-only health snapshot
 ./metis sessions    # empty is fine on first run

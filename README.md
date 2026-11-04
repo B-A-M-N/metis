@@ -132,7 +132,7 @@ file, so the task stays unreported until a real worker executes it:
 ## Installation
 
 ```bash
-cd <checkout>       # this repository's root
+git clone https://github.com/B-A-M-N/metis.git && cd metis
 make build          # or ./build.sh; produces ./metis (git-ignored)
 ```
 
