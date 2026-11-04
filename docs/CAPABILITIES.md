@@ -7,6 +7,36 @@ evidence row states.
 
 ## Implemented + locally qualified (repo tests green)
 
+- Unified lifecycle projection (`unified_lifecycle` + separate
+  `task_occupancy` on `metis_terminal status`, `metis_agents`, and
+  the TUI info pane): lifecycle is process/harness readiness
+  (running/ready/stopped/failed/unknown; ready requires an
+  observed interactive-capable harness — idle alone never implies
+  ready); occupancy (busy/idle/unknown) is the separate ledger
+  fact, matched per backend by dispatch-canonical agent spelling
+  so same-name sessions in different backends never cross-attribute
+  work. Store failure falls back to running/unknown, never a
+  fabricated ready. Evidence: `TestUnifiedLifecycle*`,
+  `TestHarnessInteractive`, `TestOccupancyCanonicalSpellings`,
+  `TestOccupancyNoCrossBackendCollision`,
+  `TestAgentsCarryUnifiedLifecycle`,
+  `TestTerminalStatusCarriesUnifiedLifecycle`.
+- Managed-PTY TUI usability: screen-rendered log text (CR/erase/
+  cursor overwrites applied via `pty_screen.go`, styles and
+  alt-screen apps explicitly not emulated), dashboard resize
+  forwarded to the selected PTY master (lease-fenced RS frame) on
+  window resize, selection change, and attach; extended keyboard
+  map (Home/End/Del/Ins, Ctrl-A/E/K/U/W/L/D/Z, Ctrl-arrows,
+  Alt-rune, Shift-Tab) on both PTY and tmux attach lanes.
+  Evidence: `TestPTYScreen*`, `TestPTYKeyBytesExtended`,
+  `TestPTYResizeCmdGates`.
+- Harness adapters reconciled against the installed CLIs:
+  hermes now builds `hermes chat --oneshot -m <model> -q <prompt>`
+  (the old positional form is rejected by the CLI), muse exec
+  carries `--model`, codex/claude flags re-verified;
+  `doctor` now projects muse-native too. Evidence:
+  `TestHermesAdapterMatchesCLI`, `TestMuseAdapterModelFlag`.
+
 - Three-backend session discovery (`metis_agents`, `doctor`):
   tmux registry, `pty_sessions`, `logical_sessions`; UNKNOWN on
   unreadable stores. Evidence: `TestDoctorSessions*`,
@@ -82,9 +112,12 @@ evidence row states.
   identity, owned tmux target, workspace, and actual pane process; a
   shell-only pane is not accepted as a completed launch. The F6 drawer reuses
   the existing observer resource snapshot and session-filtered ops diagnostics.
-- The pinned Meta.ai tab is an MCP controller/activity surface, not a web
-  conversation mirror. Prompt, direct-toggle, and terminal-attach actions are
-  disabled there unless a worker tab is selected.
+- The pinned controller tab is a provider-agnostic MCP
+  controller/activity surface (no provider name hardcoded; verified
+  controller identities, targeted workers, dispositions), not a web
+  conversation mirror. Prompt, direct-toggle, and terminal-attach actions
+  are disabled there unless a worker tab is selected. Evidence:
+  `TestControllerTabProviderAgnostic`.
 - Fresh no-inference qualification (2026-11-02, isolated tmux + Muse config):
   `locus-01` and `locus-02` launched in `/home/bamn/Locus` and were confirmed
   as Muse processes on distinct pane IDs/PIDs. The Metis TUI showed

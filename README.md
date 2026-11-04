@@ -16,14 +16,13 @@ preferred; `TUI_DASH_STATE` remains accepted.
 - **It is:** a session manager for real Muse Code terminals, with
   separate session identity, provider/model metadata, prompt delivery,
   external tmux attach, and a pinned Meta.ai controller slot.
-- **It is not:** a replacement for Muse Code or a mirror of a Meta.ai
+- **It is not:** a replacement for Muse Code or a mirror of any provider's
   web conversation. The pinned controller tab shows Metis activity;
   it does not invent a chat transcript.
 
 ## Build and run
 
 ```bash
-cd tui-dash
 ./build.sh
 # or: make build
 # Builds ./metis and the ./tui-dash compatibility command.
@@ -85,7 +84,12 @@ already have. No other runtime is needed once the binary is built.
 - **Session tabs:** left; labels show project and instance number,
   while the session ID remains the control identity.
 - **Text snapshot:** selected tmux pane, sanitized and read-only as a
-  screen preview. It is not a full terminal emulator.
+  screen preview. It is not a full terminal emulator. Managed PTY
+  panes render the log through a screen model (CR/erase overwrites
+  applied); styles and alt-screen apps are not emulated — full
+  terminal for tmux workers is F5 native attach, for PTY workers use
+  `pty-log` / MCP terminal output. Dashboard resize forwards pane
+  geometry to the selected PTY worker (lease-fenced).
 - **Full terminal:** press `F5` to suspend Metis and attach the normal
   terminal to that exact owned tmux session. Detaching returns to Metis.
 - **Info drawer:** press `F6` to show provider/model, profile, working
@@ -95,12 +99,13 @@ already have. No other runtime is needed once the binary is built.
   labeled separately from worker process state.
 - **Prompt bar:** press `i`, type text, and press Enter. Submission
   captures the selected session ID and uses the input lease; `d`
-  switches to durable guidance-file delivery. On the Meta.ai tab the
-  prompt is disabled; use MCP tools to target a worker explicitly.
-- **Meta.ai tab:** pinned controller slot and activity feed. Use the
-  existing MCP tools to provision, list, target, instruct, and observe
-  sessions. The feed is Metis activity, not a web conversation; no chat
-  stream is linked.
+  switches to durable guidance-file delivery. On the controller tab
+  the prompt is disabled; use MCP tools to target a worker explicitly.
+- **Controller tab:** pinned provider-agnostic controller slot and
+  activity feed (verified controller identities, targeted workers,
+  dispositions). Use the existing MCP tools to provision, list, target,
+  instruct, and observe sessions. The feed is Metis activity, not a web
+  conversation; no chat stream is linked.
 
 Keys: `Up/Down` or `j/k` select, `i` prompt, `Esc` back to nav,
 `Enter` limited keyboard attach, `F5` full terminal attach, `F6` info drawer,
