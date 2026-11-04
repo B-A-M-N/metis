@@ -1,2 +1,10 @@
 tui-dash
 metis
+# Go build/test caches
+.gocache/
+# Local state and runtime databases (never tracked)
+*.db
+*.db-*
+# Editor and OS noise
+.DS_Store
+*.swp
