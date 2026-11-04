@@ -132,6 +132,39 @@ func oneShotExecAdapter(harness, prog string, extraArgs []string, modelFlag stri
 	}
 }
 
+// hermesAdapter is the Hermes one-shot exec adapter. Ordering
+// matters: `hermes chat --oneshot` requires `-q QUERY` (verified
+// against `hermes chat --help`: no positional prompt exists), so
+// the query must immediately follow -q and the model (-m) must
+// ride before it — the generic oneShotExecAdapter argv order
+// (extraArgs, model, prompt) would put `-m` between -q and its
+// value, which argparse rejects.
+func hermesAdapter() Adapter {
+	return Adapter{
+		Harness:          "hermes",
+		OneShot:          true,
+		AcceptsLiveInput: false,
+		BuildCommand: func(workdir, prompt, model string) string {
+			parts := []string{shQuote("hermes"), shQuote("chat"), shQuote("--oneshot")}
+			if model != "" {
+				parts = append(parts, shQuote("-m"), shQuote(model))
+			}
+			parts = append(parts, shQuote("-q"), shQuote(prompt))
+			_ = workdir
+			return strings.Join(parts, " ")
+		},
+		ManagedArgv: func(workdir, prompt, model string) ([]string, error) {
+			argv := []string{"hermes", "chat", "--oneshot"}
+			if model != "" {
+				argv = append(argv, "-m", model)
+			}
+			argv = append(argv, "-q", prompt)
+			_ = workdir
+			return argv, nil
+		},
+	}
+}
+
 // adapterRegistry is the known harness set. Local exec CLIs are
 // launched in the session workdir by the caller.
 func adapterRegistry() map[string]Adapter {
@@ -145,8 +178,8 @@ func adapterRegistry() map[string]Adapter {
 	for _, a := range []Adapter{
 		oneShotExecAdapter("codex", "codex", []string{"exec", "--skip-git-repo-check"}, "--model"),
 		oneShotExecAdapter("claude", "claude", []string{"-p"}, "--model"),
-		oneShotExecAdapter("muse", "muse", []string{"exec"}, ""),
-		oneShotExecAdapter("hermes", "hermes", []string{"chat", "--oneshot"}, ""),
+		oneShotExecAdapter("muse", "muse", []string{"exec"}, "--model"),
+		hermesAdapter(),
 		museNativeAdapter(),
 	} {
 		reg[a.Harness] = a

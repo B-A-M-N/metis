@@ -74,18 +74,18 @@ func TestMuseTabPinnedFirst(t *testing.T) {
 	selectedName := m.selName()
 	museLine := -1
 	for i, line := range strings.Split(v, "\n") {
-		if strings.Contains(line, "META.AI") && museLine < 0 {
+		if strings.Contains(line, "CONTROLLER") && museLine < 0 {
 			museLine = i
 		}
 	}
 	if museLine < 0 {
-		t.Fatal("META.AI row missing from rail")
+		t.Fatal("CONTROLLER row missing from rail")
 	}
-	// Every rendered worker row must come after the META.AI row.
+	// Every rendered worker row must come after the CONTROLLER row.
 	prefix := selectedName[:2]
 	for i, line := range strings.Split(v, "\n") {
 		if strings.Contains(line, prefix) && strings.Contains(line, "○") && i < museLine {
-			t.Fatalf("worker row above the pinned META.AI row: %q", line)
+			t.Fatalf("worker row above the pinned CONTROLLER row: %q", line)
 		}
 	}
 	if !strings.Contains(v, selectedName) {
@@ -121,7 +121,7 @@ func TestMuseFeedShowsDelegationAndReply(t *testing.T) {
 		t.Fatalf("feed must carry delegation + reply, got %d", len(m.feed))
 	}
 	v := m.View()
-	if !strings.Contains(v, "Meta.ai Orchestrator") {
+	if !strings.Contains(v, "MCP Controller") {
 		t.Fatal("Muse pane missing when Muse tab selected")
 	}
 	if !strings.Contains(v, "inspect authentication") {
@@ -214,5 +214,34 @@ func TestMuseFeedStaleRefused(t *testing.T) {
 	}
 	if !strings.Contains(m.status, "stale") {
 		t.Fatalf("stale refusal needs a marker, got %q", m.status)
+	}
+}
+
+// The controller tab is provider-agnostic: no provider name is
+// hardcoded, and the pane shows verified controller identities plus
+// the activity feed (targeted workers and dispositions).
+func TestControllerTabProviderAgnostic(t *testing.T) {
+	museTestSetup(t)
+	m := newModel("")
+	m.width, m.height = 120, 30
+	m.controllers = []musePresence{{Principal: "op-1", Source: "mcp-stdio", LastSeen: 0}}
+	m.museState = MuseConnected
+	v := m.View()
+	if strings.Contains(v, "Meta.ai") || strings.Contains(v, "META.AI") || strings.Contains(v, "Meta AI") {
+		t.Fatalf("controller surface must not hardcode a provider name:\n%s", v)
+	}
+	if !strings.Contains(v, "CONTROLLER") {
+		t.Fatalf("controller rail row missing:\n%s", v)
+	}
+	if !strings.Contains(v, "op-1") || !strings.Contains(v, "mcp-stdio") {
+		t.Fatalf("verified controller identity must be displayed:\n%s", v)
+	}
+	if !strings.Contains(v, "MCP Controller") {
+		t.Fatalf("controller feed title missing:\n%s", v)
+	}
+	// Header identity is the selected controller surface, not a provider.
+	sel, _, mode := selectedSummary(m)
+	if sel != "Controller" || mode != "MCP" {
+		t.Fatalf("selectedSummary = (%q, %q), want (Controller, MCP)", sel, mode)
 	}
 }

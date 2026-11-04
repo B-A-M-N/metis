@@ -1025,3 +1025,65 @@ func TestRestartPreservesIdentities(t *testing.T) {
 		t.Fatalf("guidance listing lost across restart: %+v %v", list, err)
 	}
 }
+
+// Hermes adapter must match the real CLI (TD-054 class): `hermes
+// chat --oneshot` requires -q QUERY; a positional prompt is
+// rejected by the CLI, so the adapter must pass -q and the model
+// via -m (both verified against `hermes chat --help`).
+func TestHermesAdapterMatchesCLI(t *testing.T) {
+	a, err := lookupAdapter("hermes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	argv, err := a.ManagedArgv(t.TempDir(), "do work; rm -rf /", "m1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"hermes", "chat", "--oneshot", "-q", "do work; rm -rf /"}
+	// model rides as -m m1 before the query; accept either order
+	// as long as every element is present and prompt is last.
+	if argv[len(argv)-1] != "do work; rm -rf /" {
+		t.Fatalf("hermes prompt must be the trailing -q value: %v", argv)
+	}
+	joined := strings.Join(argv, " ")
+	for _, frag := range []string{"chat", "--oneshot", "-q"} {
+		if !strings.Contains(joined, frag) {
+			t.Fatalf("hermes argv missing %q: %v", frag, argv)
+		}
+	}
+	foundModel := false
+	for i := 0; i+1 < len(argv); i++ {
+		if argv[i] == "-m" && argv[i+1] == "m1" {
+			foundModel = true
+		}
+	}
+	if !foundModel {
+		t.Fatalf("hermes argv must pass model via -m: %v", argv)
+	}
+	_ = want
+}
+
+// Muse exec accepts --model (verified against `muse exec --help`);
+// the adapter must not silently drop a requested model.
+func TestMuseAdapterModelFlag(t *testing.T) {
+	a, err := lookupAdapter("muse")
+	if err != nil {
+		t.Fatal(err)
+	}
+	argv, err := a.ManagedArgv(t.TempDir(), "do work", "spark-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for i := 0; i+1 < len(argv); i++ {
+		if argv[i] == "--model" && argv[i+1] == "spark-1" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("muse argv must carry --model spark-1: %v", argv)
+	}
+	if argv[len(argv)-1] != "do work" {
+		t.Fatalf("muse prompt must stay trailing: %v", argv)
+	}
+}

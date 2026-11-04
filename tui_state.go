@@ -28,7 +28,7 @@ func newModelWithSource(src refreshSource, preselect string) model {
 	}
 	status := "enter=limited input  F5=full terminal  i=prompt  F6=info drawer  q=quit  PgUp/PgDn=scroll"
 	if preselect == "" {
-		status = "Meta.ai controller uses MCP tools; no web conversation is linked"
+		status = "Controller uses MCP tools; no provider web conversation is linked"
 	}
 	return model{source: src, preselect: preselect, nav: nav.ToNav(),
 		direct: true,

@@ -21,7 +21,7 @@ func museTabLabel(selected bool, state string, innerW int) string {
 	if selected {
 		prefix = "> "
 	}
-	plain := pad(truncW(sanitizeLine(prefix+glyph+" META.AI · "+state), innerW), innerW)
+	plain := pad(truncW(sanitizeLine(prefix+glyph+" CONTROLLER · "+state), innerW), innerW)
 	if color != "" {
 		return color + plain + "\x1b[0m"
 	}
@@ -118,7 +118,7 @@ func renderControllersRow(p musePresence, now int64) string {
 // renderMusePane renders the orchestration feed box that replaces
 // the terminal and Git panes on the Muse tab.
 func renderMusePane(m model, lay renderLayout) []string {
-	feedTitle := fmt.Sprintf("Meta.ai Orchestrator · activity feed, not a chat · %s — open: %d · blocked: %d (up/down=event, enter=jump to worker)",
+	feedTitle := fmt.Sprintf("MCP Controller · activity feed, not a chat · %s — open: %d · blocked: %d (up/down=event, enter=jump to worker)",
 		m.museState, m.museOpen, m.museBlocked)
 	var head []string
 	now := time.Now().UnixNano()
@@ -141,7 +141,7 @@ func renderMusePane(m model, lay renderLayout) []string {
 		rows = append(rows, renderFeedRow(e, cursor, lay.mainW-4))
 	}
 	if len(rows) == 0 {
-		rows = []string{"(no controller events yet)", "", "This tab is a dedicated MCP controller slot.", "It does not mirror a Meta.ai web conversation."}
+		rows = []string{"(no controller events yet)", "", "This tab is a dedicated MCP controller slot.", "It does not mirror any provider web conversation."}
 	}
 	// Window the event rows around the cursor instead of trimming
 	// to the bottom: the selected event stays visible while

@@ -126,7 +126,7 @@ func TestRenderLongSessionListSnapshot(t *testing.T) {
 	if !strings.Contains(first, want) {
 		t.Fatalf("selected worker row must stay visible: %q", want)
 	}
-	if !strings.Contains(first, "META.AI") {
+	if !strings.Contains(first, "CONTROLLER") {
 		t.Fatal("pinned Muse row must stay visible on long lists")
 	}
 	// The scroll window clips: not every worker row fits.
@@ -267,7 +267,7 @@ func TestMuseFeedRenderSnapshot(t *testing.T) {
 	if first != m.View() {
 		t.Fatal("muse feed View must be deterministic")
 	}
-	if !strings.Contains(first, "Meta.ai Orchestrator") {
+	if !strings.Contains(first, "MCP Controller") {
 		t.Fatal("muse tab must show the feed title")
 	}
 	if !strings.Contains(first, "do it") {
@@ -321,7 +321,7 @@ func TestRenderPTYPaneIsLabeledSnapshot(t *testing.T) {
 	if strings.Contains(joined, "Live PTY") {
 		t.Fatalf("PTY pane must not claim to be a live terminal emulator:\n%s", joined)
 	}
-	if !strings.Contains(joined, "PTY snapshot") || !strings.Contains(joined, "F5 n/a") {
-		t.Fatalf("PTY pane must label the snapshot view and the F5 limit:\n%s", joined)
+	if !strings.Contains(joined, "PTY screen text") || !strings.Contains(joined, "no alt-screen") || !strings.Contains(joined, "F5 n/a") {
+		t.Fatalf("PTY pane must label the screen-text view, alt-screen limit, and F5 limit:\n%s", joined)
 	}
 }

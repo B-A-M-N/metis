@@ -17,7 +17,7 @@ import (
 // operation requests share this gate, so no caller re-derives it.
 func selectedSummary(m model) (sel string, running bool, mode string) {
 	if m.nav.OnMuse {
-		return "Meta.ai controller", false, "MCP"
+		return "Controller", false, "MCP"
 	}
 	sel = m.selName()
 	if sel == "" {
@@ -59,7 +59,7 @@ func boundLines(m model, sel string, lines []string) []string {
 // renderHeaderLine renders the top dashboard status line.
 func renderHeaderLine(m model, sel string, running bool, mode string, w int) string {
 	if m.nav.OnMuse {
-		return pad(" Metis  Meta.ai Orchestrator  controller=MCP  web-chat=not-connected ", w)
+		return pad(" Metis  Controller  transport=MCP  chat=not-connected ", w)
 	}
 	entry := boundEntry(m, sel)
 	detail := m.tabInfo[sel]

@@ -436,7 +436,7 @@ func doctorStreams(add func(string, string, string, string)) {
 // doctorAdapters projects static harness capabilities, including
 // explicitly unsupported operations.
 func doctorAdapters(add func(string, string, string, string)) {
-	for _, h := range []string{"demo", "codex", "claude", "muse", "hermes"} {
+	for _, h := range []string{"demo", "codex", "claude", "muse", "hermes", "muse-native"} {
 		a, err := lookupAdapter(h)
 		if err != nil {
 			add("adapter:"+h, ConditionUnknown, fmt.Sprintf("lookup failed: %v", err), "adapterRegistry")
