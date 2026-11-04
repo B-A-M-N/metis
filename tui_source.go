@@ -80,6 +80,11 @@ type feedSnapshot struct {
 	// operation, progress, blocking) the CONTROLLER pane shows
 	// verbatim — never folded into the derived state word.
 	facts MuseFacts
+	// execCounts are committed task-row counts by lifecycle
+	// status: assignment (dispatched) is never presented as
+	// execution (working) — a parked dispatch reads as
+	// dispatched=1 working=0 until a worker claims it.
+	execCounts map[string]int
 	// controllers lists unexpired controller presence leases
 	// (verified transport identities, newest first). Recently
 	// seen only — never proof of a live connection.
@@ -479,6 +484,7 @@ func liveFeedSnapshot() feedSnapshot {
 		out.ok = true
 	}
 	out.controllers = activeMusePresence()
+	out.execCounts = taskStatusCounts()
 	out.facts = collectMuseFacts()
 	out.state, out.open, out.blocked = deriveMuseState(out.facts), out.facts.Open, out.facts.Blocked
 	if out.state == "" {
@@ -540,6 +546,7 @@ func assembleRefresh(s refreshSnapshots, gen int, sel string) refreshData {
 	out.museOpen = s.feed.open
 	out.museBlocked = s.feed.blocked
 	out.museFacts = s.feed.facts
+	out.execCounts = s.feed.execCounts
 	// The path banner is a pure graph projection: same lineage in,
 	// same markdown out.
 	out.panelRun = s.panel.run

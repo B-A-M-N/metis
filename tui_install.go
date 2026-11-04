@@ -42,6 +42,7 @@ func (m *model) applyFeedRefresh(d refreshData) {
 	m.museOpen = d.museOpen
 	m.museBlocked = d.museBlocked
 	m.museFacts = d.museFacts
+	m.execCounts = d.execCounts
 }
 
 // applyPanelsRefresh installs the path-panel content.

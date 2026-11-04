@@ -138,6 +138,15 @@ func renderMusePane(m model, lay renderLayout) []string {
 	factsLine := fmt.Sprintf("connection=%s lease=%s operation=%s progress=%s blocking=%s",
 		m.museFacts.Connection, m.museFacts.Lease, m.museFacts.Operation, m.museFacts.Progress, m.museFacts.Blocking)
 	head = append(head, pad(truncW(sanitizeLine(factsLine), lay.mainW-4), lay.mainW-4))
+	// Execution progression from committed task rows: distinct
+	// stages (dispatched=pickup pending, working=claimed+running,
+	// report_ready, verified, failed) — never folded into one
+	// success indicator.
+	if len(m.execCounts) > 0 {
+		execLine := fmt.Sprintf("execution: dispatched=%d working=%d report_ready=%d verified=%d failed=%d",
+			m.execCounts[TaskDispatched], m.execCounts[TaskWorking], m.execCounts[TaskReportReady], m.execCounts[TaskVerified], m.execCounts[TaskFailed])
+		head = append(head, pad(truncW(sanitizeLine(execLine), lay.mainW-4), lay.mainW-4))
+	}
 	var rows []string
 	feedCursor := m.nav.FeedCursor
 	for i, e := range m.feed {

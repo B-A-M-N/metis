@@ -55,6 +55,9 @@ type refreshData struct {
 	// museFacts is the separated presence projection behind the
 	// derived museState (same staleness rule as the feed).
 	museFacts MuseFacts
+	// execCounts: committed task rows by status (execution
+	// progression; dispatched is pickup-pending, not execution).
+	execCounts map[string]int
 	// controllers carries the unexpired controller presence
 	// leases with the feed projection (same staleness rule: a
 	// failed collection keeps last-known rows).

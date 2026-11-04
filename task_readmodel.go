@@ -560,3 +560,29 @@ func sessionBusyAll() (map[string]bool, bool) {
 	}
 	return out, true
 }
+
+// taskStatusCounts projects committed task-row counts by
+// lifecycle status for the CONTROLLER execution progression.
+// Read-only; a read failure yields an empty map (the pane then
+// omits the line rather than fabricating zeros).
+func taskStatusCounts() map[string]int {
+	db, err := openTasksDB()
+	if err != nil {
+		return nil
+	}
+	defer db.Close()
+	rows, err := db.Query(`SELECT status, COUNT(*) FROM tasks GROUP BY status`)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	out := map[string]int{}
+	for rows.Next() {
+		var st string
+		var n int
+		if err := rows.Scan(&st, &n); err == nil {
+			out[st] = n
+		}
+	}
+	return out
+}

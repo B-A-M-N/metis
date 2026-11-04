@@ -139,6 +139,13 @@ type workerClaim struct {
 func workerClaimAttempt(session string, asn workerAssignment) (claim workerClaim, opErr error) {
 	defer func() {
 		observeOps(opsPhaseClaim, asn.loopReq.RequestID, asn.task.ID, asn.task.Attempt, session, opErr)
+		// Execution evidence: the claim is durable only now
+		// (ownership checks inside markTaskWorking passed and
+		// no refund path ran). Dispatched alone never emits
+		// this — assignment is not execution.
+		if opErr == nil {
+			emitWorkerClaimed(session, asn.task)
+		}
 	}()
 	t := asn.task
 	if err := markTaskWorking(t.ID, t.Attempt, asn.loopReq); err != nil {

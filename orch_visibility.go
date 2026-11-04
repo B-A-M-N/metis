@@ -12,6 +12,7 @@ package main
 // is attributable without inventing an identity.
 
 import (
+	"strconv"
 	"sync"
 )
 
@@ -147,5 +148,24 @@ func emitTerminalResizeOutcome(req OperationRequest, session, detail string, res
 	}
 	if _, err := recordOrchEvent(e); err != nil {
 		recordReceipt("", "orch_gap", "terminal resize feed write failed: "+err.Error())
+	}
+}
+
+// emitWorkerClaimed records one worker's successful claim of an
+// exact attempt, after the claim's ownership checks passed.
+// Payload carries the attempt only — never execution content.
+func emitWorkerClaimed(session string, tk Task) {
+	e := OrchEvent{
+		RunID:           tk.Run,
+		OriginPrincipal: session,
+		TargetAgent:     session,
+		TaskID:          tk.ID,
+		Attempt:         tk.Attempt,
+		EventType:       OrchWorkerClaimed,
+		Payload:         "attempt=" + strconv.Itoa(tk.Attempt),
+		Disposition:     "claimed",
+	}
+	if _, err := recordOrchEvent(e); err != nil {
+		recordReceipt(tk.ID, "orch_gap", "worker claimed feed write failed: "+err.Error())
 	}
 }

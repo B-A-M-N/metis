@@ -44,6 +44,7 @@ const (
 	OrchMessageDelivered      = "message.delivered"
 	OrchMessageAcknowledged   = "message.acknowledged"
 	OrchWorkerReported        = "worker.reported"
+	OrchWorkerClaimed         = "worker.claimed"
 	OrchVerificationRecorded  = "verification.recorded"
 	OrchCorrectionRequested   = "correction.requested"
 	OrchApprovalRequired      = "approval.required"
@@ -57,7 +58,7 @@ const (
 var orchEventTypes = map[string]bool{
 	OrchDelegationRequested: true, OrchDelegationDispatched: true,
 	OrchMessageSent: true, OrchMessageDelivered: true,
-	OrchMessageAcknowledged: true, OrchWorkerReported: true,
+	OrchMessageAcknowledged: true, OrchWorkerReported: true, OrchWorkerClaimed: true,
 	OrchVerificationRecorded: true, OrchCorrectionRequested: true,
 	OrchApprovalRequired: true, OrchTransportDisconnected: true,
 	OrchProvisionRequested: true,

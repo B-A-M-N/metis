@@ -51,6 +51,8 @@ type model struct {
 	// museFacts carries the separated presence axes for the
 	// CONTROLLER pane (installed with the feed projection).
 	museFacts MuseFacts
+	// execCounts: committed task rows by status.
+	execCounts map[string]int
 	// controllers lists unexpired controller presence leases for
 	// the Muse pane. Installed only through applyFeedRefresh, so a
 	// failed collection keeps last-known rows, never blanks them.
