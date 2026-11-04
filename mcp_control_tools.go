@@ -22,12 +22,12 @@ import (
 )
 
 // mcpToolDepend: record a task dependency (idempotent by request_id).
-func mcpToolDepend(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolDepend(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "task_id", "dep_id", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
@@ -54,12 +54,12 @@ func mcpToolDepend(raw json.RawMessage) (mcpToolResult, error) {
 }
 
 // mcpToolCancel: cancel a task through the real cancellation path.
-func mcpToolCancel(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolCancel(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "task_id", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
@@ -80,12 +80,12 @@ func mcpToolCancel(raw json.RawMessage) (mcpToolResult, error) {
 
 // mcpToolCorrect: create a lineage-linked correction task
 // (idempotent by request_id).
-func mcpToolCorrect(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolCorrect(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "task_id", "objective", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}

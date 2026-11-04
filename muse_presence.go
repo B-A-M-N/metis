@@ -275,7 +275,39 @@ func collectMuseFacts() MuseFacts {
 		f.Lease = MuseLeaseAbsent
 	}
 
-	scanMuseEventFacts(db, &f)
+	discPrincipal, discTs := scanMuseEventFacts(db, &f)
+	// Principal-aware recovery: a standing disconnect marks the
+	// connection down ONLY for its own principal. Another live
+	// lease (a different active controller), or the same
+	// principal reconnecting with a lease newer than the
+	// disconnect, recovers it — one controller's disconnect
+	// never marks another active controller disconnected.
+	if f.Connection == MuseConnDown {
+		now := time.Now().UnixNano()
+		if rows, lerr := db.Query(`SELECT principal, last_seen_ns FROM muse_presence_leases WHERE expires_ns > ?`, now); lerr == nil {
+			recovered := false
+			for rows.Next() {
+				var principal string
+				var lastSeen int64
+				if serr := rows.Scan(&principal, &lastSeen); serr != nil {
+					continue
+				}
+				if principal != discPrincipal || lastSeen > discTs {
+					recovered = true
+				}
+			}
+			_ = rows.Close()
+			if recovered {
+				f.Connection = MuseConnUp
+				if f.Blocking == MuseBlockingTransport {
+					f.Blocking = MuseBlockingNone
+					if n, perr := countPendingMuseApprovals(); perr == nil && n > 0 {
+						f.Blocking = MuseBlockingApproval
+					}
+				}
+			}
+		}
+	}
 	return f
 }
 
@@ -284,22 +316,25 @@ func collectMuseFacts() MuseFacts {
 // no newer traffic recovered it, and pending-approval Attention
 // derives from current pending rows, never from a resolved
 // historical event.
-func scanMuseEventFacts(db *sql.DB, f *MuseFacts) {
-	rows, err := db.Query(`SELECT event_type, disposition, created
+// scanMuseEventFacts returns the latest standing disconnect's
+// principal and timestamp (empty/0 when none stands).
+func scanMuseEventFacts(db *sql.DB, f *MuseFacts) (string, int64) {
+	discPrincipal, discTs := "", int64(0)
+	rows, err := db.Query(`SELECT event_type, disposition, created, origin_principal
 		FROM orchestration_events ORDER BY seq DESC LIMIT 50`)
 	if err != nil {
 		f.Progress = MuseProgressUnknown
-		return
+		return discPrincipal, discTs
 	}
 	defer rows.Close()
 	type evt struct {
-		typ, disp, created string
+		typ, disp, created, principal string
 	}
 	var newest *evt
 	var recent []evt
 	for rows.Next() {
 		var e evt
-		if err := rows.Scan(&e.typ, &e.disp, &e.created); err != nil {
+		if err := rows.Scan(&e.typ, &e.disp, &e.created, &e.principal); err != nil {
 			break
 		}
 		recent = append(recent, e)
@@ -333,6 +368,7 @@ func scanMuseEventFacts(db *sql.DB, f *MuseFacts) {
 				time.Now().UnixNano()-ts < museActiveWindow {
 				f.Connection = MuseConnDown
 				f.Blocking = MuseBlockingTransport
+				discPrincipal, discTs = e.principal, ts
 			}
 		case OrchMessageSent:
 			sawTraffic = true
@@ -354,6 +390,7 @@ func scanMuseEventFacts(db *sql.DB, f *MuseFacts) {
 			f.Blocking = MuseBlockingApproval
 		}
 	}
+	return discPrincipal, discTs
 }
 
 // deriveMuseState projects the Muse-tab indicator from the typed

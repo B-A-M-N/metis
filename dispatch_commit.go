@@ -158,8 +158,17 @@ func (AttemptCommitter) Commit(adm DispatchAdmission, prep PreparedDelivery, req
 	// show dispatched without its attempt/delivery bindings, nor the
 	// bindings without the feed row. Payload carries the exact
 	// instruction text (bounded by truncation).
+	// Origin is the verified transport principal when the caller
+	// authenticated (MCP transports always do); the asserted actor
+	// label is only a fallback for internal/local constructions
+	// that carry no principal. An actor string never establishes
+	// identity — matching every other feed emitter.
+	origin := req.Principal
+	if origin == "" {
+		origin = req.Actor
+	}
 	if _, err := insertOrchEventTx(tx, OrchEvent{
-		RunID: pending.Run, OriginPrincipal: req.Actor, OriginHarness: harness,
+		RunID: pending.Run, OriginPrincipal: origin, OriginHarness: harness,
 		TargetAgent: session, TaskID: id, Attempt: nextAttempt,
 		EventType: OrchDelegationDispatched, RequestID: req.RequestID,
 		Payload: pending.Objective, Disposition: "committed",

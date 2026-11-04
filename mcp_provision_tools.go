@@ -408,12 +408,12 @@ func provisionLaunchVerified(want mcpProvisionRecord, live func(mcpProvisionReco
 // authorized request to the ProvisionService, which owns the durable
 // intent, the workdir, and the launch. The domain result is
 // translated here into the MCP response shape.
-func mcpToolProvision(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolProvision(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "session", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
@@ -506,7 +506,7 @@ func provisionResultToMCP(result ProvisionResult) (mcpToolResult, error) {
 // and binary preflight runs before anything is recorded: when
 // either is missing the tool refuses with the blocker instead of
 // fabricating a binding.
-func mcpToolBind(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolBind(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "session", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
@@ -519,7 +519,7 @@ func mcpToolBind(raw json.RawMessage) (mcpToolResult, error) {
 	}
 	var profile string
 	_ = json.Unmarshal(profileRaw, &profile)
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}

@@ -13,7 +13,7 @@ import (
 // Extracted from mcp_tools.go; behavior unchanged.
 
 func mcpWriteAuth(args map[string]json.RawMessage) error {
-	_, _, err := mcpAuthCaller(args)
+	_, _, err := mcpAuthCaller(args, nil)
 	return err
 }
 
@@ -166,7 +166,7 @@ func mcpGrantedRemoteCapabilities() []string {
 // silently promoting a remote caller to local-operator. A
 // configured credential is always required when set: declaring
 // local ingress never bypasses it.
-func mcpAuthCaller(args map[string]json.RawMessage) (principal string, remote bool, err error) {
+func mcpAuthCaller(args map[string]json.RawMessage, sess *stdioSess) (principal string, remote bool, err error) {
 	mode, merr := mcpResolveIngressMode()
 	if merr != nil {
 		return "", false, merr
@@ -182,7 +182,7 @@ func mcpAuthCaller(args map[string]json.RawMessage) (principal string, remote bo
 		}
 		// Advisory only: a record failure must never fail auth.
 		_ = recordMusePresence(mcpPrincipalLocalOperator, "mcp-local", musePresenceLeaseTTL)
-		setLastMCPPrincipal(mcpPrincipalLocalOperator)
+		sess.recordPrincipal(mcpPrincipalLocalOperator)
 		return mcpPrincipalLocalOperator, false, nil
 	}
 	if subtle.ConstantTimeCompare([]byte(mcpStr(args, "auth")), []byte(want)) != 1 {
@@ -190,7 +190,7 @@ func mcpAuthCaller(args map[string]json.RawMessage) (principal string, remote bo
 	}
 	// Advisory only: a record failure must never fail auth.
 	_ = recordMusePresence(mcpPrincipalRemoteToken, "mcp-remote", musePresenceLeaseTTL)
-	setLastMCPPrincipal(mcpPrincipalRemoteToken)
+	sess.recordPrincipal(mcpPrincipalRemoteToken)
 	return mcpPrincipalRemoteToken, true, nil
 }
 
@@ -249,12 +249,12 @@ func mcpAuthorize(tool string, req OperationRequest) error {
 // error; domain failures (conflicts, missing rows) are isError
 // results so the client knows which tool failed.
 // mcpToolDelegate: admit and dispatch a task.
-func mcpToolDelegate(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolDelegate(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "run", "session", "objective", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
@@ -294,12 +294,12 @@ func mcpToolDelegate(raw json.RawMessage) (mcpToolResult, error) {
 }
 
 // mcpToolSend: send guidance to a worker.
-func mcpToolSend(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolSend(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "session", "text", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
@@ -324,7 +324,7 @@ func mcpSendOp(req OperationRequest, args map[string]json.RawMessage) (mcpToolRe
 }
 
 // mcpToolApprove: decide a pending approval.
-func mcpToolApprove(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolApprove(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	// Decide one pending approval the durable row already
 	// knows. Token-gated; the choice must have been offered
 	// (refused locally otherwise) and the stored requirement
@@ -336,7 +336,7 @@ func mcpToolApprove(raw json.RawMessage) (mcpToolResult, error) {
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
@@ -372,7 +372,7 @@ func mcpToolApprove(raw json.RawMessage) (mcpToolResult, error) {
 }
 
 // mcpToolVerify: verify a reported task.
-func mcpToolVerify(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolVerify(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	// Approval-gated verdict on a reported task. Token-gated
 	// like every mutation; TD-094 independence is enforced
 	// inside verifyTask, so naming a reviewer never confers
@@ -382,7 +382,7 @@ func mcpToolVerify(raw json.RawMessage) (mcpToolResult, error) {
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}

@@ -29,6 +29,7 @@ const mcpServeWorkers = 4
 // line in, one reply line out. EOF ends the loop. It never launches
 // workers on its own; tools that delegate return durable IDs.
 func mcpServeLoop(r io.Reader, w io.Writer) {
+	sess := newStdioSession()
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 64*1024), 1<<20)
 	out := bufio.NewWriter(w)
@@ -46,7 +47,7 @@ func mcpServeLoop(r io.Reader, w io.Writer) {
 		go func() {
 			defer wg.Done()
 			defer func() { <-slots }()
-			reply := mcpHandle(line)
+			reply := mcpHandleSess(line, sess)
 			if reply == nil {
 				return // notification: no reply
 			}
@@ -58,11 +59,18 @@ func mcpServeLoop(r io.Reader, w io.Writer) {
 		}()
 	}
 	wg.Wait()
+	// Transport session ended (EOF): record THIS session's
+	// authenticated disconnect, if it ever authenticated.
+	sess.emitDisconnect()
 }
 
 // mcpHandle routes one raw request line. It returns nil for
 // notifications (no id) and the reply line otherwise.
-func mcpHandle(line []byte) []byte {
+func mcpHandle(line []byte) []byte { return mcpHandleSess(line, nil) }
+
+// mcpHandleSess is mcpHandle with the transport session bound, so
+// authentication records the principal on that session object.
+func mcpHandleSess(line []byte, sess *stdioSess) []byte {
 	var req mcpRequest
 	if err := json.Unmarshal(line, &req); err != nil {
 		return mcpMarshal(mcpResponse{JSONRPC: "2.0", Error: &mcpError{Code: mcpParseError, Message: "parse error"}})
@@ -101,7 +109,7 @@ func mcpHandle(line []byte) []byte {
 		if err := json.Unmarshal(req.Params, &p); err != nil || p.Name == "" {
 			return mcpMarshal(mcpResponse{JSONRPC: "2.0", ID: id, Error: &mcpError{Code: mcpInvalidParams, Message: "tools/call requires name and arguments"}})
 		}
-		res, cerr := mcpCallTool(p.Name, p.Arguments)
+		res, cerr := mcpCallToolSess(p.Name, p.Arguments, sess)
 		if cerr != nil {
 			code := mcpInternalError
 			var pe *mcpParamError
@@ -187,6 +195,13 @@ func mcpNum(args map[string]json.RawMessage, k string) float64 {
 // state, and the objective head line. Full text lives behind
 // metis_task_status / metis_report so pages stay bounded.
 func mcpCallTool(name string, raw json.RawMessage) (mcpToolResult, error) {
+	return mcpCallToolSess(name, raw, nil)
+}
+
+// mcpCallToolSess dispatches one tool call bound to a transport
+// session (nil for direct/test calls): authenticated tools record
+// their principal on that session for disconnect attribution.
+func mcpCallToolSess(name string, raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	switch name {
 	case "metis_status":
 		return mcpToolStatus(raw)
@@ -195,9 +210,9 @@ func mcpCallTool(name string, raw json.RawMessage) (mcpToolResult, error) {
 	case "metis_events":
 		return mcpToolEvents(raw)
 	case "metis_delegate":
-		return mcpToolDelegate(raw)
+		return mcpToolDelegate(raw, sess)
 	case "metis_send":
-		return mcpToolSend(raw)
+		return mcpToolSend(raw, sess)
 	case "metis_graph":
 		return mcpToolGraph(raw)
 	case "metis_tasks":
@@ -209,31 +224,31 @@ func mcpCallTool(name string, raw json.RawMessage) (mcpToolResult, error) {
 	case "metis_approvals":
 		return mcpToolApprovals(raw)
 	case "metis_approve":
-		return mcpToolApprove(raw)
+		return mcpToolApprove(raw, sess)
 	case "metis_verify":
-		return mcpToolVerify(raw)
+		return mcpToolVerify(raw, sess)
 	case "metis_provision":
-		return mcpToolProvision(raw)
+		return mcpToolProvision(raw, sess)
 	case "metis_bind":
-		return mcpToolBind(raw)
+		return mcpToolBind(raw, sess)
 	case "metis_terminal":
 		return mcpToolTerminal(raw)
 	case "metis_terminal_input":
-		return mcpToolTerminalInput(raw)
+		return mcpToolTerminalInput(raw, sess)
 	case "metis_terminal_resize":
-		return mcpToolTerminalResize(raw)
+		return mcpToolTerminalResize(raw, sess)
 	case "metis_session_stop":
-		return mcpToolSessionStop(raw)
+		return mcpToolSessionStop(raw, sess)
 	case "metis_depend":
-		return mcpToolDepend(raw)
+		return mcpToolDepend(raw, sess)
 	case "metis_cancel":
-		return mcpToolCancel(raw)
+		return mcpToolCancel(raw, sess)
 	case "metis_correct":
-		return mcpToolCorrect(raw)
+		return mcpToolCorrect(raw, sess)
 	case "metis_muse_message":
-		return mcpToolMuseMessage(raw)
+		return mcpToolMuseMessage(raw, sess)
 	case "metis_muse_message_status":
-		return mcpToolMuseMessageStatus(raw)
+		return mcpToolMuseMessageStatus(raw, sess)
 	case "metis_report":
 		return mcpToolReport(raw)
 	case "metis_reconcile":
@@ -241,7 +256,7 @@ func mcpCallTool(name string, raw json.RawMessage) (mcpToolResult, error) {
 	case "metis_attention":
 		return mcpToolAttentionList(raw)
 	case "metis_attention_settle":
-		return mcpToolAttentionSettle(raw)
+		return mcpToolAttentionSettle(raw, sess)
 	default:
 		return mcpToolResult{}, &mcpMethodError{name}
 	}
@@ -261,9 +276,7 @@ func (e *mcpMethodError) Error() string { return "unknown tool: " + e.name }
 // It is the only MCP transport in Metis: remote exposure belongs to
 // Ocliv, which hosts this stdio interface.
 func mcpServeStdio() {
+	// One process = one transport session; mcpServeLoop emits
+	// that session's authenticated disconnect at EOF.
 	mcpServeLoop(os.Stdin, os.Stdout)
-	// The stdio transport ended: if an authenticated controller
-	// used this process, its disconnect is a durable ledger fact
-	// (presence would otherwise only expire silently).
-	emitTransportDisconnected("mcp-local")
 }

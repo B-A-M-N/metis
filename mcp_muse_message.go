@@ -35,12 +35,12 @@ func museMessagePayload(res MuseMessageResult) map[string]any {
 	return payload
 }
 
-func mcpToolMuseMessage(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolMuseMessage(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "session", "text", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
@@ -79,12 +79,12 @@ func mcpMessageStatusWait(args map[string]json.RawMessage) time.Duration {
 	return 0
 }
 
-func mcpToolMuseMessageStatus(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolMuseMessageStatus(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}

@@ -545,10 +545,12 @@ func mcpServeHTTP(listen string) int {
 	fmt.Fprintf(os.Stderr, "metis mcp serve-http on http://%s (loopback only)\n", ln.Addr())
 	if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 		fmt.Fprintln(os.Stderr, "mcp serve-http:", err)
-		emitTransportDisconnected("mcp-http")
 		return 1
 	}
-	emitTransportDisconnected("mcp-http")
+	// No disconnect event on shutdown: HTTP is stateless per
+	// request, so shutdown/request-completion/inactivity infer
+	// no client's disconnect. Disconnect is observed only via
+	// presence-lease expiry (explicit absent state).
 	return 0
 }
 
@@ -649,7 +651,6 @@ func (s *mcpHTTPServer) handleMCP(w http.ResponseWriter, r *http.Request) {
 	// subject: a working cloud controller must light the Muse tab.
 	// A record failure never refuses the call.
 	_ = recordMusePresence("jwt:"+claims.Sub, "mcp-http", musePresenceLeaseTTL)
-	setLastMCPPrincipal("jwt:" + claims.Sub)
 	body, err := io.ReadAll(io.LimitReader(r.Body, maxMCPHTTPBody+1))
 	if err != nil || len(body) > maxMCPHTTPBody {
 		writeJSON(w, http.StatusBadRequest, mcpResponse{JSONRPC: "2.0", Error: &mcpError{Code: mcpInvalidRequest, Message: "request too large"}})

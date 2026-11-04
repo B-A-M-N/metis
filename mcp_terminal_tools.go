@@ -357,12 +357,12 @@ func mcpTerminalPtyInput(name, owner, text string) (opID, disposition, detail st
 // request_id). Authenticates, gates the admin capability, fences
 // the generation, claims the key, then delivers through the
 // lease-authority transports — never unrestricted send-keys.
-func mcpToolTerminalInput(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolTerminalInput(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "session", "text", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
@@ -494,12 +494,12 @@ func mcpTerminalSize(args map[string]json.RawMessage, key string) (int, error) {
 // mcpToolTerminalResize: authorized terminal resize (idempotent by
 // request_id). PTY resizes travel the lease-fenced RS frame;
 // tmux resizes address the bound session ID under the same lease.
-func mcpToolTerminalResize(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolTerminalResize(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "session", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
@@ -596,12 +596,12 @@ func mcpTerminalResizeOp(req OperationRequest, args map[string]json.RawMessage) 
 // owner's processes); tmux stops kill the bound session ID and mark
 // the registry only after a confirmed kill. Stop preempts input:
 // leases are cleared so no stale or rival lease survives it.
-func mcpToolSessionStop(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolSessionStop(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "session", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}

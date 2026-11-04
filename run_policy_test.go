@@ -129,7 +129,7 @@ func TestRemoteIngressDisablesLocalTrust(t *testing.T) {
 	t.Setenv("METIS_MCP_REMOTE_INGRESS", "1")
 	os.Unsetenv("METIS_MCP_WRITE_TOKEN")
 	raw := []byte(`{"run":"r","session":"s","objective":"o","actor":"mallory","request_id":"q1"}`)
-	if _, err := mcpToolDelegate(raw); err == nil {
+	if _, err := mcpToolDelegate(raw, nil); err == nil {
 		t.Fatal("remote ingress without token must refuse mutation")
 	} else if !strings.Contains(err.Error(), "REMOTE_INGRESS") && !strings.Contains(err.Error(), "local-operator trust") {
 		t.Fatalf("refusal must name the ingress trust problem, got: %v", err)

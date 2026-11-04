@@ -40,12 +40,12 @@ func mcpToolAttentionList(raw json.RawMessage) (mcpToolResult, error) {
 	return mcpToolResult{Content: []mcpContent{{Type: "text", Text: b.String()}}}, nil
 }
 
-func mcpToolAttentionSettle(raw json.RawMessage) (mcpToolResult, error) {
+func mcpToolAttentionSettle(raw json.RawMessage, sess *stdioSess) (mcpToolResult, error) {
 	args, err := mcpNeedArgs(raw, "id", "revision", "action", "outcome", "actor", "request_id")
 	if err != nil {
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
-	principal, remote, aerr := mcpAuthCaller(args)
+	principal, remote, aerr := mcpAuthCaller(args, sess)
 	if aerr != nil {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}

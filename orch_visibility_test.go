@@ -118,8 +118,9 @@ func TestTerminalResizeRecordsEvent(t *testing.T) {
 // the disconnected/error projection (never silent).
 func TestTransportDisconnectedRecordedAndProjected(t *testing.T) {
 	t.Setenv("METIS_STATE", t.TempDir())
-	setLastMCPPrincipal("jwt:ctl-x")
-	emitTransportDisconnected("mcp-http")
+	sess := newStdioSession()
+	sess.recordPrincipal("jwt:ctl-x")
+	sess.emitDisconnect()
 	evs := orchEventsOfType(t, OrchTransportDisconnected)
 	if len(evs) != 1 {
 		t.Fatalf("transport.disconnected events = %d, want 1", len(evs))
@@ -156,5 +157,39 @@ func TestControllerPaneShowsPresenceFacts(t *testing.T) {
 		if !strings.Contains(v, want) {
 			t.Fatalf("controller pane must show presence facts (%q missing):\n%s", want, v)
 		}
+	}
+}
+
+// Dispatched events name the verified principal (authenticated
+// callers), falling back to the actor label only for internal
+// constructions without a principal.
+func TestDispatchedOriginIsVerifiedPrincipal(t *testing.T) {
+	t.Setenv("METIS_STATE", t.TempDir())
+	installFakeTmux(t, "org-owner")
+	seedOwnedSession(t, "wv2", "org-owner")
+	seedOwnedSession(t, "wv3", "org-owner")
+	tk, err := createTask("run-org", "wv2", "do it", "done")
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := OperationRequest{Actor: "asserted-label", Principal: "jwt:verified-1", RequestID: "org-req-1"}
+	if err := dispatchTaskWithRequest(tk.ID, "wv2", req); err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	dis := orchEventsOfType(t, OrchDelegationDispatched)
+	if len(dis) != 1 || dis[0].OriginPrincipal != "jwt:verified-1" {
+		t.Fatalf("dispatched origin must be the verified principal, got %+v", dis)
+	}
+	// Internal actor-only construction keeps the actor fallback.
+	tk2, err := createTask("run-org2", "wv3", "do it too", "done")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := dispatchTaskWithRequest(tk2.ID, "wv3", testReq("internal-actor")); err != nil {
+		t.Fatalf("dispatch2: %v", err)
+	}
+	dis = orchEventsOfType(t, OrchDelegationDispatched)
+	if len(dis) != 2 || dis[1].OriginPrincipal != "internal-actor" {
+		t.Fatalf("actor-only fallback must record the actor, got %+v", dis)
 	}
 }

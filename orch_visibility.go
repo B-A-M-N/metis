@@ -15,37 +15,56 @@ import (
 	"sync"
 )
 
-// lastMCPPrincipal is the most recent authenticated principal on
-// this process's MCP transports (stdio auth or HTTP JWT subject).
-// A disconnect with no authenticated principal never happened for
-// an authenticated controller, so it is not recorded.
-var (
-	lastPrincipalMu sync.Mutex
-	lastPrincipal   string
-)
+// stdioSess is the authenticated identity of ONE stdio transport
+// session (one `mcp serve` process/connection). Disconnect
+// attribution is bound to this session object — never to a
+// process-global last principal — so interleaved controllers in
+// one process cannot cross-attribute, and HTTP (stateless,
+// per-request) never infers disconnects at all: its disconnect
+// signal is presence-lease expiry only.
+type stdioSess struct {
+	mu        sync.Mutex
+	principal string
+}
 
-func setLastMCPPrincipal(principal string) {
-	if principal == "" {
+func newStdioSession() *stdioSess { return &stdioSess{} }
+
+// recordPrincipal stores the session's authenticated principal
+// (first authenticated identity wins for the session; an
+// unauthenticated session records nothing and emits nothing).
+func (s *stdioSess) recordPrincipal(principal string) {
+	if s == nil || principal == "" {
 		return
 	}
-	lastPrincipalMu.Lock()
-	lastPrincipal = principal
-	lastPrincipalMu.Unlock()
+	s.mu.Lock()
+	if s.principal == "" {
+		s.principal = principal
+	}
+	s.mu.Unlock()
 }
 
-func getLastMCPPrincipal() string {
-	lastPrincipalMu.Lock()
-	defer lastPrincipalMu.Unlock()
-	return lastPrincipal
+func (s *stdioSess) getPrincipal() string {
+	if s == nil {
+		return ""
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.principal
 }
 
-// emitTransportDisconnected records one authenticated controller's
-// transport ending. Presence logic (scanMuseEventFacts) projects a
-// fresh disconnect with no newer traffic to the disconnected/error
-// state; newer traffic recovers it — so this event is the real
-// disconnect signal that was previously impossible to produce.
-func emitTransportDisconnected(source string) {
-	principal := getLastMCPPrincipal()
+// emitDisconnect records this session's disconnect attributed to
+// its own authenticated principal. Unauthenticated sessions emit
+// nothing: there is no identity to attribute.
+func (s *stdioSess) emitDisconnect() {
+	emitTransportDisconnectedFor(s.getPrincipal(), "mcp-local")
+}
+
+// emitTransportDisconnectedFor records one authenticated
+// controller's transport ending under its verified principal.
+// Presence logic projects a fresh disconnect to the
+// disconnected/error state only when no other live lease and no
+// newer same-principal activity recover it (see collectMuseFacts).
+func emitTransportDisconnectedFor(principal, source string) {
 	if principal == "" {
 		return
 	}
