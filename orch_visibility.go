@@ -24,14 +24,23 @@ import (
 // signal is presence-lease expiry only.
 type stdioSess struct {
 	mu        sync.Mutex
+	id        string
 	principal string
 }
 
-func newStdioSession() *stdioSess { return &stdioSess{} }
+// newStdioSession mints one transport session. The session ID is
+// distinct from the authenticated principal: several sessions may
+// share one principal (e.g. local-operator), and each session's
+// lifecycle (register on auth, deregister on disconnect) is
+// tracked independently in the durable session registry.
+func newStdioSession() *stdioSess { return &stdioSess{id: newRequestID()} }
 
 // recordPrincipal stores the session's authenticated principal
 // (first authenticated identity wins for the session; an
-// unauthenticated session records nothing and emits nothing).
+// unauthenticated session records nothing and emits nothing) and
+// registers/refreshes this session's durable row so a peer
+// session sharing the principal is not marked disconnected by
+// this session's later disconnect.
 func (s *stdioSess) recordPrincipal(principal string) {
 	if s == nil || principal == "" {
 		return
@@ -40,7 +49,12 @@ func (s *stdioSess) recordPrincipal(principal string) {
 	if s.principal == "" {
 		s.principal = principal
 	}
+	established := s.principal
+	id := s.id
 	s.mu.Unlock()
+	if principal == established {
+		registerStdioSession(id, established, musePresenceLeaseTTL)
+	}
 }
 
 func (s *stdioSess) getPrincipal() string {
@@ -56,7 +70,16 @@ func (s *stdioSess) getPrincipal() string {
 // its own authenticated principal. Unauthenticated sessions emit
 // nothing: there is no identity to attribute.
 func (s *stdioSess) emitDisconnect() {
-	emitTransportDisconnectedFor(s.getPrincipal(), "mcp-local")
+	principal := s.getPrincipal()
+	if principal == "" {
+		return
+	}
+	// Deregister THIS session first: peers sharing the principal
+	// keep their own rows. A crash before this point leaves a
+	// row that expires within the lease TTL (bounded stale
+	// window, explicit absent afterwards).
+	deregisterStdioSession(s.id)
+	emitTransportDisconnectedFor(principal, "mcp-local")
 }
 
 // emitTransportDisconnectedFor records one authenticated

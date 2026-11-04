@@ -41,13 +41,94 @@ type musePresence struct {
 }
 
 func ensurePresenceTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS muse_presence_leases (
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS muse_presence_leases (
 		principal  TEXT PRIMARY KEY,
 		source     TEXT NOT NULL DEFAULT '',
 		last_seen_ns INTEGER NOT NULL,
 		expires_ns INTEGER NOT NULL
+	)`); err != nil {
+		return err
+	}
+	// Transport-session registry: one row per stdio session
+	// (session ID distinct from principal). A principal may hold
+	// several concurrent sessions; disconnect removes only its
+	// own row. Rows expire with the lease TTL, bounding the
+	// stale window after a crash. HTTP has no rows (stateless).
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS muse_transport_sessions (
+		session_id TEXT PRIMARY KEY,
+		principal  TEXT NOT NULL DEFAULT '',
+		last_seen_ns INTEGER NOT NULL,
+		expires_ns INTEGER NOT NULL
 	)`)
 	return err
+}
+
+// registerStdioSession upserts one session's registry row.
+func registerStdioSession(sessionID, principal string, ttl time.Duration) {
+	if sessionID == "" || principal == "" {
+		return
+	}
+	db, err := openTasksDB()
+	if err != nil {
+		return
+	}
+	defer db.Close()
+	if err := ensurePresenceTable(db); err != nil {
+		return
+	}
+	now := time.Now().UnixNano()
+	_, _ = db.Exec(`INSERT INTO muse_transport_sessions (session_id, principal, last_seen_ns, expires_ns)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT (session_id) DO UPDATE SET principal = excluded.principal,
+			last_seen_ns = excluded.last_seen_ns, expires_ns = excluded.expires_ns`,
+		sessionID, principal, now, now+int64(ttl))
+}
+
+// deregisterStdioSession removes one session's registry row.
+func deregisterStdioSession(sessionID string) {
+	if sessionID == "" {
+		return
+	}
+	db, err := openTasksDB()
+	if err != nil {
+		return
+	}
+	defer db.Close()
+	if err := ensurePresenceTable(db); err != nil {
+		return
+	}
+	_, _ = db.Exec(`DELETE FROM muse_transport_sessions WHERE session_id = ?`, sessionID)
+}
+
+// activeStdioSessions prunes expired session rows and counts the
+// survivors on db (shared handle in fact collection).
+func activeStdioSessionsOn(db *sql.DB) (int, error) {
+	if err := ensurePresenceTable(db); err != nil {
+		return 0, err
+	}
+	now := time.Now().UnixNano()
+	if _, err := db.Exec(`DELETE FROM muse_transport_sessions WHERE expires_ns <= ?`, now); err != nil {
+		return 0, err
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM muse_transport_sessions`).Scan(&n); err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+// activeStdioSessions counts unexpired stdio transport sessions.
+func activeStdioSessions() int {
+	db, err := openTasksDB()
+	if err != nil {
+		return 0
+	}
+	defer db.Close()
+	n, err := activeStdioSessionsOn(db)
+	if err != nil {
+		return 0
+	}
+	return n
 }
 
 // recordMusePresence upserts the principal's lease to now+ttl. A
@@ -283,16 +364,39 @@ func collectMuseFacts() MuseFacts {
 	// disconnect, recovers it — one controller's disconnect
 	// never marks another active controller disconnected.
 	if f.Connection == MuseConnDown {
+		// Any still-registered transport session (even idle,
+		// even sharing the disconnecting principal) means a
+		// controller session is active: the disconnecting
+		// session's exit never disconnects its peers.
+		if n, serr := activeStdioSessionsOn(db); serr == nil && n > 0 {
+			f.Connection = MuseConnUp
+			if f.Blocking == MuseBlockingTransport {
+				f.Blocking = MuseBlockingNone
+				if n, perr := countPendingMuseApprovals(); perr == nil && n > 0 {
+					f.Blocking = MuseBlockingApproval
+				}
+			}
+		}
 		now := time.Now().UnixNano()
-		if rows, lerr := db.Query(`SELECT principal, last_seen_ns FROM muse_presence_leases WHERE expires_ns > ?`, now); lerr == nil {
+		if rows, lerr := db.Query(`SELECT principal, source, last_seen_ns FROM muse_presence_leases WHERE expires_ns > ?`, now); lerr == nil && f.Connection == MuseConnDown {
 			recovered := false
 			for rows.Next() {
-				var principal string
+				var principal, source string
 				var lastSeen int64
-				if serr := rows.Scan(&principal, &lastSeen); serr != nil {
+				if serr := rows.Scan(&principal, &source, &lastSeen); serr != nil {
 					continue
 				}
-				if principal != discPrincipal || lastSeen > discTs {
+				// A different principal's live lease is another
+				// active controller. The SAME principal recovers
+				// only via non-stdio activity newer than the
+				// disconnect (HTTP reconnect — stdio recovery is
+				// the session registry above, since a stdio lease
+				// from before the disconnect is the disconnecting
+				// session itself, and second-precision event
+				// timestamps cannot order same-second writes).
+				if principal != discPrincipal {
+					recovered = true
+				} else if source != "mcp-local" && lastSeen > discTs {
 					recovered = true
 				}
 			}

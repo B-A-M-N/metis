@@ -92,14 +92,23 @@ func TestDisconnectPresenceRecovery(t *testing.T) {
 	if f.Connection == MuseConnDown {
 		t.Fatal("A's disconnect must not mark live-lease controller B disconnected")
 	}
-	// Same-principal reconnection: A's lease newer than its disconnect.
-	if err := recordMusePresence("jwt:controller-a", "mcp-local", time.Hour); err != nil {
+	// Same-principal reconnection via HTTP: lease newer than
+	// the disconnect recovers (HTTP has no session rows).
+	if err := recordMusePresence("jwt:controller-a", "mcp-http", time.Hour); err != nil {
 		t.Fatal(err)
 	}
 	f = collectMuseFacts()
 	if f.Connection == MuseConnDown {
 		t.Fatal("reconnected principal (lease newer than disconnect) must recover connection")
 	}
+	// Same-principal reconnection via stdio: a NEW session row,
+	// not a refreshed principal lease, recovers.
+	sessR := newStdioSession()
+	sessR.recordPrincipal("jwt:controller-a")
+	if f := collectMuseFacts(); f.Connection == MuseConnDown {
+		t.Fatal("reconnected stdio session must recover connection via session registry")
+	}
+	_ = sessR
 	// Lease expiry: expired-lease principal yields Absent, never Down.
 	db, err := openTasksDB()
 	if err != nil {
