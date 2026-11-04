@@ -182,6 +182,7 @@ func mcpAuthCaller(args map[string]json.RawMessage) (principal string, remote bo
 		}
 		// Advisory only: a record failure must never fail auth.
 		_ = recordMusePresence(mcpPrincipalLocalOperator, "mcp-local", musePresenceLeaseTTL)
+		setLastMCPPrincipal(mcpPrincipalLocalOperator)
 		return mcpPrincipalLocalOperator, false, nil
 	}
 	if subtle.ConstantTimeCompare([]byte(mcpStr(args, "auth")), []byte(want)) != 1 {
@@ -189,6 +190,7 @@ func mcpAuthCaller(args map[string]json.RawMessage) (principal string, remote bo
 	}
 	// Advisory only: a record failure must never fail auth.
 	_ = recordMusePresence(mcpPrincipalRemoteToken, "mcp-remote", musePresenceLeaseTTL)
+	setLastMCPPrincipal(mcpPrincipalRemoteToken)
 	return mcpPrincipalRemoteToken, true, nil
 }
 
@@ -258,6 +260,9 @@ func mcpToolDelegate(raw json.RawMessage) (mcpToolResult, error) {
 	}
 	req := OperationRequest{Actor: mcpStr(args, "actor"), RequestID: mcpStr(args, "request_id"), Principal: principal, Remote: remote}
 	if err := mcpRefuseRemoteWrite("metis_delegate", req); err != nil {
+		// Capability refusals stay visible in the controller
+		// timeline without granting anything (Q-08 boundary kept).
+		emitDelegationRequested(req, mcpStr(args, "run"), mcpStr(args, "session"), mcpStr(args, "objective"), "refused")
 		return mcpToolResult{}, &mcpParamError{err.Error()}
 	}
 	key := mcpStr(args, "key")
@@ -269,6 +274,10 @@ func mcpToolDelegate(raw json.RawMessage) (mcpToolResult, error) {
 	if err != nil {
 		return mcpToolError("delegate create: %v", err)
 	}
+	// The ask is durable from creation: requested precedes the
+	// dispatch commit, so a create-without-dispatch gap is visible
+	// as exactly that, never as dispatched.
+	emitDelegationRequested(req, tk.Run, mcpStr(args, "session"), mcpStr(args, "objective"), "pending")
 	if tk.Status != TaskPending {
 		// Idempotent replay: the task already left pending.
 		return mcpTextResult(map[string]any{"task_id": tk.ID, "status": tk.Status, "replay": true})

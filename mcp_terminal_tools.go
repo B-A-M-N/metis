@@ -512,32 +512,40 @@ func mcpToolTerminalResize(raw json.RawMessage) (mcpToolResult, error) {
 // local tool authenticates via stdio, the HTTP transport via JWT,
 // and both funnel here so leases arbitrate identically.
 func mcpTerminalResizeOp(req OperationRequest, args map[string]json.RawMessage) (mcpToolResult, error) {
+	session := mcpStr(args, "session")
 	if err := mcpTerminalGate("metis_terminal_resize", req); err != nil {
+		emitTerminalResizeOutcome(req, session, "", false, err)
 		return mcpToolError("%s", err.Error())
 	}
 	rows, rerr := mcpTerminalSize(args, "rows")
 	if rerr != nil {
+		emitTerminalResizeOutcome(req, session, "", false, rerr)
 		return mcpToolResult{}, &mcpParamError{rerr.Error()}
 	}
 	cols, cerr := mcpTerminalSize(args, "cols")
 	if cerr != nil {
+		emitTerminalResizeOutcome(req, session, "", false, cerr)
 		return mcpToolResult{}, &mcpParamError{cerr.Error()}
 	}
 	hasGen, gen, gerr := mcpTerminalGeneration(args)
 	if gerr != nil {
+		emitTerminalResizeOutcome(req, session, "", false, gerr)
 		return mcpToolResult{}, &mcpParamError{gerr.Error()}
 	}
-	session := mcpStr(args, "session")
 	backend, bare, alive, terr := mcpTerminalResolve(session)
 	if terr != nil {
+		emitTerminalResizeOutcome(req, session, "", false, terr)
 		return mcpToolError("%v", terr)
 	}
 	if !alive {
-		return mcpToolError("terminal resize: session %q is not running; refusing stale resize", session)
+		err := fmt.Errorf("terminal resize: session %q is not running; refusing stale resize", session)
+		emitTerminalResizeOutcome(req, session, "", false, err)
+		return mcpToolError("%v", err)
 	}
 	var meta ptyMeta
 	if backend == TargetPTY {
 		if m, gerr := ptyCheckGeneration(bare, hasGen, gen); gerr != nil {
+			emitTerminalResizeOutcome(req, session, "", false, gerr)
 			return mcpToolError("%v", gerr)
 		} else {
 			meta = m
@@ -551,6 +559,7 @@ func mcpTerminalResizeOp(req OperationRequest, args map[string]json.RawMessage) 
 	}
 	stored, replay, kerr := mcpTerminalClaim(req.RequestID, "metis_terminal_resize", session, payload)
 	if kerr != nil {
+		emitTerminalResizeOutcome(req, session, "", false, kerr)
 		return mcpToolError("%v", kerr)
 	}
 	if replay {
@@ -560,11 +569,13 @@ func mcpTerminalResizeOp(req OperationRequest, args map[string]json.RawMessage) 
 	if backend == TargetPTY {
 		if err := ptyResizeAsOwner(bare, owner, rows, cols); err != nil {
 			mcpTerminalRelease(req.RequestID)
+			emitTerminalResizeOutcome(req, session, "", false, err)
 			return mcpToolError("terminal resize: %v", err)
 		}
 	} else {
 		if err := tmuxResizePaneAsOwner(bare, owner, rows, cols); err != nil {
 			mcpTerminalRelease(req.RequestID)
+			emitTerminalResizeOutcome(req, session, "", false, err)
 			return mcpToolError("terminal resize: %v", err)
 		}
 	}
@@ -575,6 +586,7 @@ func mcpTerminalResizeOp(req OperationRequest, args map[string]json.RawMessage) 
 	if backend == TargetPTY {
 		out["generation"] = meta.Generation
 	}
+	emitTerminalResizeOutcome(req, session, fmt.Sprintf("backend=%s %dx%d", backend, cols, rows), true, nil)
 	return mcpTerminalRecorded(req.RequestID, out)
 }
 

@@ -262,4 +262,8 @@ func (e *mcpMethodError) Error() string { return "unknown tool: " + e.name }
 // Ocliv, which hosts this stdio interface.
 func mcpServeStdio() {
 	mcpServeLoop(os.Stdin, os.Stdout)
+	// The stdio transport ended: if an authenticated controller
+	// used this process, its disconnect is a durable ledger fact
+	// (presence would otherwise only expire silently).
+	emitTransportDisconnected("mcp-local")
 }
