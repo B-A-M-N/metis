@@ -504,6 +504,14 @@ func mcpToolTerminalResize(raw json.RawMessage) (mcpToolResult, error) {
 		return mcpToolResult{}, &mcpParamError{aerr.Error()}
 	}
 	req := OperationRequest{Actor: mcpStr(args, "actor"), RequestID: mcpStr(args, "request_id"), Principal: principal, Remote: remote}
+	return mcpTerminalResizeOp(req, args)
+}
+
+// mcpTerminalResizeOp resizes one running session through the
+// lease-fenced paths. Transport-neutral like the input op: the
+// local tool authenticates via stdio, the HTTP transport via JWT,
+// and both funnel here so leases arbitrate identically.
+func mcpTerminalResizeOp(req OperationRequest, args map[string]json.RawMessage) (mcpToolResult, error) {
 	if err := mcpTerminalGate("metis_terminal_resize", req); err != nil {
 		return mcpToolError("%s", err.Error())
 	}
@@ -665,10 +673,18 @@ func mcpTerminalStatus(session string) (mcpToolResult, error) {
 	if err != nil {
 		return mcpToolError("%v", err)
 	}
+	// Unified execution lifecycle across backends. `alive` above
+	// stays terminal-process liveness (native has no terminal);
+	// unified_lifecycle is the cross-backend running/ready/
+	// stopped/failed/unknown process/harness projection, and
+	// task_occupancy (busy/idle/unknown) is the separate ledger
+	// fact — occupancy never implies readiness.
+	unified, _, occupancy := sessionUnifiedLifecycle(session)
 	return mcpTextResult(map[string]any{
 		"session": session, "backend": id.backend, "alive": id.alive,
 		"workdir": id.workdir, "harness": id.harness, "model": id.model,
 		"native_bound": id.nativeBound, "native_id": id.nativeID,
+		"unified_lifecycle": unified, "task_occupancy": occupancy,
 	})
 }
 

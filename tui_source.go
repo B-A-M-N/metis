@@ -44,9 +44,14 @@ type sessionIdentity struct {
 	Canonical   string
 	Backend     string
 	Lifecycle   string
-	Observation string
-	Provider    string
-	Profile     string
+	// UnifiedLifecycle is the cross-backend running/ready/busy/
+	// stopped/failed/unknown projection (session_lifecycle_unified).
+	// Lifecycle keeps the backend's recorded state for compatibility.
+	UnifiedLifecycle string
+	TaskOccupancy    string
+	Observation      string
+	Provider         string
+	Profile          string
 }
 
 // contentSnapshot is the selected session's terminal content.
@@ -118,18 +123,21 @@ func (liveRefreshSource) snapshots(ctx context.Context, sel string, everyGit boo
 	}
 	reg, metas, metaByDisplay, batchLive, listOK := sessionsRoundContext(ctx)
 	out.sessionsOk = listOK
-	out.sessions = liveSessionsSnapshotContext(ctx, reg, metas, metaByDisplay, batchLive)
+	busyByAgent, busyKnown := sessionBusyAll()
+	out.sessions = liveSessionsSnapshotContextBusy(ctx, reg, metas, metaByDisplay, batchLive, busyByAgent, busyKnown)
 	nativeRows, nativeErr := listNativeSessions()
 	if nativeErr != nil {
 		out.sessionsOk = false
 	} else {
 		for _, ls := range nativeRows {
 			key := nativePrefix + ls.Name
+			occ := sessionOccupancyFor(key, busyByAgent, busyKnown)
+			unified, alive := lifecycleForNative(ls.State, ls.NativeID != "" && harnessInteractive(ls.Harness))
 			out.sessions = append(out.sessions, sessionSnapshot{
-				name: key, running: ls.State == logicalActive,
+				name: key, running: alive,
 				entry: Session{Name: ls.Name, Workdir: ls.Workspace, Harness: ls.Harness, Model: ls.Model},
 				identity: sessionIdentity{Canonical: ls.Name, Backend: TargetMuseNative,
-					Lifecycle: ls.State, Observation: "durable_local", Provider: ls.Provider, Profile: ls.Profile},
+					Lifecycle: ls.State, UnifiedLifecycle: unified, TaskOccupancy: occ, Observation: "durable_local", Provider: ls.Provider, Profile: ls.Profile},
 				detail: tabDetail{Harness: ls.Harness, Provider: ls.Provider, Profile: ls.Profile,
 					Model: ls.Model, Workdir: ls.Workspace, Title: ls.Objective},
 			})
@@ -193,6 +201,10 @@ func liveSessionsSnapshot(reg map[string]Session, metas []ptyMeta, metaByDisplay
 }
 
 func liveSessionsSnapshotContext(ctx context.Context, reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool) []sessionSnapshot {
+	return liveSessionsSnapshotContextBusy(ctx, reg, metas, metaByDisplay, batchLive, nil, false)
+}
+
+func liveSessionsSnapshotContextBusy(ctx context.Context, reg map[string]Session, metas []ptyMeta, metaByDisplay map[string]ptyMeta, batchLive map[string]bool, busyByAgent map[string]bool, busyKnown bool) []sessionSnapshot {
 	var out []sessionSnapshot
 	titles := latestTitleByAgent()
 	for _, n := range combinedNames(reg, metas) {
@@ -203,7 +215,11 @@ func liveSessionsSnapshotContext(ctx context.Context, reg map[string]Session, me
 			// ptyListAll fetched every record in one query;
 			// classify in memory instead of reopening the
 			// database per session.
-			row.running = ptyClassify(mt) == "running"
+			occ := sessionOccupancyFor(n, busyByAgent, busyKnown)
+			unified, alive := lifecycleForPty(ptyClassify(mt), mt.ExitCode, harnessInteractive(mt.Harness))
+			row.identity.UnifiedLifecycle = unified
+			row.identity.TaskOccupancy = occ
+			row.running = alive
 			row.entry = Session{Name: n, Workdir: mt.Workdir, Command: mt.Command,
 				Harness: mt.Harness, Model: mt.Model}
 			row.logGen, row.hasGen = mt.Generation, true
@@ -214,15 +230,21 @@ func liveSessionsSnapshotContext(ctx context.Context, reg map[string]Session, me
 			row.detail = tabDetail{Harness: mt.Harness, Model: mt.Model,
 				Workdir: mt.Workdir, Title: title}
 		} else if e, ok := reg[n]; ok {
+			var probe bool
 			if batchLive != nil {
 				target := e.Tmux
 				if target == "" {
 					target = sessionTmuxTarget(n, "")
 				}
-				row.running = batchLive[target]
+				probe = batchLive[target]
 			} else {
-				row.running = sessionRunningContext(ctx, n)
+				probe = sessionRunningContext(ctx, n)
 			}
+			occ := sessionOccupancyFor(n, busyByAgent, busyKnown)
+			unified, alive := lifecycleForTmux(e.Stopped, probe, harnessInteractive(e.Harness))
+			row.identity.UnifiedLifecycle = unified
+			row.identity.TaskOccupancy = occ
+			row.running = alive
 			row.entry = e
 			row.detail = tabDetail{Harness: e.Harness, Provider: e.Provider, Profile: e.Profile,
 				Model: e.Model, Workdir: e.Workdir, Title: titles[n]}
@@ -386,7 +408,11 @@ func liveContentSnapshotContext(ctx context.Context, reg map[string]Session, met
 		out := contentSnapshot{found: true,
 			entry: Session{Name: sel, Workdir: mt.Workdir, Command: mt.Command,
 				Harness: mt.Harness, Model: mt.Model}}
-		live, cut := boundedPTYLogLines(mt, 500)
+		// PTY output is a byte stream: render it through the
+		// screen model so CR/erase overwrites paint as final
+		// text, not stacked fragments (pty_screen.go). Styles
+		// and alt-screen apps are not emulated (pane title).
+		live, cut := boundedPTYScreenLines(mt, 500)
 		if cut {
 			live = markTruncated(live, "truncated: showing last 500 lines")
 		}

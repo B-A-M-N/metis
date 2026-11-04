@@ -527,3 +527,36 @@ func latestMuseMessageRow(name string) (req, turn, terminal string, found bool, 
 	}
 	return req, turn, terminal, true, nil
 }
+
+// sessionBusyAll is the read-model seam behind task occupancy:
+// agent spellings with an open dispatched/working
+// task. One query per call; callers preload once per listing.
+// known=false means the store could not answer (unreadable/missing
+// tasks table) — the projection must fall back to running, never
+// ready.
+func sessionBusyAll() (map[string]bool, bool) {
+	db, err := openTasksDB()
+	if err != nil {
+		return nil, false
+	}
+	defer db.Close()
+	rows, err := db.Query(`SELECT DISTINCT agent FROM tasks WHERE status IN ('dispatched','working')`)
+	if err != nil {
+		return nil, false
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var agent string
+		if err := rows.Scan(&agent); err != nil {
+			continue
+		}
+		if agent != "" {
+			out[agent] = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false
+	}
+	return out, true
+}

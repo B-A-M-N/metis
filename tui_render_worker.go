@@ -33,13 +33,12 @@ func renderLivePane(m model, sel string, lay renderLayout) []string {
 	title := fmt.Sprintf("Text snapshot: %s (%s/%s; F5 opens full terminal)", sel,
 		orDash(provider), orDash(model))
 	if isPtySession(sel) {
-		// Deliberately NOT "Live PTY": this pane is a sanitized
-		// log snapshot, not a virtual-terminal emulator. No
-		// escape-sequence interpretation, no resize forwarding to
-		// the PTY master (use pty-resize / session_resize for
-		// explicit resizes); live keystrokes still reach the
-		// worker through the input lane.
-		title = fmt.Sprintf("PTY snapshot: %s (%s/%s; text view, keys go to worker; F5 n/a)", sel,
+		// Screen-rendered text (CR/erase overwrites applied),
+		// not a VT emulator: styles and alt-screen apps are
+		// not reproduced. Full terminal for PTY workers is
+		// the `pty-log` CLI / MCP terminal output; tmux
+		// workers get F5 native attach.
+		title = fmt.Sprintf("PTY screen text: %s (%s/%s; overwrites applied, no alt-screen; keys to worker; F5 n/a)", sel,
 			orDash(provider), orDash(model))
 	}
 	if m.isNativeSelection(sel) {
@@ -58,6 +57,12 @@ func renderInfoPane(m model, sel string, lay renderLayout) []string {
 	health := "stopped"
 	if m.running[sel] {
 		health = "running"
+	}
+	// Native sessions have no probed process: the tab's running
+	// dot comes from durable recorded state alone. Label it as
+	// recorded state, never as observed liveness.
+	if id, ok := m.identities[sel]; ok && id.Backend == TargetMuseNative {
+		health = "recorded " + orDash(id.Lifecycle) + " (not probed)"
 	}
 	provider := detail.Provider
 	if provider == "" {
@@ -82,6 +87,8 @@ func renderInfoPane(m model, sel string, lay renderLayout) []string {
 		"Model: " + orDash(model),
 		"Profile: " + orDash(profile),
 		"Process: " + health,
+		"Lifecycle: " + orDash(m.identities[sel].UnifiedLifecycle),
+		"Task occupancy: " + orDash(m.identities[sel].TaskOccupancy),
 		"Working directory:",
 		workdir,
 	}

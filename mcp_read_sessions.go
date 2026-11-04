@@ -94,18 +94,21 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 	}
 	sort.Strings(names)
 	type agentView struct {
-		Name        string `json:"name"`
-		Backend     string `json:"backend"`
-		Harness     string `json:"harness"`
-		Model       string `json:"model"`
-		Provider    string `json:"provider,omitempty"`
-		Profile     string `json:"profile,omitempty"`
-		Alive       bool   `json:"alive"`
-		Workdir     string `json:"workdir"`
-		Created     string `json:"created"`
-		Lifecycle   string `json:"lifecycle,omitempty"`
-		Observation string `json:"observation,omitempty"`
+		Name              string `json:"name"`
+		Backend           string `json:"backend"`
+		Harness           string `json:"harness"`
+		Model             string `json:"model"`
+		Provider          string `json:"provider,omitempty"`
+		Profile           string `json:"profile,omitempty"`
+		Alive             bool   `json:"alive"`
+		Workdir           string `json:"workdir"`
+		Created           string `json:"created"`
+		Lifecycle         string `json:"lifecycle,omitempty"`
+		Observation       string `json:"observation,omitempty"`
+		UnifiedLifecycle  string `json:"unified_lifecycle"`
+		TaskOccupancy     string `json:"task_occupancy"`
 	}
+	busyByAgent, busyKnown := sessionBusyAll()
 	out := []agentView{}
 	truncated := false
 	for _, name := range names {
@@ -117,32 +120,41 @@ func mcpToolAgents(raw json.RawMessage) (mcpToolResult, error) {
 			break
 		}
 		if m, ok := byPty[name]; ok {
+			occ := sessionOccupancyFor(name, busyByAgent, busyKnown)
+			unified, alive := lifecycleForPty(ptyClassify(m), m.ExitCode, harnessInteractive(m.Harness))
 			out = append(out, agentView{
 				Name: name, Backend: TargetPTY,
 				Harness: m.Harness, Model: m.Model,
-				Alive:   workerSessionAlive(name),
+				Alive:   alive,
 				Workdir: m.Workdir,
+				UnifiedLifecycle: unified, TaskOccupancy: occ,
 			})
 			continue
 		}
 		if ls, ok := byNative[name]; ok {
 			// Recorded state only: no daemon dial, so Alive
 			// reflects the stored lifecycle, not a live check.
+			occ := sessionOccupancyFor(name, busyByAgent, busyKnown)
+			unified, alive := lifecycleForNative(ls.State, ls.NativeID != "" && harnessInteractive(ls.Harness))
 			out = append(out, agentView{
 				Name: name, Backend: TargetMuseNative,
 				Harness: ls.Harness, Model: ls.Model, Provider: ls.Provider, Profile: ls.Profile,
-				Alive:   ls.State == "active",
+				Alive:   alive,
 				Workdir: ls.Workspace, Created: ls.Created,
 				Lifecycle: ls.State, Observation: "not_probed",
+				UnifiedLifecycle: unified, TaskOccupancy: occ,
 			})
 			continue
 		}
 		s := reg[name]
+		occ := sessionOccupancyFor(name, busyByAgent, busyKnown)
+		unified, alive := lifecycleForTmux(s.Stopped, workerSessionAlive(name), harnessInteractive(s.Harness))
 		out = append(out, agentView{
 			Name: name, Backend: TargetTMUX,
 			Harness: s.Harness, Model: s.Model, Provider: s.Provider, Profile: s.Profile,
-			Alive:   workerSessionAlive(name),
+			Alive:   alive,
 			Workdir: s.Workdir, Created: s.Created,
+			UnifiedLifecycle: unified, TaskOccupancy: occ,
 		})
 	}
 	return mcpTextResult(map[string]any{"agents": out, "total": len(names), "truncated": truncated})

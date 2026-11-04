@@ -128,7 +128,7 @@ func mcpTools() []mcpTool {
 	return []mcpTool{
 		{"metis_status", "Controller health: Muse activity state, outstanding and blocked work, latest event sequence. Read-only.",
 			mcpSchema(nil, map[string]string{})},
-		{"metis_agents", "Managed sessions with backend, harness, model, and liveness, unified across the tmux registry and managed PTY supervisors (PTY names are pty:-qualified), sorted by name with cursor pagination (after/limit). Owner tokens and commands are never exposed. Read-only.",
+		{"metis_agents", "Managed sessions with backend, harness, model, unified_lifecycle (running/ready/stopped/failed/unknown process/harness projection) and task_occupancy (busy/idle/unknown ledger fact, never folded into readiness), unified across the tmux registry and managed PTY supervisors (PTY names are pty:-qualified); muse-native entries carry recorded durable state only (observation=not_probed, alive reflects the record, not a live probe), sorted by name with cursor pagination (after/limit). Owner tokens and commands are never exposed. Read-only.",
 			mcpSchema(nil, map[string]string{"after": "string", "limit": "number"})},
 		{"metis_events", "Durable orchestration events after a cursor, oldest first. Read-only.",
 			mcpSchema(nil, map[string]string{"run": "string", "after_seq": "number", "limit": "number"})},
