@@ -14,6 +14,14 @@ import (
 // workdirs return an empty inspect, never an error that could be
 // mistaken for a missing project authority.
 func mcpProjectInspect(workdir string) (mcpToolResult, error) {
+	return mcpProjectInspectScope(workdir, nil)
+}
+
+// mcpProjectInspectScope applies the read scope to sessions,
+// tasks, and runs BEFORE the response is constructed: two
+// controllers sharing a workdir never see each other's task
+// metadata through project inspection.
+func mcpProjectInspectScope(workdir string, scope *ReadScope) (mcpToolResult, error) {
 	// Unified projection: tmux registry sessions plus managed PTY
 	// supervisors in the same workdir, display-qualified.
 	reg := loadRegistry()
@@ -33,6 +41,15 @@ func mcpProjectInspect(workdir string) (mcpToolResult, error) {
 		}
 	}
 	sort.Strings(names)
+	if scope != nil && !scope.FleetWide {
+		filtered := names[:0]
+		for _, n := range names {
+			if scopeAllowsSession(scope, n) {
+				filtered = append(filtered, n)
+			}
+		}
+		names = filtered
+	}
 	inSet := map[string]bool{}
 	for _, n := range names {
 		inSet[n] = true
@@ -45,7 +62,7 @@ func mcpProjectInspect(workdir string) (mcpToolResult, error) {
 	runs := []string{}
 	seenRun := map[string]bool{}
 	for _, tk := range all {
-		if !inSet[tk.Agent] {
+		if !inSet[tk.Agent] || !scopeAllowsTask(scope, tk) {
 			continue
 		}
 		rows = append(rows, mcpTaskRow(tk))
@@ -76,30 +93,7 @@ func mcpToolProjectsScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult,
 			return mcpToolResult{}, &mcpParamError{"arguments must be an object"}
 		}
 		if wd := mcpStr(args, "workdir"); wd != "" {
-			res, err := mcpProjectInspect(wd)
-			if err != nil || scope == nil || scope.FleetWide {
-				return res, err
-			}
-			// Scoped inspect: sessions/tasks limited to the
-			// reader's own; a workdir with none of its own
-			// sessions reads as an unknown workdir.
-			var payload map[string]any
-			if jerr := json.Unmarshal([]byte(res.Content[0].Text), &payload); jerr != nil {
-				return res, err
-			}
-			sessions, _ := payload["sessions"].([]any)
-			keep := []any{}
-			for _, sn := range sessions {
-				name, _ := sn.(string)
-				if scopeAllowsSession(scope, name) {
-					keep = append(keep, name)
-				}
-			}
-			if len(keep) == 0 {
-				return mcpTextResult(map[string]any{"workdir": wd, "sessions": []any{}, "tasks": []any{}, "runs": []any{}})
-			}
-			payload["sessions"] = keep
-			return mcpTextResult(payload)
+			return mcpProjectInspectScope(wd, scope)
 		}
 	}
 	reg := loadRegistry()

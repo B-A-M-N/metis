@@ -56,14 +56,18 @@ func mcpToolStatusScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, e
 			blocked++
 		}
 	}
-	evs, err := listOrchEvents("", 0, maxOrchPage)
+	// Newest-first bounded scan: the latest visible event's seq,
+	// found without paging foreign history from the front.
+	latest, err := listLatestOrchEvents(maxOrchPage)
 	if err != nil {
 		return mcpToolError("status: %v", err)
 	}
-	evs = filterScopedEvents(scope, evs)
 	var seq int64
-	if len(evs) > 0 {
-		seq = evs[len(evs)-1].Seq
+	for _, e := range latest {
+		if scopeAllowsEvent(scope, e) {
+			seq = e.Seq
+			break
+		}
 	}
 	return mcpTextResult(map[string]any{
 		"open": open, "blocked": blocked,

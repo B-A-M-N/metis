@@ -23,19 +23,37 @@ func mcpToolEventsScope(raw json.RawMessage, scope *ReadScope) (mcpToolResult, e
 	}
 	limit := int(mcpNum(args, "limit"))
 	if scope != nil && !scope.FleetWide {
-		events, err := listOrchEvents(mcpStr(args, "run"), int64(mcpNum(args, "after_seq")), maxOrchPage)
-		if err != nil {
-			return mcpToolError("events: %v", err)
+		// Bounded forward scanning: pages of maxOrchPage are
+		// scanned (never the whole history per request) and
+		// the cursor advances past every scanned row —
+		// accessible or not — so a window full of foreign
+		// events cannot stall an authorized reader at 0.
+		// The visible-event limit is preserved.
+		cursor := int64(mcpNum(args, "after_seq"))
+		var visible []OrchEvent
+		for {
+			page, err := listOrchEvents(mcpStr(args, "run"), cursor, maxOrchPage)
+			if err != nil {
+				return mcpToolError("events: %v", err)
+			}
+			if len(page) == 0 {
+				break
+			}
+			cursor = page[len(page)-1].Seq
+			for _, e := range page {
+				if scopeAllowsEvent(scope, e) {
+					visible = append(visible, e)
+				}
+			}
+			if limit > 0 && len(visible) >= limit {
+				visible = visible[:limit]
+				break
+			}
+			if len(page) < maxOrchPage {
+				break
+			}
 		}
-		events = filterScopedEvents(scope, events)
-		if limit > 0 && len(events) > limit {
-			events = events[:limit]
-		}
-		var cursor int64
-		if len(events) > 0 {
-			cursor = events[len(events)-1].Seq
-		}
-		return mcpTextResult(map[string]any{"events": events, "cursor": cursor})
+		return mcpTextResult(map[string]any{"events": visible, "cursor": cursor})
 	}
 	events, err := listOrchEvents(mcpStr(args, "run"), int64(mcpNum(args, "after_seq")), limit)
 	if err != nil {
